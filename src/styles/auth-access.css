@@ -1,0 +1,24 @@
+.auth-access-layer{position:fixed;z-index:600;inset:0;display:grid;place-items:center;padding:20px;background:rgba(23,23,15,.55)}
+.auth-access-mask{position:absolute;inset:0;width:100%;height:100%}
+.auth-access-layer>section{position:relative;z-index:1;width:min(353px,100%);padding:24px 20px 20px;text-align:center;background:#fff;border-radius:16px;box-shadow:0 14px 34px rgba(9,9,0,.24)}
+.auth-access-close{position:absolute;right:8px;top:8px;width:40px;height:40px;display:grid;place-items:center;color:#636362;border-radius:10px}
+.auth-access-mark{width:56px;height:56px;margin:0 auto 15px;display:grid;place-items:center;color:#1f1f1d;font:900 24px/1 Inter,sans-serif;background:#ffe62a;border-radius:17px}
+.auth-access-layer h2{font-size:21px;line-height:28px;font-weight:900;letter-spacing:.4px}
+.auth-access-layer p{margin-top:8px;color:#636362;font-size:14px;line-height:23px}
+.auth-access-layer small{display:block;margin-top:7px;color:#8c8c8a;font-size:12px;line-height:20px}
+.auth-access-layer footer{margin-top:20px;display:grid;grid-template-columns:112px 1fr;gap:10px}
+.auth-access-layer footer button{height:48px;font-size:15px;font-weight:800;border:1px solid #d4d4d0;border-radius:13px}
+.auth-access-layer footer .primary{color:#1f1f1d;background:#ffe62a;border-color:#ffe62a}
+.auth-access-layer button:focus-visible,.auth-required-page button:focus-visible{outline:2px solid #17170f;outline-offset:2px}
+
+.auth-required-page{width:100%;max-width:393px;min-height:100dvh;margin:0 auto;color:#1f1f1d;background:#f7f7f5;font-family:"Noto Sans SC","PingFang SC",sans-serif}
+.auth-required-status{height:44px;padding:0 16px;display:flex;align-items:center;justify-content:space-between;background:#ffe62a}
+.auth-required-status time{font-size:15px;font-weight:700}
+.auth-required-status>span{width:69px;display:flex;align-items:center;justify-content:space-between}.auth-required-status img:nth-child(1){width:17px;height:11px}.auth-required-status img:nth-child(2){width:15px;height:11px}.auth-required-status img:nth-child(3){width:25px;height:12px}
+.auth-required-page>section{min-height:calc(100dvh - 44px);padding:72px 24px 28px;display:flex;flex-direction:column;align-items:center;text-align:center;background:linear-gradient(#ffe62a 0 146px,#f7f7f5 146px)}
+.auth-required-page>section>span{width:68px;height:68px;display:grid;place-items:center;color:#ffe62a;font:900 29px/1 Inter,sans-serif;background:#17170f;border-radius:20px;box-shadow:0 8px 20px rgba(9,9,0,.18)}
+.auth-required-page h1{margin-top:20px;font-size:25px;line-height:33px;font-weight:900;letter-spacing:.6px}
+.auth-required-page p{margin-top:10px;color:#5a4d12;font-size:14px;line-height:23px}
+.auth-required-page small{margin-top:28px;padding:14px 16px;color:#636362;font-size:13px;line-height:22px;text-align:left;background:#f2f2ef;border-radius:14px}
+.auth-required-page section>button{width:100%;height:50px;margin-top:12px;font-size:15px;font-weight:800;border:1px solid #d4d4d0;border-radius:14px}
+.auth-required-page section>button.primary{margin-top:28px;color:#ffe62a;background:#17170f;border-color:#17170f}
