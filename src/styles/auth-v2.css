@@ -40,11 +40,11 @@
 .auth-v2-dialog footer button:only-child { grid-column: 1 / -1; }
 .auth-v2-dialog footer:has(button + button.secondary) { grid-template-columns: 1fr; }
 .auth-v2-launch-loading { min-height: max(100dvh, 680px); background: #f7f7f5; }
-.auth-v2-launch-loading > div { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
-.auth-v2-launch-loading > div b { width: 66px; height: 66px; display: grid; place-items: center; font-size: 30px; line-height: 1; font-weight: 900; letter-spacing: 1px; background: var(--auth-yellow); border-radius: 20px; }
-.auth-v2-launch-loading > div strong { font-size: 24px; line-height: 29px; font-weight: 900; letter-spacing: 2px; }
-.auth-v2-launch-loading > div span { color: #9a9a98; font-size: 13px; line-height: 17px; letter-spacing: .6px; }
-.auth-v2-launch-loading > div i { width: 27px; height: 27px; margin-top: 1px; border: 2px solid #e5e5e1; border-top-color: var(--auth-yellow); border-radius: 50%; animation: auth-v2-spin .75s linear infinite; }
+.auth-v2-launch-body { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
+.auth-v2-launch-body b { width: 66px; height: 66px; display: grid; place-items: center; font-size: 30px; line-height: 1; font-weight: 900; letter-spacing: 1px; background: var(--auth-yellow); border-radius: 20px; }
+.auth-v2-launch-body strong { font-size: 24px; line-height: 29px; font-weight: 900; letter-spacing: 2px; }
+.auth-v2-launch-body span { color: #9a9a98; font-size: 13px; line-height: 17px; letter-spacing: .6px; }
+.auth-v2-launch-body i { width: 27px; height: 27px; margin-top: 1px; border: 2px solid #e5e5e1; border-top-color: var(--auth-yellow); border-radius: 50%; animation: auth-v2-spin .75s linear infinite; }
 .auth-v2-launch-loading footer { position: absolute; right: 0; bottom: calc(36px + env(safe-area-inset-bottom)); left: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; color: #b3b3b1; font-size: 11px; line-height: 14px; letter-spacing: .4px; }
 .auth-v2-launch-loading footer small { color: #c2c2c0; font: 400 9px/11px Inter, Arial, sans-serif; }
 .auth-v2-load-error { position: absolute; z-index: 5; inset: 0; display: grid; place-content: center; justify-items: center; gap: 14px; background: var(--auth-yellow); font-size: 14px; font-weight: 700; }
@@ -154,5 +154,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .auth-v2-launch-loading > div i { animation-duration: 1.5s; }
+  .auth-v2-launch-body i { animation-duration: 1.5s; }
 }

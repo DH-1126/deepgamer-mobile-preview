@@ -88,7 +88,7 @@ export function WelcomePage() {
   }
   if (phase === 'loading') return <main className="auth-v2-page auth-v2-launch-loading" data-node-id="511:11431">
     <StatusBar />
-    <div><b>DG</b><strong>深度玩家</strong><span>一亿玩家自己的游戏平台</span><i role="status" aria-label="正在安全加载" /></div>
+    <div className="auth-v2-launch-body"><b>DG</b><strong>深度玩家</strong><span>一亿玩家自己的游戏平台</span><i role="status" aria-label="正在安全加载" /></div>
     <footer><span>资金托管 · 平台验号 · 客服介入</span><small>v1.1.0</small></footer>
   </main>
   return <main className="auth-v2-page auth-v2-welcome" data-node-id="511:11253">
