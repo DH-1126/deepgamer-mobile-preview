@@ -31,6 +31,21 @@ describe('favoritesModel', () => {
     expect(filterFavorites(equal, { gameCode: 'all', status: 'all', time: 'all' }, now).map((item) => item.productId)).toEqual(['3', '1', '2'])
   })
 
+  it('搜索标题、游戏名、平台、商品编号和标签，并与筛选组合生效', () => {
+    const all = { gameCode: 'all', status: 'all', time: 'all' } as const
+    expect(filterFavorites(records, all, now, '王者荣耀').map((item) => item.productId)).toEqual(['2', '1'])
+    expect(filterFavorites(records, all, now, 'QQ').map((item) => item.productId)).toContain('1')
+    expect(filterFavorites(records, all, now, '2114872829163482747').map((item) => item.productId)).toEqual(['2114872829163482747'])
+    expect(filterFavorites(records, all, now, 'WZ0001').map((item) => item.productId)).toEqual(['1'])
+    expect(filterFavorites(records, { gameCode: 'wzry', status: 'trading', time: '7d' }, now, '王者').map((item) => item.productId)).toEqual(['2'])
+    expect(filterFavorites(records, { gameCode: 'wzry', status: 'on_sale', time: '7d' }, now, 'V10').map((item) => item.productId)).toEqual(['1'])
+  })
+
+  it('空白搜索等同于未搜索', () => {
+    const filters = { gameCode: 'all', status: 'all', time: 'all' } as const
+    expect(filterFavorites(records, filters, now, '   ')).toEqual(filterFavorites(records, filters, now))
+  })
+
   it('只对当前结果全选，筛选变化清空，删除模型保留未选项', () => {
     let selection = toggleFavoriteSelection(new Set(), '1')
     expect(selectionState(selection, ['1', '2'])).toBe('mixed')

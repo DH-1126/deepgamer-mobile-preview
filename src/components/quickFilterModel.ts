@@ -1,5 +1,14 @@
+import type { SortKey } from '../types/catalog'
+
 export type ServerOption = 'all' | 'qq' | 'wechat' | 'steam'
-export type ToolbarSelection = 'default' | 'server' | 'price'
+export type ToolbarSelection = 'sort' | 'server' | 'price'
+
+export const sortOptions: ReadonlyArray<{ value: SortKey; label: string }> = [
+  { value: 'default', label: '综合' },
+  { value: 'listed_at_desc', label: '最新' },
+  { value: 'price_asc', label: '价格升序' },
+  { value: 'price_desc', label: '价格降序' },
+]
 
 export const serverPlatforms: Record<ServerOption, string[]> = {
   all: [],
@@ -32,7 +41,7 @@ export function hasInvalidPriceRange(min: string, max: string) {
 
 export function getToolbarActiveState(selection: ToolbarSelection) {
   return {
-    default: selection === 'default',
+    sort: selection === 'sort',
     server: selection === 'server',
     price: selection === 'price',
   }

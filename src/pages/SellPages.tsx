@@ -62,7 +62,7 @@ export function AppraisalPage() {
     if (!sellRepository.selectGame(game.code) || !sellRepository.selectRecycler(recycler.id)) { setError('选择保存失败，请重试'); return }
     const order = recycleRepository.begin(recycler.id)
     if (!order) { setError('咨询创建失败，请重试'); return }
-    navigate('/appraisal/detail')
+    navigate(`/appraisal/detail?id=${encodeURIComponent(order.id)}`)
   }
   return <main className="sell-v2-page sell-v2-recyclers-page"><header><BackTitle title={`${game.name}回收商`} fallback="/sell" /><div className="sell-v2-selected-game"><i style={{ background: game.color }}>{game.mark}</i><span><b>{game.name}</b><small>{recyclers.length} 家回收商可咨询</small></span></div></header>
     <section className="sell-v2-warning"><ShieldCheck size={16} aria-hidden="true" /><span><b>咨询估价不等于成交</b><small>收到正式报价后再决定卖不卖，确认前不产生交易。</small></span></section>
@@ -74,18 +74,20 @@ export function AppraisalPage() {
 
 export function AppraisalDetailPage() {
   const navigate = useNavigate()
+  const [params] = useSearchParams()
+  const targetOrderId = params.get('id')
   const [order, setOrder] = useState<RecycleOrder>()
   const [text, setText] = useState('')
   const [error, setError] = useState('')
   const [toast, setToast] = useState('')
   const [now, setNow] = useState(Date.now())
   const fileRef = useRef<HTMLInputElement>(null)
-  const sync = useCallback(() => setOrder(recycleRepository.getActive()), [])
+  const sync = useCallback(() => setOrder(targetOrderId ? recycleRepository.get(targetOrderId) : recycleRepository.getActive()), [targetOrderId])
   useEffect(() => { sync(); return recycleRepository.subscribe(sync) }, [sync])
   useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(timer) }, [])
   useEffect(() => { if (!toast) return; const timer = window.setTimeout(() => setToast(''), 1800); return () => window.clearTimeout(timer) }, [toast])
   if (!order) return <main className="sell-v2-page"><BackTitle title="回收咨询" fallback="/sell" /><div className="sell-v2-empty"><h2>还没有进行中的咨询</h2><p>先选择游戏和回收商，再开始估价。</p><Link to="/sell">选择游戏</Link></div></main>
-  if (['submitted', 'inspecting', 'completed'].includes(order.stage)) return <Navigate to={order.stage === 'submitted' && !order.submission ? '/appraisal/fill' : '/appraisal/loading'} replace />
+  if (['submitted', 'inspecting', 'completed'].includes(order.stage)) return <Navigate to={`${order.stage === 'submitted' && !order.submission ? '/appraisal/fill' : '/appraisal/loading'}?id=${encodeURIComponent(order.id)}`} replace />
   const send = () => {
     const issue = validateConsultationText(text); setError(issue); if (issue) return
     if (!recycleRepository.sendMessage(order.id, text)) { setError('发送失败，请重试'); return }
@@ -95,7 +97,7 @@ export function AppraisalDetailPage() {
   const updateMaterial = (key: 'battle_screenshot' | 'platform_binding', value: string) => { if (!recycleRepository.setMaterial(order.id, key, value)) setToast('保存失败，请重试') }
   const createFormal = () => { if (!recycleRepository.createFormalOrder(order.id)) { setToast(materialCount ? `还有 ${materialCount} 项未完成` : '创建回收单失败'); return } }
   const reject = () => { if (recycleRepository.reject(order.id)) setToast('已结束本次回收咨询') }
-  const confirm = () => { if (!recycleRepository.confirmOrder(order.id)) { setToast('确认失败，请重试'); return } navigate('/appraisal/fill') }
+  const confirm = () => { if (!recycleRepository.confirmOrder(order.id)) { setToast('确认失败，请重试'); return } navigate(`/appraisal/fill?id=${encodeURIComponent(order.id)}`) }
   return <main className="sell-v2-page sell-v2-chat-page">
     <header><BackTitle title={`${order.gameName} · 回收咨询`} subtitle={`${order.recyclerName} · ${order.stage === 'formal' ? '待你确认回收单' : order.stage === 'offered' ? '待你决定' : order.stage === 'materials' ? '报价已接受' : '接单中'}`} fallback="/appraisal" menu /></header>
     <div className="sell-v2-chat-log" role="log" aria-live="polite">
@@ -121,7 +123,9 @@ const emptyForm: RecycleFormInput = { loginAccount: '', campId: '88412903', canR
 
 export function AppraisalFillPage() {
   const navigate = useNavigate()
-  const [order] = useState(() => recycleRepository.getActive())
+  const [params] = useSearchParams()
+  const targetOrderId = params.get('id')
+  const [order] = useState(() => targetOrderId ? recycleRepository.get(targetOrderId) : recycleRepository.getActive())
   const [form, setForm] = useState<RecycleFormInput>(emptyForm)
   const [errors, setErrors] = useState<Partial<Record<keyof RecycleFormInput, string>>>({})
   const [submitting, setSubmitting] = useState(false)
@@ -134,7 +138,7 @@ export function AppraisalFillPage() {
     setSubmitting(false)
     if (!ok) { setErrors({ loginAccount: '提交失败，请检查回收单状态后重试' }); return }
     setForm((current) => ({ ...current, loginAccount: '' }))
-    navigate('/appraisal/loading')
+    navigate(`/appraisal/loading?id=${encodeURIComponent(order.id)}`)
   }
   return <main className="sell-v2-page sell-v2-fill-page"><header><BackTitle title="填写回收资料" fallback="/appraisal/detail" /></header><QuoteSummary order={order} />
     <form onSubmit={(event) => { event.preventDefault(); submit() }} noValidate><h2>账号资料</h2><section>
@@ -144,7 +148,7 @@ export function AppraisalFillPage() {
       <fieldset><legend>账号截图 <small>{form.screenshotCount}/6</small></legend><div className="sell-v2-upload"><button type="button" onClick={() => fileRef.current?.click()}><Upload size={18} /><span>添加</span></button>{form.screenshotCount > 0 && <i><ImageIcon size={22} /><button type="button" onClick={() => setForm({ ...form, screenshotCount: 0 })} aria-label="移除截图"><X size={12} /></button></i>}</div><input ref={fileRef} hidden type="file" multiple accept="image/*" onChange={(event) => setForm({ ...form, screenshotCount: Math.min(6, event.target.files?.length ?? 0) })} /><p>建议上传皮肤页、战绩页和英雄列表。请勿包含密码、验证码或身份证信息。</p>{errors.screenshotCount && <small role="alert">{errors.screenshotCount}</small>}</fieldset>
       <label><span>补充说明</span><textarea maxLength={200} value={form.note} onChange={(event) => setForm({ ...form, note: event.target.value })} placeholder="选填，例如账号的特殊情况" />{errors.note && <small role="alert">{errors.note}</small>}</label>
       <label className="sell-v2-rules"><input type="checkbox" checked={form.acceptedRules} onChange={(event) => setForm({ ...form, acceptedRules: event.target.checked })} /><i>{form.acceptedRules && <Check size={12} />}</i><span>我确认账号为本人所有、无封禁与纠纷，并已阅读《账号回收规则》</span></label>{errors.acceptedRules && <small role="alert">{errors.acceptedRules}</small>}
-    </section><footer><button type="button" onClick={() => navigate('/appraisal/detail')}>取消</button><button type="submit" disabled={submitting}><b>{submitting ? '提交中…' : '提交回收单'}</b><small>提交后进入平台验号</small></button></footer></form>
+    </section><footer><button type="button" onClick={() => navigate(`/appraisal/detail?id=${encodeURIComponent(order.id)}`)}>取消</button><button type="submit" disabled={submitting}><b>{submitting ? '提交中…' : '提交回收单'}</b><small>提交后进入平台验号</small></button></footer></form>
   </main>
 }
 
@@ -153,10 +157,12 @@ function QuoteSummary({ order }: { order: RecycleOrder }) {
 }
 
 export function AppraisalLoadingPage() {
-  const [order, setOrder] = useState(() => recycleRepository.getActive())
+  const [params] = useSearchParams()
+  const targetOrderId = params.get('id')
+  const [order, setOrder] = useState(() => targetOrderId ? recycleRepository.get(targetOrderId) : recycleRepository.getActive())
   const [working, setWorking] = useState(false)
   const [error, setError] = useState('')
-  const sync = useCallback(() => setOrder(recycleRepository.getActive()), [])
+  const sync = useCallback(() => setOrder(targetOrderId ? recycleRepository.get(targetOrderId) : recycleRepository.getActive()), [targetOrderId])
   useEffect(() => recycleRepository.subscribe(sync), [sync])
   if (!order) return <main className="sell-v2-page"><BackTitle title="平台验号" fallback="/sell" /><div className="sell-v2-empty"><h2>未找到回收单</h2><Link to="/sell">重新估价</Link></div></main>
   const run = async () => {
@@ -165,12 +171,12 @@ export function AppraisalLoadingPage() {
     const ok = order.stage === 'submitted' ? recycleRepository.startInspection(order.id) : order.stage === 'inspecting' ? recycleRepository.complete(order.id) : false
     setWorking(false); if (!ok) setError('状态更新失败，请重试')
   }
-  return <main className="sell-v2-page sell-v2-loading-page"><header><BackTitle title="平台验号" fallback="/sell/goods" /></header><QuoteSummary order={order} /><section className={`sell-v2-progress-state ${order.stage}`}><i>{order.stage === 'completed' ? <Check size={40} /> : <span />}</i><h2>{order.stage === 'completed' ? '回收完成' : order.stage === 'inspecting' ? '平台正在验号' : '资料提交成功'}</h2><p>{order.stage === 'completed' ? '本地演示已完成，回收款将进入余额。' : order.stage === 'inspecting' ? '正在核对账号资料与回收单，演示不会连接真实账号。' : '回收资料已安全提交，本地只保存了脱敏账号。'}</p><ol><li className="done">提交回收资料</li><li className={order.stage === 'inspecting' || order.stage === 'completed' ? 'done' : ''}>平台验号</li><li className={order.stage === 'completed' ? 'done' : ''}>完成回收</li></ol>{error && <small role="alert">{error}</small>}{order.stage === 'completed' ? <Link to="/sell/goods">查看我的回收单</Link> : <button type="button" disabled={working} onClick={() => void run()}>{working ? '处理中…' : error ? '重试' : order.stage === 'inspecting' ? '完成本地演示' : '开始本地验号'}</button>}</section></main>
+  return <main className="sell-v2-page sell-v2-loading-page"><header><BackTitle title="平台验号" fallback="/orders/recycle" /></header><QuoteSummary order={order} /><section className={`sell-v2-progress-state ${order.stage}`}><i>{order.stage === 'completed' ? <Check size={40} /> : <span />}</i><h2>{order.stage === 'completed' ? '回收完成' : order.stage === 'inspecting' ? '平台正在验号' : '资料提交成功'}</h2><p>{order.stage === 'completed' ? '本地演示已完成，回收款将进入余额。' : order.stage === 'inspecting' ? '正在核对账号资料与回收单，演示不会连接真实账号。' : '回收资料已安全提交，本地只保存了脱敏账号。'}</p><ol><li className="done">提交回收资料</li><li className={order.stage === 'inspecting' || order.stage === 'completed' ? 'done' : ''}>平台验号</li><li className={order.stage === 'completed' ? 'done' : ''}>完成回收</li></ol>{error && <small role="alert">{error}</small>}{order.stage === 'completed' ? <Link to="/orders/recycle">查看我的回收单</Link> : <button type="button" disabled={working} onClick={() => void run()}>{working ? '处理中…' : error ? '重试' : order.stage === 'inspecting' ? '完成本地演示' : '开始本地验号'}</button>}</section></main>
 }
 
 export function SellGoodsPage() {
   const [orders, setOrders] = useState(() => recycleRepository.list())
   useEffect(() => recycleRepository.subscribe(() => setOrders(recycleRepository.list())), [])
   const status = (stage: RecycleOrder['stage']) => ({ consulting: '咨询中', offered: '待决定', materials: '待补资料', formal: '待确认', submitted: '待验号', inspecting: '验号中', completed: '已完成', rejected: '已结束' }[stage])
-  return <main className="sell-v2-page sell-v2-goods-page"><header><BackTitle title="我的回收单" fallback="/profile" /></header><section>{orders.length ? orders.map((order) => <Link key={order.id} to={['submitted', 'inspecting', 'completed'].includes(order.stage) ? '/appraisal/loading' : '/appraisal/detail'}><header><time>{new Date(order.updatedAt).toLocaleDateString('zh-CN')}</time><b className={`stage-${order.stage}`}>{status(order.stage)}</b></header><div><i>{order.gameName.slice(0, 1)}</i><span><h2>{order.gameName} {order.server} · {order.rank}</h2><p>回收商：{order.recyclerName}</p><small>#{order.id}</small></span><strong>¥{order.quoteCents / 100}</strong></div></Link>) : <div className="sell-v2-empty"><h2>还没有回收单</h2><p>选择游戏和回收商，先咨询估价。</p><Link to="/sell">开始回收</Link></div>}</section></main>
+  return <main className="sell-v2-page sell-v2-goods-page"><header><BackTitle title="我的回收单" fallback="/profile" /></header><section>{orders.length ? orders.map((order) => <Link key={order.id} to={`${['submitted', 'inspecting', 'completed'].includes(order.stage) ? '/appraisal/loading' : '/appraisal/detail'}?id=${encodeURIComponent(order.id)}`}><header><time>{new Date(order.updatedAt).toLocaleDateString('zh-CN')}</time><b className={`stage-${order.stage}`}>{status(order.stage)}</b></header><div><i>{order.gameName.slice(0, 1)}</i><span><h2>{order.gameName} {order.server} · {order.rank}</h2><p>回收商：{order.recyclerName}</p><small>#{order.id}</small></span><strong>¥{order.quoteCents / 100}</strong></div></Link>) : <div className="sell-v2-empty"><h2>还没有回收单</h2><p>选择游戏和回收商，先咨询估价。</p><Link to="/sell">开始回收</Link></div>}</section></main>
 }

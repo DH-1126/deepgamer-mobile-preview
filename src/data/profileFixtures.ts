@@ -19,21 +19,12 @@ export function createProfileOrders(now: number): ProfileOrder[] {
 }
 
 export const profileMoreEntries: ProfileEntry[] = [
-  { label: '我发布的', route: '/sell/goods' },
-  { label: '我的售后', route: '/aftersales' },
-  { label: '卖家签约', route: '/seller/center', badge: '减免手续费' },
-  { label: '回收', action: 'recycle' },
-  { label: '推送', route: '/message', dot: true },
-  { label: '足迹', route: '/footprint' },
-  { label: '实名', route: '/realname' },
-  { label: '客服', route: SUPPORT_CONVERSATION_ROUTE },
+  { label: '卖家签约', route: '/seller/center', status: '未签约', badge: '减免手续费' },
+  { label: '实名认证', route: '/realname', status: '已认证' },
   { label: '设置', route: '/settings' },
+  { label: '隐私与协议', route: '/privacy-and-agreements' },
+  { label: '退出登录', action: 'logout' },
 ]
 
-export const recycleChoices = [
-  { label: '卖号变现', route: '/sell', detail: '发布账号，与买家完成平台交易' },
-  { label: '平台回收', route: '/appraisal', detail: '选择回收商，先沟通确认报价' },
-] as const
-
-export const profilePrimaryRoutes = ['/settings', '/wallet', '/favorites', '/orders', '/sell/goods', '/aftersales', '/seller/center', '/realname', SUPPORT_CONVERSATION_ROUTE, '/appraisal'] as const
+export const profilePrimaryRoutes = ['/settings', '/settings/password', '/settings/bindings', '/settings/cancellation', '/privacy-and-agreements', '/about-us', '/wallet', '/favorites', '/orders', '/sell', '/sell/goods', '/aftersales', '/aftersales/AS202608270001', '/seller/center', '/seller/apply/personal', '/seller/apply/business', '/realname', '/privacy-policy', '/user-agreement', SUPPORT_CONVERSATION_ROUTE] as const
 export const profileRouteAliases = [{ route: '/message', alias: '/messages' }, { route: '/footprint', alias: '/footprints' }] as const

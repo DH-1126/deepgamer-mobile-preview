@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Bell, Check, Eye, EyeOff, RotateCw, UserRound, X } from 'lucide-react'
 import { agreementSections, AUTH_POLICY_UPDATED_AT, DEMO_MASKED_PHONE, privacySections } from '../data/authFixtures'
-import { buildLoginRoute, getCountdown, maskPhone, normalizeCode, normalizePhone, sanitizeReturnTo } from '../components/authModel'
+import { buildLoginRoute, getCountdown, normalizeCode, normalizePhone, sanitizeReturnTo } from '../components/authModel'
 import { isGuestAccessiblePath } from '../components/authAccessModel'
 import { assetPath } from '../components/assetPath'
 import { authRepository } from '../repository/authRepository'
@@ -22,7 +22,7 @@ function StatusBar({ inverse = false }: { inverse?: boolean }) {
 
 function Brand({ compact = false }: { compact?: boolean }) {
   return <div className={`auth-v2-brand ${compact ? 'compact' : ''}`}>
-    <b>DG</b><strong>深度玩家</strong>{!compact && <small>一亿玩家自己的游戏平台</small>}
+    <b>DG</b><strong>{compact ? '登录深度玩家' : '深度玩家'}</strong>{!compact && <small>一亿玩家自己的游戏平台</small>}
   </div>
 }
 
@@ -35,8 +35,10 @@ function AgreementCheck({ checked, onChange, includePrivacy = true }: { checked:
     <button type="button" role="checkbox" aria-checked={checked} aria-label={checked ? '取消同意协议' : '同意协议'} onClick={onChange}>
       {checked && <Check size={12} strokeWidth={3} aria-hidden="true" />}
     </button>
-    <AgreementLinks includePrivacy={includePrivacy} />
-    {includePrivacy && <small>。用未注册的手机号将自动创建账号。</small>}
+    <div className="auth-v2-agreement-copy">
+      <AgreementLinks includePrivacy={includePrivacy} />
+      {includePrivacy && <small>。用未注册的手机号将自动创建账号。</small>}
+    </div>
   </div>
 }
 
@@ -73,7 +75,7 @@ export function WelcomePage() {
 
   useEffect(() => {
     if (phase !== 'splash') return undefined
-    const timer = window.setTimeout(() => setPhase(authRepository.hasAcceptedInitialAgreement() ? 'loading' : 'agreement'), 2_000)
+    const timer = window.setTimeout(() => setPhase('agreement'), 2_000)
     return () => window.clearTimeout(timer)
   }, [phase])
   useEffect(() => {
@@ -81,19 +83,14 @@ export function WelcomePage() {
     const timer = window.setTimeout(() => { authRepository.completeLaunch(); navigate(destination, { replace: true }) }, 2_000)
     return () => window.clearTimeout(timer)
   }, [destination, navigate, phase])
-
   const agree = () => {
     if (!authRepository.acceptInitialAgreement()) { setPhase('error'); return }
     setPhase('loading')
   }
-  if (phase === 'loading') return <main className="auth-v2-page auth-v2-launch-loading" data-node-id="511:11431">
-    <StatusBar />
-    <div className="auth-v2-launch-body"><b>DG</b><strong>深度玩家</strong><span>一亿玩家自己的游戏平台</span><i role="status" aria-label="正在安全加载" /></div>
-    <footer><span>资金托管 · 平台验号 · 客服介入</span><small>v1.1.0</small></footer>
-  </main>
   return <main className="auth-v2-page auth-v2-welcome" data-node-id="511:11253">
     <StatusBar />
     <Brand />
+    {phase === 'loading' && <div className="auth-v2-launch-progress" role="status" aria-label="正在安全加载"><i><span /></i><b>正在加载安全交易环境</b></div>}
     <p className="auth-v2-welcome-foot">深度玩家 · 玩家自己的交易平台</p>
     {phase === 'error' && <div className="auth-v2-load-error" role="alert"><span>协议状态保存失败</span><button type="button" onClick={() => setPhase('agreement')}><RotateCw size={15} />重试</button></div>}
     {(phase === 'agreement' || phase === 'exit') && <InitialAgreementDialog confirmExit={phase === 'exit'} onAgree={agree} onReject={() => phase === 'exit' ? navigate('/', { replace: true }) : setPhase('exit')} onContinue={() => setPhase('agreement')} />}
@@ -160,41 +157,31 @@ export function LoginPage({ method }: { method: AuthMethod }) {
     proceed()
   }
 
-  const welcomeCopy = method === 'one_tap'
-    ? '使用本机号码，快捷进入玩家交易世界'
-    : method === 'password'
-      ? '使用手机号与密码登录深度玩家'
-      : mode === 'code_entry'
-        ? `验证码已发送至 ${maskPhone(phone) || '当前手机号'}`
-        : '验证码快捷登录，未注册手机号将自动创建账号'
-
-  return <main className="auth-v2-page auth-v2-login" data-node-id={method === 'one_tap' ? '511:10305' : method === 'code' ? '511:10439' : '511:10566'}>
+  return <main className={`auth-v2-page auth-v2-login auth-v2-login-${method}`} data-node-id={method === 'one_tap' ? '511:10305' : method === 'code' ? '511:10439' : '511:10566'}>
     <StatusBar />
     <nav className="auth-v2-login-nav" aria-label="登录页导航">
       <button type="button" onClick={() => navigate(closeTo, { replace: true })} aria-label="关闭登录，返回之前页面"><X size={21} /></button>
     </nav>
     <form className="auth-v2-login-body" onSubmit={submit} noValidate>
       <Brand compact />
-      <header className="auth-v2-login-welcome">
-        <h1>欢迎登录深度玩家</h1>
-        <p>{welcomeCopy}</p>
-      </header>
-      {method === 'one_tap' ? <>
-        <div className="auth-v2-one-tap-phone">{DEMO_MASKED_PHONE}</div>
-        <button className="auth-v2-primary auth-v2-one-tap-action" type="submit" disabled={busy}>{busy ? '登录中…' : '本机号码一键登录'}</button>
-        <div className="auth-v2-method-links"><button type="button" onClick={() => goToMethod('code')}>验证码登录</button><i /><button type="button" onClick={() => goToMethod('password')}>密码登录</button></div>
-      </> : <>
-        <label className="auth-v2-input"><b>+86</b><i /><input inputMode="numeric" autoComplete="tel" aria-label="手机号" value={phone} onChange={(event) => setPhone(normalizePhone(event.target.value))} placeholder="请输入手机号" disabled={mode === 'code_entry'} />{phone && mode !== 'code_entry' && <button type="button" aria-label="清空手机号" onClick={() => setPhone('')}><X size={13} /></button>}</label>
-        {mode === 'code_entry' && <label className="auth-v2-input"><input inputMode="numeric" autoComplete="one-time-code" aria-label="验证码" value={code} onChange={(event) => setCode(normalizeCode(event.target.value))} placeholder="请输入6位验证码" autoFocus /><button type="button" className="auth-v2-code-link" disabled={countdown > 0} onClick={requestCode}>{countdown ? `${countdown}s` : '重新获取'}</button></label>}
-        {method === 'password' && <><label className="auth-v2-input"><input type={showPassword ? 'text' : 'password'} autoComplete="current-password" aria-label="登录密码" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="请输入登录密码" /><button type="button" aria-label={showPassword ? '隐藏密码' : '显示密码'} onClick={() => setShowPassword((value) => !value)}>{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button></label><button type="button" className="auth-v2-forgot" onClick={() => setError('请联系玩家客服重置登录密码')}>忘记密码？</button></>}
-        <button className="auth-v2-primary auth-v2-form-action" type="submit" disabled={busy}>{busy ? '提交中…' : mode === 'code' ? '获取验证码' : '登录'}</button>
-        <div className="auth-v2-method-links"><button type="button" onClick={() => goToMethod('one_tap')}>本机号码一键登录</button><i /><button type="button" onClick={() => goToMethod(method === 'password' ? 'code' : 'password')}>{method === 'password' ? '验证码登录' : '密码登录'}</button></div>
-        <small className="auth-v2-demo-hint">本地演示：登录信息不做真实性校验，输入任意内容即可继续。</small>
-      </>}
-      {(error || success) && <div className={`auth-v2-feedback ${success ? 'success' : ''}`} role={success ? 'status' : 'alert'}>{success || error}</div>}
-      <AgreementCheck checked={agreed} onChange={() => setAgreed((value) => !value)} includePrivacy={method !== 'password'} />
+      <div className="auth-v2-login-controls">
+        {method === 'one_tap' ? <>
+          <div className="auth-v2-login-fields one-tap"><div className="auth-v2-one-tap-phone">{DEMO_MASKED_PHONE}</div></div>
+          <button className="auth-v2-primary auth-v2-login-action" type="submit" disabled={busy}>{busy ? '登录中…' : '本机号码一键登录'}</button>
+        </> : <>
+          <div className="auth-v2-login-fields">
+            <label className="auth-v2-input"><b>+86</b><i /><input inputMode="numeric" autoComplete="tel" aria-label="手机号" value={phone} onChange={(event) => setPhone(normalizePhone(event.target.value))} placeholder="请输入手机号" disabled={mode === 'code_entry'} />{phone && mode !== 'code_entry' && <button type="button" aria-label="清空手机号" onClick={() => setPhone('')}><X size={13} /></button>}</label>
+            {mode === 'code_entry' && <label className="auth-v2-input"><input inputMode="numeric" autoComplete="one-time-code" aria-label="验证码" value={code} onChange={(event) => setCode(normalizeCode(event.target.value))} placeholder="请输入6位验证码" autoFocus /><button type="button" className="auth-v2-code-link" disabled={countdown > 0} onClick={requestCode}>{countdown ? `${countdown}s` : '重新获取'}</button></label>}
+            {method === 'password' && <><label className="auth-v2-input"><input type={showPassword ? 'text' : 'password'} autoComplete="current-password" aria-label="登录密码" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="请输入登录密码" /><button type="button" aria-label={showPassword ? '隐藏密码' : '显示密码'} onClick={() => setShowPassword((value) => !value)}>{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button></label><button type="button" className="auth-v2-forgot" onClick={() => setError('请联系玩家客服重置登录密码')}>忘记密码？</button></>}
+          </div>
+          <button className="auth-v2-primary auth-v2-login-action" type="submit" disabled={busy}>{busy ? '提交中…' : mode === 'code' ? '获取验证码' : '登录'}</button>
+        </>}
+        {(error || success) && <div className={`auth-v2-feedback ${success ? 'success' : ''}`} role={success ? 'status' : 'alert'}>{success || error}</div>}
+      </div>
+      <div className="auth-v2-method-links">{method === 'one_tap' ? <><button type="button" onClick={() => goToMethod('code')}>验证码登录</button><i /><button type="button" onClick={() => goToMethod('password')}>密码登录</button></> : <><button type="button" onClick={() => goToMethod('one_tap')}>本机号码一键登录</button><i /><button type="button" onClick={() => goToMethod(method === 'password' ? 'code' : 'password')}>{method === 'password' ? '验证码登录' : '密码登录'}</button></>}</div>
+      <AgreementCheck checked={agreed} onChange={() => setAgreed((value) => !value)} />
     </form>
-    {protocolPrompt && <div className="auth-v2-modal-layer login-prompt"><section className="auth-v2-dialog" role="dialog" aria-modal="true" aria-labelledby="login-protocol-title"><h2 id="login-protocol-title">请先阅读并同意协议</h2><p>继续登录前，需要你阅读并同意 <Link to="/user-agreement">《用户服务协议》</Link>{method !== 'password' && <> 和 <Link to="/privacy-policy">《隐私政策》</Link></>}。</p><footer><button type="button" className="secondary" onClick={() => setProtocolPrompt(false)}>暂不登录</button><button type="button" className="primary" onClick={() => { setAgreed(true); setProtocolPrompt(false); proceed() }}>同意并继续</button></footer></section></div>}
+    {protocolPrompt && <div className="auth-v2-modal-layer login-prompt"><section className="auth-v2-dialog" role="dialog" aria-modal="true" aria-labelledby="login-protocol-title"><h2 id="login-protocol-title">请先阅读并同意协议</h2><p>继续登录前，需要你阅读并同意 <Link to="/user-agreement">《用户服务协议》</Link> 和 <Link to="/privacy-policy">《隐私政策》</Link>。</p><footer><button type="button" className="secondary" onClick={() => setProtocolPrompt(false)}>暂不登录</button><button type="button" className="primary" onClick={() => { setAgreed(true); setProtocolPrompt(false); proceed() }}>同意并继续</button></footer></section></div>}
   </main>
 }
 

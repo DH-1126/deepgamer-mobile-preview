@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getPricePreset, getServerOption, getToolbarActiveState, hasInvalidPriceRange, serverPlatforms } from './quickFilterModel'
+import { getPricePreset, getServerOption, getToolbarActiveState, hasInvalidPriceRange, serverPlatforms, sortOptions } from './quickFilterModel'
 
 describe('quickFilterModel', () => {
   it('将区服分组映射到现有平台字段', () => {
@@ -22,13 +22,22 @@ describe('quickFilterModel', () => {
   })
 
   it.each([
-    ['default', { default: true, server: false, price: false }],
-    ['server', { default: false, server: true, price: false }],
-    ['price', { default: false, server: false, price: true }],
+    ['sort', { sort: true, server: false, price: false }],
+    ['server', { sort: false, server: true, price: false }],
+    ['price', { sort: false, server: false, price: true }],
   ] as const)('工具栏选择 %s 时仅一个主项 active', (selection, expected) => {
     const state = getToolbarActiveState(selection)
     expect(state).toEqual(expected)
     expect(Object.values(state).filter(Boolean)).toHaveLength(1)
     expect(state[selection]).toBe(true)
+  })
+
+  it('提供和数据层契约一致的四种排序方式', () => {
+    expect(sortOptions).toEqual([
+      { value: 'default', label: '综合' },
+      { value: 'listed_at_desc', label: '最新' },
+      { value: 'price_asc', label: '价格升序' },
+      { value: 'price_desc', label: '价格降序' },
+    ])
   })
 })

@@ -14,7 +14,7 @@
   font-family: "Noto Sans SC", "PingFang SC", system-ui, sans-serif;
 }
 .favorites-page button, .favorites-page a { -webkit-tap-highlight-color: transparent; }
-.favorites-header { flex: 0 0 140px; background: #fff; position: relative; z-index: 20; border-bottom: 1px solid #ebe9e4; }
+.favorites-header { flex: 0 0 188px; background: #fff; position: relative; z-index: 20; border-bottom: 1px solid #ebe9e4; }
 .favorites-status { height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px 0 24px; font: 700 14px/1 Inter, sans-serif; }
 .favorites-status > span { display: flex; align-items: center; gap: 5px; }
 .favorites-status img:nth-child(1) { width: 17px; height: 11px; }
@@ -25,6 +25,11 @@
 .favorites-titlebar button:last-child { justify-self: end; padding: 0 15px 0 0; }
 .favorites-titlebar button:disabled { opacity: .38; }
 .favorites-titlebar h1 { margin: 0; text-align: center; font-size: 17px; line-height: 24px; font-weight: 800; }
+.favorites-search { height: 48px; margin: 0 16px; padding: 0 10px 0 13px; border-radius: 14px; background: #f2f2ef; display: flex; align-items: center; gap: 8px; color: #777771; }
+.favorites-search input { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; outline: 0; background: transparent; color: var(--fav-black); font: 600 13px/20px inherit; }
+.favorites-search input::placeholder { color: #9a9a94; }
+.favorites-search input:disabled { color: #8c8c86; cursor: default; }
+.favorites-search button { width: 32px; height: 32px; flex: 0 0 32px; padding: 0; border: 0; background: transparent; color: #777771; display: grid; place-items: center; }
 .favorites-filters { height: 48px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid #f3f2ee; }
 .favorites-filters button { min-width: 0; height: 47px; padding: 0 5px; border: 0; background: #fff; color: #44443f; display: flex; justify-content: center; align-items: center; gap: 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font: 700 13px/18px inherit; }
 .favorites-filters button[aria-expanded="true"] { color: var(--fav-black); background: #fffbe3; }
@@ -62,7 +67,7 @@
 .favorites-loading { width: 28px; height: 28px; border: 3px solid #dddcd6; border-top-color: var(--fav-black); border-radius: 50%; animation: favorites-spin .7s linear infinite; }
 @keyframes favorites-spin { to { transform: rotate(360deg); } }
 
-.favorite-filter-layer { position: absolute; z-index: 40; inset: 140px 0 0; }
+.favorite-filter-layer { position: absolute; z-index: 40; inset: 188px 0 0; }
 .favorite-filter-mask { position: absolute; inset: 0; width: 100%; border: 0; background: rgba(23,23,15,.42); }
 .favorite-filter-layer > section { position: relative; z-index: 1; padding: 18px 16px; border-radius: 0 0 14px 14px; background: #fff; box-shadow: 0 8px 18px rgba(9,9,0,.13); }
 .favorite-filter-layer > section > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }

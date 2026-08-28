@@ -15,10 +15,17 @@ export function projectFavorite(record: FavoriteRecord): FavoriteView {
   }
 }
 
-export function filterFavorites(records: FavoriteRecord[], filters: FavoriteFilters, now: number) {
+export function filterFavorites(records: FavoriteRecord[], filters: FavoriteFilters, now: number, query = '') {
   const lowerBound = filters.time === '7d' ? now - 7 * 86_400_000 : filters.time === '30d' ? now - 30 * 86_400_000 : -Infinity
+  const normalizedQuery = query.trim().toLocaleLowerCase('zh-CN')
   return records.map((record, index) => ({ view: projectFavorite(record), index }))
-    .filter(({ view }) => (filters.gameCode === 'all' || view.gameCode === filters.gameCode) && (filters.status === 'all' || view.status === filters.status) && view.favoritedAt >= lowerBound)
+    .filter(({ view }) => {
+      const matchesFilters = (filters.gameCode === 'all' || view.gameCode === filters.gameCode) && (filters.status === 'all' || view.status === filters.status) && view.favoritedAt >= lowerBound
+      if (!matchesFilters || !normalizedQuery) return matchesFilters
+      const detail = productDetailRepository.getById(view.productId)
+      return [view.title, view.gameName, view.platform, view.productId, detail?.productCode ?? '', ...(detail?.aliases ?? []), ...view.tags]
+        .some((value) => value.toLocaleLowerCase('zh-CN').includes(normalizedQuery))
+    })
     .sort((a, b) => b.view.favoritedAt - a.view.favoritedAt || a.index - b.index)
     .map(({ view }) => view)
 }

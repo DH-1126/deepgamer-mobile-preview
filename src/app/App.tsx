@@ -10,8 +10,21 @@ import { GroupChatPage } from '../pages/GroupChatPage'
 import { LoginPage, PrivacyPolicyPage, PushPermissionPage, UserAgreementPage, WelcomePage } from '../pages/AuthPage'
 import { AuthPromptProvider, RequireAuth } from '../components/AuthAccess'
 import { OrderCheckoutPage, OrderDetailPage, OrderListPage, PaymentCancelPage, PaymentSuccessPage } from '../pages/OrderPages'
+import { RecycleOrderListPage } from '../pages/RecycleOrderListPage'
 import { AppraisalDetailPage, AppraisalFillPage, AppraisalLoadingPage, AppraisalPage, SellGoodsPage, SellPage } from '../pages/SellPages'
 import { FulfillmentContractPage } from '../pages/FulfillmentContractPage'
+import { WalletOverviewPage, WalletWithdrawPage } from '../pages/WalletPages'
+import {
+  AboutUsPage,
+  AccountCancellationPage,
+  AccountSettingsPage,
+  PasswordSettingsPage,
+  PrivacyAgreementCenterPage,
+  ThirdPartyBindingsPage,
+} from '../pages/ProfileSettingsPages'
+import { BusinessSellerContractPage, PersonalSellerContractPage, SellerCenterPage } from '../pages/SellerContractPages'
+import { RealNamePage } from '../pages/RealNamePage'
+import { AfterSaleDetailPage, AfterSalesPage } from '../pages/AfterSalesPage'
 import { authRepository } from '../repository/authRepository'
 import { SUPPORT_CONVERSATION_ROUTE } from '../data/messageFixtures'
 import type { AuthMethod } from '../types/auth'
@@ -87,15 +100,25 @@ export function App() {
               <Route path="/message/groups/:conversationId" element={<GroupChatPage />} />
               <Route path="/footprint" element={<PlaceholderPage title="足迹" detail="你的完整浏览足迹将在这里展示。" />} />
               <Route path="/orders" element={<OrderListPage />} />
+              <Route path="/orders/recycle" element={<RecycleOrderListPage />} />
               <Route path="/orders/:id" element={<OrderDetailPage />} />
               <Route path="/fulfillment/contracts/:contractId" element={<FulfillmentContractPage />} />
-              <Route path="/wallet" element={<PlaceholderPage title="我的钱包" detail="钱包余额与明细将在这里展示。" />} />
+              <Route path="/wallet" element={<WalletOverviewPage />} />
+              <Route path="/wallet/withdraw" element={<WalletWithdrawPage />} />
               <Route path="/favorites" element={<FavoritesPage />} />
               <Route path="/sell/goods" element={<SellGoodsPage />} />
-              <Route path="/aftersales" element={<PlaceholderPage title="我的售后" detail="售后申请与处理进度将在这里展示。" />} />
-              <Route path="/seller/center" element={<PlaceholderPage title="卖家签约" detail="签约后可查看适用的手续费方案。" />} />
-              <Route path="/realname" element={<PlaceholderPage title="实名认证" detail="实名认证服务正在接入。" />} />
-              <Route path="/settings" element={<PlaceholderPage title="设置" detail="账号与隐私设置将在这里展示。" />} />
+              <Route path="/aftersales" element={<AfterSalesPage />} />
+              <Route path="/aftersales/:id" element={<AfterSaleDetailPage />} />
+              <Route path="/seller/center" element={<SellerCenterPage />} />
+              <Route path="/seller/apply/personal" element={<PersonalSellerContractPage />} />
+              <Route path="/seller/apply/business" element={<BusinessSellerContractPage />} />
+              <Route path="/realname" element={<RealNamePage />} />
+              <Route path="/settings" element={<AccountSettingsPage />} />
+              <Route path="/settings/password" element={<PasswordSettingsPage />} />
+              <Route path="/settings/bindings" element={<ThirdPartyBindingsPage />} />
+              <Route path="/settings/cancellation" element={<AccountCancellationPage />} />
+              <Route path="/privacy-and-agreements" element={<PrivacyAgreementCenterPage />} />
+              <Route path="/about-us" element={<AboutUsPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>

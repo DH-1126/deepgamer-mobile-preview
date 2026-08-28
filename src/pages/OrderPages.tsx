@@ -1,20 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ArrowLeft, Check, ChevronRight, Copy, Headphones, Home, Search, ShieldCheck, X } from 'lucide-react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { countOrdersByStatus, filterOrders, formatOrderCountdown, formatOrderMoney, getOrderPrimaryMessage, getOrderStatusLabel, getOrderTimeline, isOrderFilterStatus, isOrderRole } from '../components/orderModel'
+import { formatOrderCountdown, formatOrderMoney, getOrderPrimaryMessage, getOrderStatusLabel, getOrderTimeline, isOrderRole } from '../components/orderModel'
+import { BUYER_ORDER_TABS, countTradeOrders, filterTradeOrders, getActionableTradeOrders, isTradeOrderTab, SELLER_ORDER_TABS, type TradeOrderTab } from '../components/orderHubModel'
 import { SUPPORT_CONVERSATION_ROUTE } from '../data/messageFixtures'
 import { orderRepository } from '../repository/orderRepository'
-import type { OrderFilterStatus, OrderPaymentMethod, OrderRecord, OrderRole } from '../types/order'
+import type { OrderPaymentMethod, OrderRecord, OrderRole } from '../types/order'
 import { assetPath } from '../components/assetPath'
 import '../styles/orders-v2.css'
-
-const filters: Array<{ value: OrderFilterStatus; label: string }> = [
-  { value: 'all', label: '全部' },
-  { value: 'pending', label: '待支付' },
-  { value: 'trading', label: '交易中' },
-  { value: 'completed', label: '已完成' },
-  { value: 'ended', label: '已取消' },
-]
 
 function StatusBar() {
   return <div className="order-v2-status" aria-hidden="true"><time>9:41</time><span><img src={assetPath('assets/home-v2/status-signal.svg')} alt="" /><img src={assetPath('assets/home-v2/status-wifi.svg')} alt="" /><img src={assetPath('assets/home-v2/status-battery.svg')} alt="" /></span></div>
@@ -93,21 +86,25 @@ function OrderListCard({ order, now }: { order: OrderRecord; now: number }) {
 export function OrderListPage() {
   const { orders, now } = useOrderData()
   const [params, setParams] = useSearchParams()
-  const [query, setQuery] = useState(() => params.get('query') ?? '')
+  const navigate = useNavigate()
+  const query = params.get('query') ?? ''
   const role: OrderRole = isOrderRole(params.get('role')) ? params.get('role') as OrderRole : 'buyer'
-  const status: OrderFilterStatus = isOrderFilterStatus(params.get('status')) ? params.get('status') as OrderFilterStatus : 'all'
-  const visible = useMemo(() => filterOrders(orders, { role, status, query }), [orders, query, role, status])
-  const actionable = orders.filter((order) => order.role === role && ['pending', 'bind_success'].includes(order.status))
-  const update = (key: 'role' | 'status', value: string) => {
-    const next = new URLSearchParams(params); next.set(key, value); if (key === 'role') next.delete('status'); setParams(next, { replace: true })
+  const tabs = role === 'buyer' ? BUYER_ORDER_TABS : SELLER_ORDER_TABS
+  const statusParam = params.get('status')
+  const status: TradeOrderTab = isTradeOrderTab(role, statusParam) ? statusParam : 'all'
+  const visible = useMemo(() => filterTradeOrders(orders, role, status, query), [orders, query, role, status])
+  const actionable = getActionableTradeOrders(orders, role)
+  const update = (key: 'status' | 'query', value: string) => {
+    const next = new URLSearchParams(params)
+    if (value) next.set(key, value); else next.delete(key)
+    setParams(next, { replace: true })
   }
   return <main className="order-v2-page order-list-page">
-    <header className="order-list-header"><StatusBar /><div className="order-list-title"><h1>我的订单</h1><form role="search" onSubmit={(event) => event.preventDefault()}><Search size={15} aria-hidden="true" /><input value={query} maxLength={80} onChange={(event) => setQuery(event.target.value)} placeholder="搜索订单" aria-label="搜索订单号、游戏或商品" />{query && <button type="button" onClick={() => setQuery('')} aria-label="清空搜索"><X size={14} /></button>}</form><Link to={SUPPORT_CONVERSATION_ROUTE} aria-label="联系平台客服"><Headphones size={18} aria-hidden="true" /></Link></div>
-      <div className="order-role-tabs" role="tablist" aria-label="订单角色"><button type="button" role="tab" aria-selected={role === 'buyer'} onClick={() => update('role', 'buyer')}>买入 <b>{orders.filter((order) => order.role === 'buyer').length}</b></button><button type="button" role="tab" aria-selected={role === 'seller'} onClick={() => update('role', 'seller')}>卖出 <b>{orders.filter((order) => order.role === 'seller').length}</b></button></div>
-      <div className="order-status-tabs" aria-label="订单状态筛选">{filters.map((item) => <button type="button" key={item.value} className={status === item.value ? 'active' : ''} aria-pressed={status === item.value} onClick={() => update('status', item.value)}><span>{item.label}</span><b>{countOrdersByStatus(orders, role, item.value)}</b></button>)}</div>
+    <header className="order-list-header"><StatusBar /><div className="order-list-title"><button type="button" onClick={() => navigate(-1)} aria-label="返回"><ArrowLeft size={19} aria-hidden="true" /></button><h1>{role === 'buyer' ? '我买到的' : '我卖出的'}</h1><form role="search" onSubmit={(event) => event.preventDefault()}><Search size={15} aria-hidden="true" /><input value={query} maxLength={80} onChange={(event) => update('query', event.target.value)} placeholder="搜索订单" aria-label="搜索订单号、商品编号、游戏或商品" />{query && <button type="button" onClick={() => update('query', '')} aria-label="清空搜索"><X size={14} /></button>}</form><Link to={SUPPORT_CONVERSATION_ROUTE} aria-label="联系平台客服"><Headphones size={18} aria-hidden="true" /></Link></div>
+      <div className="order-status-tabs" role="tablist" aria-label="订单状态筛选">{tabs.map((item) => <button type="button" role="tab" key={item.value} className={status === item.value ? 'active' : ''} aria-selected={status === item.value} onClick={() => update('status', item.value)}><span>{item.label}</span><b>{countTradeOrders(orders, role, item.value)}</b></button>)}</div>
     </header>
     <div className="order-list-scroll">
-      {actionable.length > 0 && status === 'all' && !query && <section className="order-task-summary"><h2><i />需要你处理 · <b>{actionable.length}</b>件</h2><p>{actionable.map((order) => order.status === 'pending' ? `1 笔待付款，剩 ${formatOrderCountdown(order.expiresAt, now)}` : `1 笔待确认，剩 ${formatOrderCountdown(order.actionExpiresAt, now)}`).join(' · ')}</p></section>}
+      {actionable.length > 0 && status === 'all' && !query && <section className="order-task-summary"><h2><i />需要你处理 · <b>{actionable.length}</b>件</h2><p>{actionable.map((order) => order.status === 'pending' ? `1 笔待付款，剩 ${formatOrderCountdown(order.expiresAt, now)}` : order.status === 'bind_success' ? `1 笔待确认，剩 ${formatOrderCountdown(order.actionExpiresAt, now)}` : '1 笔订单待换绑').join(' · ')}</p></section>}
       {visible.length ? visible.map((order) => <OrderListCard key={order.id} order={order} now={now} />) : <OrderEmpty title={query ? '没有匹配的订单' : '暂无订单'} />}
     </div>
   </main>

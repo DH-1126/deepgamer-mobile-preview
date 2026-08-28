@@ -19,7 +19,7 @@ export type ProfileOrder = {
 export type ProfileEntry = {
   label: string
   route?: string
-  action?: 'recycle'
+  action?: 'logout'
+  status?: string
   badge?: string
-  dot?: boolean
 }

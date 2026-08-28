@@ -3,10 +3,24 @@ import { emptyFilters } from '../types/catalog'
 import { catalogRepository } from './catalogRepository'
 
 describe('catalogRepository', () => {
-  it('按价格升序返回商品', () => {
-    const result = catalogRepository.queryProducts('', 'price_asc', emptyFilters)
-    expect(result.length).toBeGreaterThan(0)
-    expect(result[0].price).toBeLessThanOrEqual(result[1].price)
+  it.each([
+    ['price_asc', (previous: number, current: number) => previous <= current],
+    ['price_desc', (previous: number, current: number) => previous >= current],
+  ] as const)('按 %s 价格顺序返回商品', (sort, inOrder) => {
+    const result = catalogRepository.queryProducts('', sort, emptyFilters)
+    expect(result.length).toBeGreaterThan(1)
+    expect(result.slice(1).every((item, index) => inOrder(result[index].price, item.price))).toBe(true)
+  })
+
+  it('按最新上架时间降序返回商品', () => {
+    const result = catalogRepository.queryProducts('', 'listed_at_desc', emptyFilters)
+    expect(result.length).toBeGreaterThan(1)
+    expect(result.slice(1).every((item, index) => result[index].listedAt >= item.listedAt)).toBe(true)
+  })
+
+  it('综合排序保持原始商品顺序', () => {
+    const result = catalogRepository.queryProducts('', 'default', emptyFilters)
+    expect(result.slice(0, 3).map((item) => item.id)).toEqual(['1', '2', '3'])
   })
 
   it('组合关键字与价格筛选', () => {

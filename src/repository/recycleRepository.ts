@@ -33,6 +33,7 @@ export function createRecycleRepository({ storage, now = Date.now }: RecycleRepo
   }
   return {
     list() { return read().orders.map(cloneOrder).sort((a, b) => b.updatedAt - a.updatedAt) },
+    get(id: string) { const order = read().orders.find((item) => item.id === id); return order ? cloneOrder(order) : undefined },
     getActive() { const store = read(); const order = store.orders.find((item) => item.id === store.activeOrderId); return order ? cloneOrder(order) : undefined },
     begin(recyclerId = 'fun') {
       const store = read(); const recycler = recyclerFixtures.find((item) => item.id === recyclerId && item.availability === 'online')

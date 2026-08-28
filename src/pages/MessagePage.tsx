@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Gamepad2, Home, MessageCircle, Search, UserRound, X } from 'lucide-react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { filterConversations, getMessageSummary, groupTradeConversations } from '../components/messageModel'
@@ -16,12 +16,10 @@ export function MessagePage() {
   const [summary, setSummary] = useState<MessageSummary>({ unreadCount: 0, groupCount: 0, taskCount: 0 })
   const requestedCategory = searchParams.get('tab')
   const [category, setCategory] = useState<MessageCategory>(requestedCategory === 'groups' || requestedCategory === 'notifications' ? requestedCategory : 'all')
-  const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [toast, setToast] = useState('')
-  const searchRef = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async () => {
     try {
@@ -32,7 +30,6 @@ export function MessagePage() {
   }, [])
   useEffect(() => { void load(); return messageRepository.subscribe(() => { void load() }) }, [load])
   useEffect(() => { if (!toast) return undefined; const timer = window.setTimeout(() => setToast(''), 1800); return () => window.clearTimeout(timer) }, [toast])
-  useEffect(() => { if (searchOpen) requestAnimationFrame(() => searchRef.current?.focus()) }, [searchOpen])
 
   const filtered = useMemo(() => filterConversations(conversations, category, query), [category, conversations, query])
   const groups = useMemo(() => groupTradeConversations(filtered), [filtered])
@@ -49,7 +46,7 @@ export function MessagePage() {
   return <main className="message-v2-page">
     <header className="message-v2-header">
       <div className="message-v2-status" aria-hidden="true"><time>9:41</time><span><img src={assetPath('assets/home-v2/status-signal.svg')} alt="" /><img src={assetPath('assets/home-v2/status-wifi.svg')} alt="" /><img src={assetPath('assets/home-v2/status-battery.svg')} alt="" /></span></div>
-      <div className="message-v2-title"><h1>消息</h1>{searchOpen ? <form role="search" onSubmit={(event) => event.preventDefault()}><Search size={16} aria-hidden="true" /><input ref={searchRef} value={query} maxLength={40} onChange={(event) => setQuery(event.target.value)} placeholder="订单号 / 商品编号" aria-label="订单编号或商品编号" /><button type="button" onClick={() => { setQuery(''); setSearchOpen(false) }} aria-label="关闭搜索"><X size={16} /></button></form> : <button type="button" onClick={() => setSearchOpen(true)} aria-label="搜索消息"><Search size={18} aria-hidden="true" /></button>}</div>
+      <div className="message-v2-title"><h1>消息</h1><form role="search" onSubmit={(event) => event.preventDefault()}><Search size={16} aria-hidden="true" /><input value={query} maxLength={40} onChange={(event) => setQuery(event.target.value)} placeholder="订单号 / 商品编号" aria-label="订单编号或商品编号" />{query && <button type="button" onClick={() => setQuery('')} aria-label="清空搜索"><X size={16} /></button>}</form></div>
       <nav className="message-v2-tabs" role="tablist" aria-label="消息分类">{tabs.map((tab) => <button type="button" role="tab" key={tab.key} className={category === tab.key ? 'active' : ''} aria-selected={category === tab.key} onClick={() => selectCategory(tab.key)}>{tab.label}{tab.key === 'notifications' && conversations.some((item) => item.kind === 'notification' && item.unreadCount > 0) && <i aria-label="有未读通知" />}</button>)}</nav>
     </header>
 

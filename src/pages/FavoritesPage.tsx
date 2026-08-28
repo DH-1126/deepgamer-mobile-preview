@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, Check, ChevronDown, Trash2 } from 'lucide-react'
+import { ArrowLeft, Check, ChevronDown, Search, Trash2, X } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FavoriteCard } from '../components/FavoriteCard'
 import { assetPath } from '../components/assetPath'
@@ -22,6 +22,7 @@ export function FavoritesPage() {
   const [loadError, setLoadError] = useState('')
   const [deleteError, setDeleteError] = useState('')
   const [filters, setFilters] = useState<FavoriteFilters>(emptyFavoriteFilters)
+  const [query, setQuery] = useState('')
   const [panel, setPanel] = useState<Panel>(null)
   const [draft, setDraft] = useState('all')
   const [managing, setManaging] = useState(false)
@@ -44,10 +45,9 @@ export function FavoritesPage() {
 
   const views = useMemo(() => records.map(projectFavorite), [records])
   const gameOptions = useMemo<Option[]>(() => [{ value: 'all', label: '全部游戏' }, ...[...new Map(views.filter((view) => view.gameCode !== 'unknown').map((view) => [view.gameCode, view.gameName])).entries()].map(([value, label]) => ({ value, label }))], [views])
-  const visible = useMemo(() => filterFavorites(records, filters, Date.now()), [filters, records])
+  const visible = useMemo(() => filterFavorites(records, filters, Date.now(), query), [filters, query, records])
   const visibleIds = visible.map((item) => item.productId)
   const checked = selectionState(selection, visibleIds)
-  const hasFilters = filters.gameCode !== 'all' || filters.status !== 'all' || filters.time !== 'all'
 
   useEffect(() => {
     if (managing && visible.length === 0) { setManaging(false); setSelection(new Set()) }
@@ -110,7 +110,7 @@ export function FavoritesPage() {
     setSelection(clearSelectionForFilter())
     setPanel(null)
   }
-  const clearFilters = () => { setFilters(emptyFavoriteFilters); setSelection(new Set()) }
+  const clearFilters = () => { setFilters(emptyFavoriteFilters); setQuery(''); setSelection(new Set()) }
   const deleteSelected = () => {
     if (!selection.size || deleting) return
     setDeleting(true)
@@ -127,6 +127,11 @@ export function FavoritesPage() {
     <header className="favorites-header">
       <div className="favorites-status" aria-hidden="true"><time>9:41</time><span><img src={assetPath('assets/home-v2/status-signal.svg')} alt="" /><img src={assetPath('assets/home-v2/status-wifi.svg')} alt="" /><img src={assetPath('assets/home-v2/status-battery.svg')} alt="" /></span></div>
       <nav className="favorites-titlebar" aria-label="收藏页导航"><button type="button" onClick={back} aria-label={managing ? '退出管理' : '返回'}><ArrowLeft size={20} strokeWidth={2} aria-hidden="true" /></button><h1>我的收藏</h1><button type="button" onClick={toggleManage} disabled={!records.length}>{managing ? '完成' : '管理'}</button></nav>
+      <form className="favorites-search" role="search" onSubmit={(event) => event.preventDefault()}>
+        <Search size={16} aria-hidden="true" />
+        <input value={query} maxLength={50} disabled={managing} onChange={(event) => { setQuery(event.target.value); setSelection(new Set()) }} placeholder="搜索商品、游戏或商品编号" aria-label="搜索收藏" />
+        {query && !managing && <button type="button" onClick={() => { setQuery(''); setSelection(new Set()) }} aria-label="清空搜索"><X size={15} /></button>}
+      </form>
       <section className="favorites-filters" aria-label="筛选收藏">
         <button ref={(node) => { triggerRefs.current.game = node }} type="button" disabled={managing} aria-haspopup="dialog" aria-expanded={panel === 'game'} aria-controls="favorite-filter-panel" onClick={() => openPanel('game')}>{filters.gameCode === 'all' ? '选择游戏' : getLabel(gameOptions, filters.gameCode, '选择游戏')}<ChevronDown size={13} aria-hidden="true" /></button>
         <button ref={(node) => { triggerRefs.current.status = node }} type="button" disabled={managing} aria-haspopup="dialog" aria-expanded={panel === 'status'} aria-controls="favorite-filter-panel" onClick={() => openPanel('status')}>{filters.status === 'all' ? '商品状态' : getLabel(statusOptions, filters.status, '商品状态')}<ChevronDown size={13} aria-hidden="true" /></button>
@@ -139,7 +144,7 @@ export function FavoritesPage() {
         : loadError ? <div className="favorites-state" role="alert"><h2>收藏加载失败</h2><p>{loadError}</p><button type="button" onClick={sync}>重试</button></div>
           : visible.length ? visible.map((item) => <FavoriteCard key={item.productId} item={item} managing={managing} selected={selection.has(item.productId)} onToggle={() => setSelection((current) => toggleFavoriteSelection(current, item.productId))} />)
             : records.length === 0 ? <div className="favorites-state"><h2>还没有收藏商品</h2><p>遇到喜欢的账号，点收藏就能在这里找到。</p><Link to="/game?gameCode=wzry">去逛逛</Link></div>
-              : <div className="favorites-state"><h2>没有符合条件的收藏</h2><p>换个筛选条件再看看。</p><button type="button" onClick={clearFilters}>清空筛选</button></div>}
+              : <div className="favorites-state"><h2>没有符合条件的收藏</h2><p>换个关键词或筛选条件再看看。</p><button type="button" onClick={clearFilters}>清空搜索与筛选</button></div>}
     </section>
 
     {panel && <div className="favorite-filter-layer"><button type="button" className="favorite-filter-mask" aria-label="关闭筛选" onClick={() => setPanel(null)} /><section id="favorite-filter-panel" ref={panelRef} role="dialog" aria-modal="true" aria-label={`${panel === 'game' ? '游戏' : panel === 'status' ? '商品状态' : '收藏时间'}筛选`}><div>{panelOptions.map((option) => <button type="button" className={`favorite-filter-option ${draft === option.value ? 'selected' : ''}`} aria-pressed={draft === option.value} key={option.value} onClick={() => setDraft(option.value)}>{option.label}{draft === option.value && <Check size={15} aria-hidden="true" />}</button>)}</div><footer><button type="button" onClick={resetDraft}>重置</button><button type="button" className="primary" onClick={applyDraft}>确定</button></footer></section></div>}

@@ -9,6 +9,8 @@ describe('recycleRepository', () => {
     let now = 2_000_000_000_000
     const repository = createRecycleRepository({ storage: storage(), now: () => ++now })
     const order = repository.begin('fun')!
+    expect(repository.get(order.id)?.id).toBe(order.id)
+    expect(repository.get('RC-NOT-FOUND')).toBeUndefined()
     expect(repository.acceptOffer(order.id)).toBe(false)
     expect(repository.receiveOffer(order.id)).toBe(true)
     expect(repository.acceptOffer(order.id)).toBe(true)
