@@ -21,20 +21,23 @@
 .auth-v2-status img:nth-child(2) { width: 15px; height: 11px; }
 .auth-v2-status img:nth-child(3) { width: 25px; height: 12px; }
 .auth-v2-brand { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
-.auth-v2-brand b { width: 82px; height: 82px; display: grid; place-items: center; color: var(--auth-yellow); font: 900 38px/1 "Noto Sans SC", sans-serif; letter-spacing: 1px; background: #17170f; border-radius: 24px; }
+.auth-v2-brand b { position: relative; width: 82px; height: 82px; display: grid; place-items: center; color: var(--auth-yellow); font: 900 38px/1 "Noto Sans SC", sans-serif; letter-spacing: 1px; background: #17170f; border-radius: 24px; }
 .auth-v2-brand strong { font-size: 30px; line-height: 1; font-weight: 900; letter-spacing: 2.5px; }
 .auth-v2-brand small { color: #5a4d12; font-size: 14px; line-height: 17px; letter-spacing: .8px; }
 
 /* 启动与首次协议 */
 .auth-v2-welcome { min-height: max(100dvh, 680px); overflow: hidden; background: var(--auth-yellow); }
-.auth-v2-launch-progress { position: absolute; z-index: 2; top: calc(50% + 126px); left: 50%; width: 176px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 10px; color: #6b5c18; }
-.auth-v2-launch-progress > i { position: relative; width: 100%; height: 5px; overflow: hidden; background: rgba(23,23,15,.16); border-radius: 999px; }
-.auth-v2-launch-progress > i span { position: absolute; top: 0; bottom: 0; left: -42%; width: 42%; background: #17170f; border-radius: inherit; animation: auth-v2-launch-track 1.15s ease-in-out infinite; }
-.auth-v2-launch-progress > b { font-size: 11px; line-height: 15px; font-weight: 700; letter-spacing: .4px; }
-.auth-v2-welcome-foot { position: absolute; z-index: 2; right: 0; bottom: calc(37px + env(safe-area-inset-bottom)); left: 0; color: #7d6c1e; font-size: 11px; line-height: 14px; text-align: center; letter-spacing: .4px; }
+.auth-v2-welcome.is-loading .auth-v2-brand b { animation: auth-v2-brand-pulse 1s ease-in-out infinite; }
+.auth-v2-welcome.is-loading .auth-v2-brand b::before,
+.auth-v2-welcome.is-loading .auth-v2-brand b::after { content: ''; position: absolute; pointer-events: none; border-style: solid; border-radius: 50%; }
+.auth-v2-welcome.is-loading .auth-v2-brand b::before { inset: -13px; border-width: 4px; border-color: rgba(23,23,15,.15); border-top-color: #17170f; border-right-color: #17170f; animation: auth-v2-launch-spin .78s linear infinite; }
+.auth-v2-welcome.is-loading .auth-v2-brand b::after { inset: -22px; border-width: 2px; border-color: rgba(23,23,15,.09); border-bottom-color: rgba(23,23,15,.72); animation: auth-v2-launch-spin 1.3s linear infinite reverse; }
+.auth-v2-loading-status { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.auth-v2-welcome-foot { position: absolute; z-index: 2; right: 0; bottom: calc(37px + env(safe-area-inset-bottom)); left: 0; color: #6a5b16; font-size: 14px; line-height: 20px; font-weight: 700; text-align: center; letter-spacing: .5px; }
 .auth-v2-modal-layer { position: fixed; z-index: 80; inset: 0; display: grid; place-items: center; padding: 16px; background: rgba(12, 12, 8, .55); }
 .auth-v2-dialog { width: min(361px, 100%); padding: 22px 20px 19px; background: #fff; border-radius: 16px; box-shadow: 0 12px 20px rgba(9, 9, 0, .3); }
 .auth-v2-dialog h2 { font-size: 19px; line-height: 24px; font-weight: 900; text-align: center; letter-spacing: .4px; }
+.auth-v2-dialog.initial-agreement-dialog h2 { text-align: left; }
 .auth-v2-dialog p { margin-top: 14px; color: #636362; font-size: 13px; line-height: 22.75px; letter-spacing: .1px; }
 .auth-v2-dialog p a, .auth-v2-agreement a { color: var(--auth-ink); font-weight: 700; text-decoration: none; box-shadow: inset 0 -2px var(--auth-yellow); }
 .auth-v2-dialog footer { margin-top: 18px; display: grid; grid-template-columns: 113px 1fr; gap: 10px; }
@@ -45,7 +48,13 @@
 .auth-v2-dialog footer:has(button + button.secondary) { grid-template-columns: 1fr; }
 .auth-v2-load-error { position: absolute; z-index: 5; inset: 0; display: grid; place-content: center; justify-items: center; gap: 14px; background: var(--auth-yellow); font-size: 14px; font-weight: 700; }
 .auth-v2-load-error button { height: 40px; padding: 0 16px; display: flex; align-items: center; gap: 7px; color: var(--auth-yellow); background: #17170f; border-radius: 12px; }
-@keyframes auth-v2-launch-track { 0% { transform: translateX(0); } 55%, 100% { transform: translateX(338%); } }
+@keyframes auth-v2-launch-spin { to { transform: rotate(360deg); } }
+@keyframes auth-v2-brand-pulse { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(23,23,15,.15); } 50% { transform: scale(1.045); box-shadow: 0 0 0 14px rgba(23,23,15,0); } }
+@media (prefers-reduced-motion: reduce) {
+  .auth-v2-welcome.is-loading .auth-v2-brand b,
+  .auth-v2-welcome.is-loading .auth-v2-brand b::before,
+  .auth-v2-welcome.is-loading .auth-v2-brand b::after { animation: none; }
+}
 
 /* 登录 */
 .auth-v2-login { min-height: max(100dvh, 680px); display: flex; flex-direction: column; }

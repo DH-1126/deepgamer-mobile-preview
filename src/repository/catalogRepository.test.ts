@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { games } from '../data/fixtures'
 import { emptyFilters } from '../types/catalog'
 import { catalogRepository } from './catalogRepository'
 
@@ -27,5 +28,11 @@ describe('catalogRepository', () => {
     const result = catalogRepository.queryProducts('蔷薇恋人', 'default', { ...emptyFilters, maxPrice: '1200' })
     expect(result).toHaveLength(1)
     expect(result[0].price).toBe(700)
+  })
+
+  it('每个可切换游戏都有对应商品列表', () => {
+    for (const game of games) {
+      expect(catalogRepository.queryProducts('', 'default', emptyFilters, game.code).length, game.name).toBeGreaterThan(0)
+    }
   })
 })

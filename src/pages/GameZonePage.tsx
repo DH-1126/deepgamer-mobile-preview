@@ -12,6 +12,21 @@ import { emptyFilters, type ProductFilters, type SortKey } from '../types/catalo
 
 const asset = (name: string) => assetPath(`assets/catalog-v2/${name}`)
 
+function filtersFromParams(params: URLSearchParams): ProductFilters {
+  const list = (key: string) => params.get(key)?.split(',').map((item) => item.trim()).filter(Boolean) ?? []
+  return {
+    ...initialCatalogFilters,
+    minPrice: params.get('minPrice') ?? '',
+    maxPrice: params.get('maxPrice') ?? '',
+    minSkin: params.get('minSkin') ?? '',
+    maxSkin: params.get('maxSkin') ?? '',
+    minHero: params.get('minHero') ?? '',
+    ranks: list('ranks'),
+    eliteLevels: list('eliteLevels'),
+    platforms: list('platforms'),
+  }
+}
+
 export function GameZonePage() {
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
@@ -21,7 +36,7 @@ export function GameZonePage() {
   const [input, setInput] = useState(initialQuery)
   const [query, setQuery] = useState(initialQuery)
   const [sort, setSort] = useState<SortKey>('default')
-  const [filters, setFilters] = useState<ProductFilters>(initialCatalogFilters)
+  const [filters, setFilters] = useState<ProductFilters>(() => filtersFromParams(params))
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [quickPanel, setQuickPanel] = useState<'sort' | 'server' | 'price' | null>(null)
   const [toolbarSelection, setToolbarSelection] = useState<ToolbarSelection>('sort')
@@ -65,6 +80,14 @@ export function GameZonePage() {
     if (kind === 'skin') return { ...current, minSkin: current.minSkin ? '' : '200', maxSkin: '' }
     return { ...current, negotiable: current.negotiable ? '' : 'true' }
   })
+  const toggleGeneralRecommendation = (kind: 'budget' | 'qq' | 'negotiable' | 'latest') => {
+    if (kind === 'latest') { setSort((current) => current === 'listed_at_desc' ? 'default' : 'listed_at_desc'); return }
+    setFilters((current) => {
+      if (kind === 'budget') return { ...current, maxPrice: current.maxPrice === '1000' ? '' : '1000' }
+      if (kind === 'qq') return { ...current, platforms: current.platforms.length ? [] : ['安卓QQ', 'iOS QQ'] }
+      return { ...current, negotiable: current.negotiable ? '' : 'true' }
+    })
+  }
   const editChip = (editor: 'server' | 'price' | 'drawer') => {
     if (editor === 'server' || editor === 'price') toggleQuickPanel(editor)
     else { setQuickPanel(null); setDrawerOpen(true) }
@@ -74,15 +97,20 @@ export function GameZonePage() {
     <main className="catalog-page">
       <header className="catalog-top">
         <div className="catalog-status" aria-hidden="true"><time>9:41</time><span><img src={asset('status-signal.svg')} alt="" /><img src={asset('status-wifi.svg')} alt="" /><img src={asset('status-battery.svg')} alt="" /></span></div>
-        <form className="catalog-search" onSubmit={submit}><button type="button" aria-label="返回首页选择游戏" onClick={() => navigate('/#game-selection')}><img src={asset('game-switch.png')} alt="" /><span>切换</span></button><label><img src={asset('search.svg')} alt="" /><input aria-label="搜索本游戏商品" value={input} onChange={(event) => setInput(event.target.value)} placeholder="搜本游戏…" /></label></form>
+        <form className="catalog-search" onSubmit={submit}><button type="button" aria-label={`切换游戏，当前${game.name}`} onClick={() => navigate(`/game/select?current=${encodeURIComponent(game.code)}`)}><img src={game.image || asset('game-switch.png')} alt="" /><span>切换</span></button><label><img src={asset('search.svg')} alt="" /><input aria-label={`搜索${game.name}商品`} value={input} onChange={(event) => setInput(event.target.value)} placeholder={`搜${game.name}…`} /></label></form>
       </header>
 
-      <section className="catalog-recommendations" aria-label="推荐筛选条件" {...obscuredContentProps}><div>
+      <section className="catalog-recommendations" aria-label="推荐筛选条件" {...obscuredContentProps}><div>{game.code === 'wzry' ? <>
         <button type="button" className={filters.ranks.includes('荣耀王者') ? 'selected' : ''} aria-pressed={filters.ranks.includes('荣耀王者')} onClick={() => toggleRecommendation('rank')}>荣耀王者</button>
         <button type="button" className={filters.minHero === '108' ? 'selected' : ''} aria-pressed={filters.minHero === '108'} onClick={() => toggleRecommendation('hero')}>全英雄</button>
         <button type="button" className={filters.minSkin === '200' ? 'selected' : ''} aria-pressed={filters.minSkin === '200'} onClick={() => toggleRecommendation('skin')}>皮肤200+</button>
         <button type="button" className={filters.negotiable === 'true' ? 'selected' : ''} aria-pressed={filters.negotiable === 'true'} onClick={() => toggleRecommendation('negotiable')}>支持议价</button>
-      </div></section>
+      </> : <>
+        <button type="button" className={filters.maxPrice === '1000' ? 'selected' : ''} aria-pressed={filters.maxPrice === '1000'} onClick={() => toggleGeneralRecommendation('budget')}>1000以内</button>
+        <button type="button" className={filters.platforms.length > 0 ? 'selected' : ''} aria-pressed={filters.platforms.length > 0} onClick={() => toggleGeneralRecommendation('qq')}>QQ区</button>
+        <button type="button" className={filters.negotiable === 'true' ? 'selected' : ''} aria-pressed={filters.negotiable === 'true'} onClick={() => toggleGeneralRecommendation('negotiable')}>支持议价</button>
+        <button type="button" className={sort === 'listed_at_desc' ? 'selected' : ''} aria-pressed={sort === 'listed_at_desc'} onClick={() => toggleGeneralRecommendation('latest')}>最新上架</button>
+      </>}</div></section>
 
       <section className="catalog-sort" role="toolbar" aria-label="商品排序和筛选">
         <button type="button" className={toolbarActive.sort ? 'active' : ''} aria-pressed={toolbarActive.sort} aria-haspopup="dialog" aria-expanded={quickPanel === 'sort'} aria-controls="sort-quick-filter" onClick={() => toggleQuickPanel('sort')}>排序<span className="catalog-sort-chevron" aria-hidden="true" /></button>

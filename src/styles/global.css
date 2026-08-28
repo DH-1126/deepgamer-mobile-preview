@@ -457,3 +457,16 @@ textarea:focus-visible {
   outline-offset: 0 !important;
   box-shadow: none !important;
 }
+
+/* Touch UIs do not retain desktop-style focus rings or browser tap highlights. */
+@media (hover: none), (pointer: coarse) {
+  :where(button, a, [role="button"], [tabindex], input, textarea, select) {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :where(button, a, [role="button"], [tabindex], input, textarea, select):focus,
+  :where(button, a, [role="button"], [tabindex], input, textarea, select):focus-visible {
+    outline: none !important;
+    outline-offset: 0 !important;
+  }
+}

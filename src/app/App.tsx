@@ -1,7 +1,9 @@
+import { useEffect } from 'react'
 import { Link, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import { HomePage } from '../pages/HomePage'
 import { SearchPage } from '../pages/SearchPage'
 import { GameZonePage } from '../pages/GameZonePage'
+import { GameSelectPage } from '../pages/GameSelectPage'
 import { ProductDetailPage } from '../pages/ProductDetailPage'
 import { ProfilePage } from '../pages/ProfilePage'
 import { FavoritesPage } from '../pages/FavoritesPage'
@@ -60,6 +62,18 @@ function LoginEntry({ method }: { method: AuthMethod }) {
 }
 
 export function App() {
+  useEffect(() => {
+    const releasePointerFocus = (event: PointerEvent) => {
+      const target = event.target instanceof Element
+        ? event.target.closest<HTMLElement>('button, a[href], [role="button"], [tabindex]:not([tabindex="-1"])')
+        : null
+      if (!target) return
+      window.requestAnimationFrame(() => target.blur())
+    }
+    document.addEventListener('pointerup', releasePointerFocus)
+    return () => document.removeEventListener('pointerup', releasePointerFocus)
+  }, [])
+
   return (
     <div className="mobile-shell">
       <AuthPromptProvider>
@@ -76,7 +90,7 @@ export function App() {
             <Route path="/buy/game-zone" element={<GameZonePage />} />
             <Route path="/buy/list" element={<GameZonePage />} />
             <Route path="/game" element={<GameZonePage />} />
-            <Route path="/game/select" element={<Navigate to="/#game-selection" replace />} />
+            <Route path="/game/select" element={<GameSelectPage />} />
             <Route path="/goods/:id" element={<ProductDetailPage />} />
             <Route path="/feedback" element={<PlaceholderPage title="吐槽广场" detail="建议与吐槽入口正在接入。" />} />
             <Route path="/profile" element={<ProfilePage />} />

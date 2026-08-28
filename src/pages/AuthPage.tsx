@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Bell, Check, Eye, EyeOff, RotateCw, UserRound, X } from 'lucide-react'
 import { agreementSections, AUTH_POLICY_UPDATED_AT, DEMO_MASKED_PHONE, privacySections } from '../data/authFixtures'
@@ -22,7 +22,7 @@ function StatusBar({ inverse = false }: { inverse?: boolean }) {
 
 function Brand({ compact = false }: { compact?: boolean }) {
   return <div className={`auth-v2-brand ${compact ? 'compact' : ''}`}>
-    <b>DG</b><strong>{compact ? '登录深度玩家' : '深度玩家'}</strong>{!compact && <small>一亿玩家自己的游戏平台</small>}
+    <b>DG</b><strong>{compact ? '登录深度玩家' : '深度玩家'}</strong>
   </div>
 }
 
@@ -43,20 +43,16 @@ function AgreementCheck({ checked, onChange, includePrivacy = true }: { checked:
 }
 
 function InitialAgreementDialog({ confirmExit, onAgree, onReject, onContinue }: { confirmExit: boolean; onAgree: () => void; onReject: () => void; onContinue: () => void }) {
-  const ref = useRef<HTMLElement>(null)
-  useEffect(() => {
-    requestAnimationFrame(() => ref.current?.querySelector<HTMLButtonElement>('button')?.focus())
-  }, [confirmExit])
   return <div className="auth-v2-modal-layer">
-    <section ref={ref} className="auth-v2-dialog" role="dialog" aria-modal="true" aria-labelledby="initial-agreement-title">
-      <h2 id="initial-agreement-title">{confirmExit ? '不同意将无法继续使用' : '请先阅读并同意协议'}</h2>
+    <section className="auth-v2-dialog initial-agreement-dialog" role="dialog" aria-modal="true" aria-labelledby="initial-agreement-title">
+      <h2 id="initial-agreement-title">{confirmExit ? '不同意将无法继续使用' : '温馨提示'}</h2>
       {confirmExit
         ? <p>登录和交易服务需要基于协议提供。你可以返回继续阅读，也可以退出深度玩家。</p>
-        : <p>继续登录前，需要你阅读并同意 <Link to="/user-agreement">《用户服务协议》</Link> 和 <Link to="/privacy-policy">《隐私政策》</Link>。未注册的手机号将在登录成功后自动创建账号。</p>}
+        : <p>欢迎来到深度玩家。在您开始使用前，请阅读并同意 <Link to="/user-agreement">《服务条款》</Link> 与 <Link to="/privacy-policy">《隐私政策》</Link>。<br />为了向您提供核心服务，我们需要收集必要的设备信息与日志数据。我们承诺严加保护您的个人信息安全，未经许可不会用于其他用途。</p>}
       <footer>
         {confirmExit
-          ? <><button type="button" onClick={onContinue}>返回查看协议</button><button type="button" className="secondary" onClick={onReject}>退出深度玩家</button></>
-          : <><button type="button" className="secondary" onClick={onReject}>不同意</button><button type="button" className="primary" onClick={onAgree}>同意并登录</button></>}
+          ? <><button type="button" className="primary" onClick={onContinue}>返回查看协议</button><button type="button" className="secondary" onClick={onReject}>退出深度玩家</button></>
+          : <><button type="button" className="secondary" onClick={onReject}>不同意</button><button type="button" className="primary" onClick={onAgree}>同意并继续</button></>}
       </footer>
     </section>
   </div>
@@ -87,11 +83,11 @@ export function WelcomePage() {
     if (!authRepository.acceptInitialAgreement()) { setPhase('error'); return }
     setPhase('loading')
   }
-  return <main className="auth-v2-page auth-v2-welcome" data-node-id="511:11253">
+  return <main className={`auth-v2-page auth-v2-welcome ${phase === 'loading' ? 'is-loading' : ''}`} aria-busy={phase === 'loading'} data-node-id="511:11253">
     <StatusBar />
     <Brand />
-    {phase === 'loading' && <div className="auth-v2-launch-progress" role="status" aria-label="正在安全加载"><i><span /></i><b>正在加载安全交易环境</b></div>}
-    <p className="auth-v2-welcome-foot">深度玩家 · 玩家自己的交易平台</p>
+    {phase === 'loading' && <span className="auth-v2-loading-status" role="status">正在加载安全交易环境</span>}
+    <p className="auth-v2-welcome-foot">深度玩家 ｜ 一亿玩家自己的游戏平台</p>
     {phase === 'error' && <div className="auth-v2-load-error" role="alert"><span>协议状态保存失败</span><button type="button" onClick={() => setPhase('agreement')}><RotateCw size={15} />重试</button></div>}
     {(phase === 'agreement' || phase === 'exit') && <InitialAgreementDialog confirmExit={phase === 'exit'} onAgree={agree} onReject={() => phase === 'exit' ? navigate('/', { replace: true }) : setPhase('exit')} onContinue={() => setPhase('agreement')} />}
   </main>

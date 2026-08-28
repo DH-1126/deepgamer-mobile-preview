@@ -1,7 +1,7 @@
 import { catalogProductDetails, deltaProductDetail } from '../data/productDetailFixtures'
 import type { ProductDetail } from '../types/productDetail'
 
-const details = [deltaProductDetail, ...catalogProductDetails]
+const details = [...catalogProductDetails, deltaProductDetail]
 
 export const productDetailRepository = {
   getById(id: string): ProductDetail | undefined {
