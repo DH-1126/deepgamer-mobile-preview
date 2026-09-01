@@ -1,4 +1,4 @@
-import { useId, useState, type FormEvent, type ReactNode } from 'react'
+import { useId, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
 import {
   AlertCircle,
   BadgePercent,
@@ -10,7 +10,11 @@ import {
   FileText,
   Headphones,
   IdCard,
+  ImagePlus,
+  LoaderCircle,
+  RotateCcw,
   ShieldCheck,
+  Trash2,
   Upload,
   UserRound,
 } from 'lucide-react'
@@ -26,6 +30,7 @@ import {
   type SellerApplicationSnapshot,
   type SellerSubject,
 } from '../components/sellerContractModel'
+import { uploadSellerContractMedia, validateTakeoutOrderImage } from '../components/sellerContractMediaUpload'
 import { SUPPORT_CONVERSATION_ROUTE } from '../data/messageFixtures'
 import '../styles/seller-contract-v2.css'
 
@@ -35,7 +40,12 @@ function readSellerApplication(): SellerApplicationSnapshot {
   if (typeof window === 'undefined') return emptySellerApplication
   try {
     const parsed = JSON.parse(window.localStorage.getItem(SELLER_APPLICATION_KEY) ?? '{}') as Partial<SellerApplicationSnapshot>
-    if (parsed.status === 'under_review' && (parsed.subject === 'personal' || parsed.subject === 'business')) return { status: parsed.status, subject: parsed.subject, submittedAt: parsed.submittedAt }
+    if (parsed.status === 'under_review' && (parsed.subject === 'personal' || parsed.subject === 'business')) return {
+      status: parsed.status,
+      subject: parsed.subject,
+      submittedAt: parsed.submittedAt,
+      takeoutOrderMediaId: typeof parsed.takeoutOrderMediaId === 'string' ? parsed.takeoutOrderMediaId : undefined,
+    }
   } catch { /* Fall back to the not-started state. */ }
   return emptySellerApplication
 }
@@ -87,6 +97,73 @@ function UploadField({ label, hint, value, onChange }: UploadFieldProps) {
   return <label className={`seller-contract-v2-upload${value ? ' selected' : ''}`} htmlFor={id}><input id={id} type="file" accept="image/jpeg,image/png" onChange={(event) => onChange(event.target.files?.[0]?.name ?? '')} /><span><Upload size={20} aria-hidden="true" /></span><div><b>{label}<em>*</em></b><small>{value || hint}</small></div>{value ? <Check size={18} aria-label="已选择" /> : <strong>选择图片</strong>}</label>
 }
 
+type TakeoutOrderMedia = {
+  mediaId: string
+  fileName: string
+  previewUrl: string
+}
+
+function TakeoutOrderUpload({ value, onChange, onError }: { value: TakeoutOrderMedia | null; onChange: (value: TakeoutOrderMedia | null) => void; onError: (message: string) => void }) {
+  const inputId = useId()
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [status, setStatus] = useState<'idle' | 'uploading' | 'loading' | 'uploaded' | 'error'>(value ? 'loading' : 'idle')
+  const [uploadError, setUploadError] = useState('')
+
+  const selectFile = () => inputRef.current?.click()
+  const handleFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+
+    const validationError = validateTakeoutOrderImage(file)
+    if (validationError) {
+      setStatus('error')
+      setUploadError(validationError)
+      onError(validationError)
+      return
+    }
+
+    setStatus('uploading')
+    setUploadError('')
+    onError('')
+    try {
+      const uploaded = await uploadSellerContractMedia(file)
+      if (value?.previewUrl) URL.revokeObjectURL(value.previewUrl)
+      onChange({ ...uploaded, previewUrl: URL.createObjectURL(file) })
+      setStatus('loading')
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : '图片上传失败，请重试'
+      setStatus('error')
+      setUploadError(message)
+      onError(message)
+    }
+  }
+  const remove = () => {
+    if (value?.previewUrl) URL.revokeObjectURL(value.previewUrl)
+    onChange(null)
+    setStatus('idle')
+    setUploadError('')
+    onError('')
+  }
+
+  return <section className={`seller-contract-v2-takeout ${status}`} aria-labelledby={`${inputId}-label`} aria-busy={status === 'uploading' || status === 'loading'}>
+    <header><h3 id={`${inputId}-label`}>外卖订单截图<em>*</em></h3>{status === 'uploaded' ? <span><Check size={13} aria-hidden="true" />已上传</span> : status === 'loading' ? <span className="pending"><LoaderCircle className="spinning" size={13} aria-hidden="true" />加载预览</span> : status === 'uploading' ? <span className="pending"><LoaderCircle className="spinning" size={13} aria-hidden="true" />上传中</span> : null}</header>
+    <input ref={inputRef} id={inputId} type="file" accept="image/jpeg,image/png" onChange={handleFile} />
+    {value ? <div className="seller-contract-v2-takeout-preview">
+      <img src={value.previewUrl} alt="外卖订单截图预览" onLoad={() => setStatus('uploaded')} onError={() => { const message = '图片预览加载失败，请重新上传'; setStatus('error'); setUploadError(message); onError(message) }} />
+      <div><b>{value.fileName}</b><small>已生成媒体凭证</small></div>
+      <button type="button" onClick={selectFile} aria-label="重新上传外卖订单截图"><RotateCcw size={16} aria-hidden="true" />重传</button>
+      <button type="button" className="remove" onClick={remove} aria-label="删除外卖订单截图"><Trash2 size={16} aria-hidden="true" />删除</button>
+    </div> : <button className="seller-contract-v2-takeout-picker" type="button" disabled={status === 'uploading'} onClick={selectFile}>
+      <span>{status === 'uploading' ? <LoaderCircle className="spinning" size={26} aria-hidden="true" /> : <ImagePlus size={26} aria-hidden="true" />}</span>
+      <b>{status === 'uploading' ? '正在处理图片…' : '点击上传图片'}</b>
+      <small>支持 JPG、PNG 格式，大小不超过 10MB</small>
+    </button>}
+    {uploadError && <p className="seller-contract-v2-takeout-error" role="alert"><AlertCircle size={14} aria-hidden="true" />{uploadError}</p>}
+    <p className="seller-contract-v2-takeout-hint">请上传近30天外卖相关订单（含收货地址和下单时间），收货信息需与上方联系人信息相同。</p>
+  </section>
+}
+
 function TextField({ label, value, onChange, placeholder, hint, inputMode = 'text', maxLength = 60 }: { label: string; value: string; onChange: (value: string) => void; placeholder: string; hint?: string; inputMode?: 'text' | 'numeric' | 'tel'; maxLength?: number }) {
   return <label className="seller-contract-v2-field"><span>{label}<em>*</em></span><input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} inputMode={inputMode} maxLength={maxLength} />{hint && <small>{hint}</small>}</label>
 }
@@ -107,12 +184,12 @@ function FormSection({ title, icon, children }: { title: string; icon: ReactNode
   return <section className="seller-contract-v2-form-card"><header><span>{icon}</span><h2>{title}</h2></header>{children}</section>
 }
 
-type PersonalForm = { idFront: string; idBack: string; realName: string; citizenId: string; contactPhone: string; emergencyName: string; emergencyPhone: string; address: string }
+type PersonalForm = { idFront: string; idBack: string; realName: string; citizenId: string; contactPhone: string; emergencyName: string; emergencyPhone: string; takeoutOrder: TakeoutOrderMedia | null }
 
 export function PersonalSellerContractPage() {
   const navigate = useNavigate()
   const [step, setStep] = useState(0)
-  const [form, setForm] = useState<PersonalForm>({ idFront: '', idBack: '', realName: '', citizenId: '', contactPhone: '', emergencyName: '', emergencyPhone: '', address: '' })
+  const [form, setForm] = useState<PersonalForm>({ idFront: '', idBack: '', realName: '', citizenId: '', contactPhone: '', emergencyName: '', emergencyPhone: '', takeoutOrder: null })
   const [agreed, setAgreed] = useState(false)
   const [error, setError] = useState('')
   const set = <K extends keyof PersonalForm>(key: K, value: PersonalForm[K]) => { setForm((current) => ({ ...current, [key]: value })); setError('') }
@@ -126,29 +203,30 @@ export function PersonalSellerContractPage() {
       if (!isMainlandPhone(form.contactPhone)) return setError('请输入正确的联系人手机号')
       if (!isChineseName(form.emergencyName)) return setError('请输入正确的紧急联系人姓名')
       if (!isMainlandPhone(form.emergencyPhone)) return setError('请输入正确的紧急联系人电话')
-      if (form.address.trim().length < 5) return setError('请填写常用联系地址')
+      if (!form.takeoutOrder?.mediaId) return setError('请上传外卖订单截图')
     }
     setError(''); setStep((current) => Math.min(2, current + 1))
   }
   const submit = (event: FormEvent) => {
     event.preventDefault()
     if (!agreed) return setError('请先核对资料并同意买卖家服务协议')
-    if (!writeSellerApplication(createSubmittedSellerApplication('personal'))) return setError('提交状态保存失败，请重试')
+    if (!form.takeoutOrder?.mediaId) return setError('请上传外卖订单截图')
+    if (!writeSellerApplication(createSubmittedSellerApplication('personal', form.takeoutOrder.mediaId))) return setError('提交状态保存失败，请重试')
     navigate('/seller/center', { replace: true })
   }
   return <SellerApplicationLayout title="个人卖家签约" steps={[["实名信息", "身份证"], ["联系人", "联系资料"], ["确认提交", "等待审核"]]} step={step} onStep={setStep} error={error} onBack={step > 0 ? () => { setStep((current) => current - 1); setError('') } : undefined} onNext={step < 2 ? next : undefined} onSubmit={submit}>
     {step === 0 && <FormSection title="身份证与实名认证" icon={<IdCard size={21} aria-hidden="true" />}><p className="seller-contract-v2-form-note">身份证图片仅用于卖家审核、实名核验与签约资料归档。</p><div className="seller-contract-v2-upload-grid"><UploadField label="身份证人像面" hint="上传后识别姓名和身份证号" value={form.idFront} onChange={(value) => set('idFront', value)} /><UploadField label="身份证国徽面" hint="请保证证件信息完整清晰" value={form.idBack} onChange={(value) => set('idBack', value)} /></div><TextField label="卖家真实姓名" value={form.realName} onChange={(value) => set('realName', value)} placeholder="请输入真实姓名" maxLength={20} /><TextField label="卖家身份证号" value={form.citizenId} onChange={(value) => set('citizenId', value)} placeholder="请输入 18 位身份证号" maxLength={18} /></FormSection>}
-    {step === 1 && <ContactSection phoneLabel="联系人手机号（接收签约短信）" values={form} setValue={(key, value) => set(key as keyof PersonalForm, value)} />}
-    {step === 2 && <FormSection title="确认提交资料" icon={<FileCheck2 size={21} aria-hidden="true" />}><p className="seller-contract-v2-form-note">请确认以下信息与证件一致。提交后平台将在 1 个工作日内完成审核。</p><div className="seller-contract-v2-review"><ReviewRow label="申请主体" value="个人" /><ReviewRow label="真实姓名" value={form.realName} /><ReviewRow label="身份证号" value={maskId(form.citizenId)} /><ReviewRow label="联系人手机号" value={maskPhone(form.contactPhone)} /><ReviewRow label="证件资料" value="已选择 2 张" /></div><Agreement checked={agreed} onChange={() => { setAgreed((value) => !value); setError('') }} /></FormSection>}
+    {step === 1 && <ContactSection phoneLabel="联系人手机号（接收签约短信）" values={form} setValue={(key, value) => set(key, value)} onUploadError={setError} />}
+    {step === 2 && <FormSection title="确认提交资料" icon={<FileCheck2 size={21} aria-hidden="true" />}><p className="seller-contract-v2-form-note">请确认以下信息与证件一致。提交后平台将在 1 个工作日内完成审核。</p><div className="seller-contract-v2-review"><ReviewRow label="申请主体" value="个人" /><ReviewRow label="真实姓名" value={form.realName} /><ReviewRow label="身份证号" value={maskId(form.citizenId)} /><ReviewRow label="联系人手机号" value={maskPhone(form.contactPhone)} /><ReviewRow label="证件资料" value="已选择 2 张" /><ReviewRow label="外卖订单截图" value="已上传 1 张" /></div><Agreement checked={agreed} onChange={() => { setAgreed((value) => !value); setError('') }} /></FormSection>}
   </SellerApplicationLayout>
 }
 
-type BusinessForm = { license: string; companyName: string; licenseNo: string; entityType: 'individual' | 'company' | ''; idFront: string; idBack: string; operatorName: string; citizenId: string; contactPhone: string; emergencyName: string; emergencyPhone: string; address: string }
+type BusinessForm = { license: string; companyName: string; licenseNo: string; entityType: 'individual' | 'company' | ''; idFront: string; idBack: string; operatorName: string; citizenId: string; contactPhone: string; emergencyName: string; emergencyPhone: string; takeoutOrder: TakeoutOrderMedia | null }
 
 export function BusinessSellerContractPage() {
   const navigate = useNavigate()
   const [step, setStep] = useState(0)
-  const [form, setForm] = useState<BusinessForm>({ license: '', companyName: '', licenseNo: '', entityType: '', idFront: '', idBack: '', operatorName: '', citizenId: '', contactPhone: '', emergencyName: '', emergencyPhone: '', address: '' })
+  const [form, setForm] = useState<BusinessForm>({ license: '', companyName: '', licenseNo: '', entityType: '', idFront: '', idBack: '', operatorName: '', citizenId: '', contactPhone: '', emergencyName: '', emergencyPhone: '', takeoutOrder: null })
   const [agreed, setAgreed] = useState(false)
   const [error, setError] = useState('')
   const set = <K extends keyof BusinessForm>(key: K, value: BusinessForm[K]) => { setForm((current) => ({ ...current, [key]: value })); setError('') }
@@ -168,27 +246,28 @@ export function BusinessSellerContractPage() {
       if (!isMainlandPhone(form.contactPhone)) return setError('请输入正确的联系人手机号')
       if (!isChineseName(form.emergencyName)) return setError('请输入正确的紧急联系人姓名')
       if (!isMainlandPhone(form.emergencyPhone)) return setError('请输入正确的紧急联系人手机号')
-      if (form.address.trim().length < 5) return setError('请填写常用联系地址')
+      if (!form.takeoutOrder?.mediaId) return setError('请上传外卖订单截图')
     }
     setError(''); setStep((current) => Math.min(3, current + 1))
   }
   const submit = (event: FormEvent) => {
     event.preventDefault()
     if (!agreed) return setError('请先核对资料并同意买卖家服务协议')
-    if (!writeSellerApplication(createSubmittedSellerApplication('business'))) return setError('提交状态保存失败，请重试')
+    if (!form.takeoutOrder?.mediaId) return setError('请上传外卖订单截图')
+    if (!writeSellerApplication(createSubmittedSellerApplication('business', form.takeoutOrder.mediaId))) return setError('提交状态保存失败，请重试')
     navigate('/seller/center', { replace: true })
   }
   const operatorLabel = form.entityType === 'company' ? '法人' : '经营者'
   return <SellerApplicationLayout title="企业卖家签约" steps={[["主体资料", "营业执照"], ["经营者/法人", "身份证"], ["联系人", "联系资料"], ["确认提交", "等待审核"]]} step={step} onStep={setStep} error={error} onBack={step > 0 ? () => { setStep((current) => current - 1); setError('') } : undefined} onNext={step < 3 ? next : undefined} onSubmit={submit}>
     {step === 0 && <FormSection title="企业/个体户信息" icon={<Building2 size={21} aria-hidden="true" />}><p className="seller-contract-v2-form-note">上传营业执照后可识别主体名称和营业执照号码，请以证照信息为准。</p><UploadField label="营业执照" hint="支持 JPG/PNG，请保证四角完整" value={form.license} onChange={(value) => set('license', value)} /><TextField label="企业/个体户名称" value={form.companyName} onChange={(value) => set('companyName', value)} placeholder="请输入营业执照上的主体名称" /><TextField label="营业执照号码" value={form.licenseNo} onChange={(value) => set('licenseNo', value.toUpperCase())} placeholder="统一社会信用代码或注册号" maxLength={24} /><div className="seller-contract-v2-type"><span>请确认主体类型<em>*</em></span><div><button type="button" className={form.entityType === 'individual' ? 'active' : ''} onClick={() => set('entityType', 'individual')}>个体工商户</button><button type="button" className={form.entityType === 'company' ? 'active' : ''} onClick={() => set('entityType', 'company')}>企业</button></div></div></FormSection>}
     {step === 1 && <FormSection title={`${operatorLabel}信息`} icon={<IdCard size={21} aria-hidden="true" />}><p className="seller-contract-v2-form-note">姓名和身份证信息需与营业执照登记的经营者或法人保持一致。</p><div className="seller-contract-v2-upload-grid"><UploadField label="身份证人像面" hint={`选择${operatorLabel}身份证人像面`} value={form.idFront} onChange={(value) => set('idFront', value)} /><UploadField label="身份证国徽面" hint={`选择${operatorLabel}身份证国徽面`} value={form.idBack} onChange={(value) => set('idBack', value)} /></div><TextField label={`${operatorLabel}姓名`} value={form.operatorName} onChange={(value) => set('operatorName', value)} placeholder={`请输入${operatorLabel}姓名`} maxLength={20} /><TextField label={`${operatorLabel}身份证号`} value={form.citizenId} onChange={(value) => set('citizenId', value)} placeholder="请输入 18 位身份证号" maxLength={18} /></FormSection>}
-    {step === 2 && <ContactSection phoneLabel="联系人手机号（接收签约短信）" values={form} setValue={(key, value) => set(key as keyof BusinessForm, value)} />}
-    {step === 3 && <FormSection title="确认提交资料" icon={<FileCheck2 size={21} aria-hidden="true" />}><p className="seller-contract-v2-form-note">资料提交后平台将按主体材料与认证结果审核，审核通过后发送签约通知。</p><div className="seller-contract-v2-review"><ReviewRow label="申请主体" value={form.entityType === 'company' ? '企业' : '个体工商户'} /><ReviewRow label="主体名称" value={form.companyName} /><ReviewRow label="营业执照号码" value={maskLicense(form.licenseNo)} /><ReviewRow label={`${operatorLabel}姓名`} value={form.operatorName} /><ReviewRow label="联系人手机号" value={maskPhone(form.contactPhone)} /></div><Agreement checked={agreed} onChange={() => { setAgreed((value) => !value); setError('') }} /></FormSection>}
+    {step === 2 && <ContactSection phoneLabel="联系人手机号（接收签约短信）" values={form} setValue={(key, value) => set(key, value)} onUploadError={setError} />}
+    {step === 3 && <FormSection title="确认提交资料" icon={<FileCheck2 size={21} aria-hidden="true" />}><p className="seller-contract-v2-form-note">资料提交后平台将按主体材料与认证结果审核，审核通过后发送签约通知。</p><div className="seller-contract-v2-review"><ReviewRow label="申请主体" value={form.entityType === 'company' ? '企业' : '个体工商户'} /><ReviewRow label="主体名称" value={form.companyName} /><ReviewRow label="营业执照号码" value={maskLicense(form.licenseNo)} /><ReviewRow label={`${operatorLabel}姓名`} value={form.operatorName} /><ReviewRow label="联系人手机号" value={maskPhone(form.contactPhone)} /><ReviewRow label="外卖订单截图" value="已上传 1 张" /></div><Agreement checked={agreed} onChange={() => { setAgreed((value) => !value); setError('') }} /></FormSection>}
   </SellerApplicationLayout>
 }
 
-function ContactSection({ phoneLabel, values, setValue }: { phoneLabel: string; values: { contactPhone: string; emergencyName: string; emergencyPhone: string; address: string }; setValue: (key: 'contactPhone' | 'emergencyName' | 'emergencyPhone' | 'address', value: string) => void }) {
-  return <FormSection title="联系人信息" icon={<UserRound size={21} aria-hidden="true" />}><p className="seller-contract-v2-form-note">用于平台审核、签约通知及必要的交易联系。</p><TextField label={phoneLabel} value={values.contactPhone} onChange={(value) => setValue('contactPhone', value)} placeholder="请输入 11 位手机号" inputMode="tel" maxLength={11} /><TextField label="紧急联系人姓名" value={values.emergencyName} onChange={(value) => setValue('emergencyName', value)} placeholder="请输入紧急联系人姓名" maxLength={20} /><TextField label="紧急联系人电话" value={values.emergencyPhone} onChange={(value) => setValue('emergencyPhone', value)} placeholder="请输入紧急联系人电话" inputMode="tel" maxLength={11} /><TextField label="常用联系地址" value={values.address} onChange={(value) => setValue('address', value)} placeholder="请输入省市区及详细地址" /></FormSection>
+function ContactSection({ phoneLabel, values, setValue, onUploadError }: { phoneLabel: string; values: { contactPhone: string; emergencyName: string; emergencyPhone: string; takeoutOrder: TakeoutOrderMedia | null }; setValue: { (key: 'contactPhone' | 'emergencyName' | 'emergencyPhone', value: string): void; (key: 'takeoutOrder', value: TakeoutOrderMedia | null): void }; onUploadError: (message: string) => void }) {
+  return <><FormSection title="联系人信息" icon={<UserRound size={21} aria-hidden="true" />}><p className="seller-contract-v2-form-note">用于平台审核、签约通知及必要的交易联系。</p><TextField label={phoneLabel} value={values.contactPhone} onChange={(value) => setValue('contactPhone', value)} placeholder="请输入 11 位手机号" inputMode="tel" maxLength={11} /><TextField label="紧急联系人姓名" value={values.emergencyName} onChange={(value) => setValue('emergencyName', value)} placeholder="请输入紧急联系人姓名" maxLength={20} /><TextField label="紧急联系人电话" value={values.emergencyPhone} onChange={(value) => setValue('emergencyPhone', value)} placeholder="请输入紧急联系人电话" inputMode="tel" maxLength={11} /></FormSection><FormSection title="认证辅助资料" icon={<ImagePlus size={21} aria-hidden="true" />}><TakeoutOrderUpload value={values.takeoutOrder} onChange={(value) => setValue('takeoutOrder', value)} onError={onUploadError} /></FormSection></>
 }
 
 function SellerApplicationLayout({ title, steps, step, onStep, error, onBack, onNext, onSubmit, children }: { title: string; steps: Array<[string, string]>; step: number; onStep: (step: number) => void; error: string; onBack?: () => void; onNext?: () => void; onSubmit: (event: FormEvent) => void; children: ReactNode }) {

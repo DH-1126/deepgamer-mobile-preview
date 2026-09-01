@@ -3,6 +3,7 @@ export type SellerSubject = 'personal' | 'business'
 export type SellerApplicationSnapshot = {
   status: 'not_started' | 'under_review'
   subject: SellerSubject | null
+  takeoutOrderMediaId?: string
   submittedAt?: number
 }
 
@@ -24,6 +25,6 @@ export function isBusinessLicense(value: string) {
   return /^[0-9A-Z]{8,24}$/i.test(value.trim())
 }
 
-export function createSubmittedSellerApplication(subject: SellerSubject, now = Date.now()): SellerApplicationSnapshot {
-  return { status: 'under_review', subject, submittedAt: now }
+export function createSubmittedSellerApplication(subject: SellerSubject, takeoutOrderMediaId: string, now = Date.now()): SellerApplicationSnapshot {
+  return { status: 'under_review', subject, takeoutOrderMediaId, submittedAt: now }
 }
