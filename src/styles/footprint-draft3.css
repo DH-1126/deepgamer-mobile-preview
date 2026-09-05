@@ -1,0 +1,39 @@
+.footprint-d3-page { height: 100dvh; min-height: 100dvh; display: flex; flex-direction: column; overflow: hidden; background: #f7f7f5; color: #1f1f1d; }
+.footprint-d3-header { flex: 0 0 auto; background: #fff; border-bottom: .63px solid #ededea; }
+.footprint-d3-status { height: 44px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; font-size: 15px; font-weight: 800; letter-spacing: .2px; }
+.footprint-d3-status span { display: flex; align-items: center; gap: 6px; }
+.footprint-d3-status img { display: block; width: auto; max-height: 12px; }
+.footprint-d3-topbar { height: 49px; padding: 0 12px; display: grid; grid-template-columns: 40px 1fr 40px; align-items: center; }
+.footprint-d3-topbar h1 { margin: 0; text-align: center; font-size: 17px; font-weight: 800; letter-spacing: .4px; }
+.footprint-d3-topbar button { height: 40px; padding: 0; display: grid; place-items: center; border: 0; background: transparent; color: #636362; font-size: 13px; }
+.footprint-d3-topbar button:first-child { color: #1f1f1d; }
+.footprint-d3-topbar button:disabled { color: #c6c6c2; }
+.footprint-d3-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 16px 24px; scrollbar-width: none; }
+.footprint-d3-scroll::-webkit-scrollbar { display: none; }
+.footprint-d3-tabs { display: flex; align-items: center; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+.footprint-d3-tabs::-webkit-scrollbar { display: none; }
+.footprint-d3-tabs button { height: 32px; padding: 0 14px; flex: 0 0 auto; border: 0; border-radius: 999px; background: #f2f2ef; color: #3b3b3a; font-size: 13px; }
+.footprint-d3-tabs button small { font-size: 11px; font-weight: inherit; }
+.footprint-d3-tabs button.active { background: #1f1f1d; color: #fff; font-weight: 700; }
+.footprint-d3-day > h2 { margin: 0; padding: 16px 2px 10px; color: #9a9a98; font-size: 13px; font-weight: 700; letter-spacing: .5px; }
+.footprint-d3-day > div { display: grid; gap: 12px; }
+.footprint-d3-day a { min-height: 98px; padding: 13px; display: grid; grid-template-columns: 72px minmax(0,1fr) auto; align-items: start; gap: 12px; border: 1px solid #ededea; border-radius: 16px; background: #fff; color: inherit; text-decoration: none; box-shadow: 0 1px 2px rgb(9 9 0 / 4%); }
+.footprint-d3-day a > img { width: 72px; height: 72px; border-radius: 12px; object-fit: cover; }
+.footprint-d3-day a > span { min-width: 0; align-self: stretch; display: flex; flex-direction: column; justify-content: space-between; gap: 7px; }
+.footprint-d3-day a b { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: 14px; line-height: 21px; font-weight: 800; }
+.footprint-d3-meta { flex-direction: row !important; justify-content: flex-start !important; align-items: baseline; gap: 6px !important; }
+.footprint-d3-meta strong { font-family: Inter, sans-serif; font-size: 13px; font-weight: 900; }
+.footprint-d3-meta em { color: #2c8c26; font-size: 11px; font-style: normal; font-weight: 800; }
+.footprint-d3-meta em small { font-size: 9px; }
+.footprint-d3-day time { align-self: end; padding-bottom: 3px; color: #b3b3b1; font-family: Inter, sans-serif; font-size: 9px; }
+.footprint-d3-day a > i { align-self: end; padding-bottom: 2px; color: #b3b3b1; font-size: 11px; font-style: normal; }
+.footprint-d3-day a.sold { opacity: .75; }
+.footprint-d3-day a.sold b { color: #636362; font-weight: 500; }
+.footprint-d3-day a.sold strong { color: #9a9a98; font-weight: 700; }
+.footprint-d3-empty { min-height: 470px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.footprint-d3-empty > span { width: 58px; height: 58px; display: grid; place-items: center; border-radius: 50%; background: #edede8; color: #999994; }
+.footprint-d3-empty h2 { margin: 16px 0 7px; font-size: 17px; }
+.footprint-d3-empty p { margin: 0; color: #9a9a95; font-size: 12px; }
+.footprint-d3-empty a { margin-top: 22px; padding: 11px 24px; border-radius: 999px; background: #ffe62a; color: #1f1f1d; font-size: 13px; font-weight: 800; text-decoration: none; }
+
+@media (min-width: 394px) { .footprint-d3-page { max-width: 393px; margin: 0 auto; } }

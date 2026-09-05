@@ -16,6 +16,18 @@ const filtersConfig = [
 ] as const
 
 type FilterKey = (typeof filtersConfig)[number]['key']
+export type FilterSectionKey = 'hot' | 'skin' | 'rank' | 'platform' | 'price' | 'hero' | 'account' | 'other'
+
+const sectionKeyMap: Record<FilterSectionKey, FilterKey> = {
+  hot: 'elite',
+  skin: 'skins',
+  rank: 'rank',
+  platform: 'platform',
+  price: 'price',
+  hero: 'skinCount',
+  account: 'realName',
+  other: 'second',
+}
 
 const elites = Array.from({ length: 13 }, (_, index) => `V${12 - index}`)
 const platforms = ['安卓QQ', '安卓微信', 'iOS QQ', 'iOS 微信']
@@ -60,7 +72,7 @@ function getSelectedCount(key: FilterKey, filters: ProductFilters) {
   return filters.skins.length
 }
 
-export function FilterDrawer({ open, filters, onClose, onApply, variant = 'default' }: { open: boolean; filters: ProductFilters; onClose: () => void; onApply: (value: ProductFilters) => void; variant?: 'default' | 'catalogV2' }) {
+export function FilterDrawer({ open, filters, onClose, onApply, variant = 'default', initialSection = 'hot', gameName = '王者荣耀', resultCounter }: { open: boolean; filters: ProductFilters; onClose: () => void; onApply: (value: ProductFilters) => void; variant?: 'default' | 'catalogV2'; initialSection?: FilterSectionKey; gameName?: string; resultCounter?: (value: ProductFilters) => number }) {
   const [active, setActive] = useState<FilterKey>('elite')
   const [draft, setDraft] = useState<ProductFilters>(filters)
   const [search, setSearch] = useState('')
@@ -78,7 +90,18 @@ export function FilterDrawer({ open, filters, onClose, onApply, variant = 'defau
   const visibleConfig = useMemo(() => filtersConfig.filter((config) => !query || config.label.includes(query) || optionsByKey[config.key].some((option) => option.includes(query))), [query])
   const visibleKeys = visibleConfig.map((config) => config.key).join('|')
 
-  useEffect(() => { if (open) setDraft(filters) }, [filters, open])
+  useEffect(() => {
+    if (!open) return
+    setDraft(filters)
+    setSearch('')
+    const next = sectionKeyMap[initialSection]
+    setActive(next)
+    requestAnimationFrame(() => {
+      const pane = valuesRef.current
+      const section = sectionRefs.current.get(next)
+      if (pane && section) pane.scrollTop = section.offsetTop - 12
+    })
+  }, [filters, initialSection, open])
   useEffect(() => {
     if (!open) return undefined
     const original = document.body.style.overflow
@@ -100,12 +123,17 @@ export function FilterDrawer({ open, filters, onClose, onApply, variant = 'defau
 
   useEffect(() => {
     if (!open) return
-    const first = visibleConfig[0]?.key
+    const requested = sectionKeyMap[initialSection]
+    const first = visibleConfig.some((item) => item.key === requested) ? requested : visibleConfig[0]?.key
     if (first) setActive(first)
-    requestAnimationFrame(() => { if (valuesRef.current) valuesRef.current.scrollTop = 0 })
+    requestAnimationFrame(() => {
+      const pane = valuesRef.current
+      const section = first ? sectionRefs.current.get(first) : null
+      if (pane) pane.scrollTop = section ? section.offsetTop - 12 : 0
+    })
     // visibleKeys is the stable signature of the search-filtered directory.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, visibleKeys])
+  }, [initialSection, open, visibleKeys])
 
   useEffect(() => {
     if (!open) return
@@ -134,7 +162,7 @@ export function FilterDrawer({ open, filters, onClose, onApply, variant = 'defau
     if (key === 'second') return <Tags options={matching(['是', '否'], label)} values={draft.secondRealName === '' ? [] : [draft.secondRealName === 'true' ? '是' : '否']} onChange={(value) => setDraft({ ...draft, secondRealName: value.at(-1) === '是' ? 'true' : value.at(-1) === '否' ? 'false' : '' })} />
     if (key === 'face') return <Tags options={matching(faceOptions, label)} values={draft.faceCompensation === '' ? [] : [draft.faceCompensation === 'true' ? '支持' : '不支持']} onChange={(value) => setDraft({ ...draft, faceCompensation: ['支持', '是'].includes(value.at(-1) ?? '') ? 'true' : ['不支持', '否'].includes(value.at(-1) ?? '') ? 'false' : '' })} />
     const groupOptions = skinGroups[currentSkinGroup] ?? []
-    return <div className="skin-filter"><div className="skin-tabs">{visibleSkinGroups.map(([group]) => <button type="button" className={currentSkinGroup === group ? 'selected' : ''} aria-pressed={currentSkinGroup === group} key={group} onClick={() => setSkinGroup(group)}>{group}</button>)}</div><div className="match-rule"><span>匹配规则</span><button type="button" className={draft.skinMatchRule === 'any' ? 'selected' : ''} aria-pressed={draft.skinMatchRule === 'any'} onClick={() => setDraft({ ...draft, skinMatchRule: 'any' })}>任一</button><button type="button" className={draft.skinMatchRule === 'all' ? 'selected' : ''} aria-pressed={draft.skinMatchRule === 'all'} onClick={() => setDraft({ ...draft, skinMatchRule: 'all' })}>全部</button></div><button className="select-all" type="button" onClick={() => { const all = groupOptions.every((value) => draft.skins.includes(value)); setDraft({ ...draft, skins: all ? draft.skins.filter((value) => !groupOptions.includes(value)) : [...new Set([...draft.skins, ...groupOptions])] }) }}>全选当前分类</button><Tags options={skinCategoryMatches || currentSkinGroup.includes(query) ? groupOptions : groupOptions.filter((option) => option.includes(query))} values={draft.skins} onChange={(value) => setDraft({ ...draft, skins: value })} /></div>
+    return <div className="skin-filter"><div className="skin-tabs">{visibleSkinGroups.map(([group]) => <button type="button" className={currentSkinGroup === group ? 'selected' : ''} aria-pressed={currentSkinGroup === group} key={group} onClick={() => setSkinGroup(group)}>{group}</button>)}</div><div className="match-rule"><span>匹配规则</span><button type="button" className={draft.skinMatchRule === 'all' ? 'selected' : ''} aria-pressed={draft.skinMatchRule === 'all'} onClick={() => setDraft({ ...draft, skinMatchRule: 'all' })}>全部拥有</button><button type="button" className={draft.skinMatchRule === 'any' ? 'selected' : ''} aria-pressed={draft.skinMatchRule === 'any'} onClick={() => setDraft({ ...draft, skinMatchRule: 'any' })}>任一拥有</button></div>{draft.skins.length > 0 && <aside className="catalog-d3-selection-summary"><div><strong>已选 {draft.skins.length} 款皮肤</strong><button type="button" onClick={() => setDraft({ ...draft, skins: [] })}>清空</button></div><div>{draft.skins.map((skin) => <button type="button" key={skin} onClick={() => setDraft({ ...draft, skins: draft.skins.filter((value) => value !== skin) })}>{skin} ×</button>)}</div><small>{draft.skinMatchRule === 'all' ? '商品需要包含全部已选皮肤' : '商品包含任意一款已选皮肤即可'}</small></aside>}<button className="select-all" type="button" onClick={() => { const all = groupOptions.every((value) => draft.skins.includes(value)); setDraft({ ...draft, skins: all ? draft.skins.filter((value) => !groupOptions.includes(value)) : [...new Set([...draft.skins, ...groupOptions])] }) }}>全选当前分类</button><Tags options={skinCategoryMatches || currentSkinGroup.includes(query) ? groupOptions : groupOptions.filter((option) => option.includes(query))} values={draft.skins} onChange={(value) => setDraft({ ...draft, skins: value })} /></div>
   }
 
   const scrollToSection = (key: FilterKey) => {
@@ -163,6 +191,8 @@ export function FilterDrawer({ open, filters, onClose, onApply, variant = 'defau
 
   if (!open) return null
   const invalidDraft = hasInvalidPriceRange(draft.minPrice, draft.maxPrice) || hasInvalidPriceRange(draft.minSkin, draft.maxSkin)
+  const draftResultCount = resultCounter?.(draft)
+  const restored = JSON.stringify(draft) === JSON.stringify(filters) && getSelectedCount('elite', draft) + getSelectedCount('skinCount', draft) + getSelectedCount('price', draft) + getSelectedCount('platform', draft) + getSelectedCount('rank', draft) + getSelectedCount('realName', draft) + getSelectedCount('second', draft) + getSelectedCount('face', draft) + getSelectedCount('skins', draft) > 0
   const iconBase = assetPath('assets/catalog-v2')
-  return <div className={`drawer-layer ${variant === 'catalogV2' ? 'catalog-drawer-layer' : ''}`} role="dialog" aria-modal="true" aria-labelledby="filter-title"><button className="drawer-mask" type="button" aria-label="关闭筛选" onClick={onClose} /><section ref={drawerRef} id="filter-drawer" className={`filter-drawer ${variant === 'catalogV2' ? 'catalog-filter-drawer' : ''}`}><header><h2 id="filter-title">筛选</h2><button type="button" aria-label="关闭" onClick={onClose}><img src={`${iconBase}/remove-x.svg`} alt="" /></button></header><label className="drawer-search"><img src={`${iconBase}/search.svg`} alt="" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="请输入关键词筛选" />{search && <button type="button" aria-label="清空筛选关键词" onClick={() => setSearch('')}><img src={`${iconBase}/remove-x.svg`} alt="" /></button>}</label><div className="drawer-body"><nav ref={navRef} aria-label="筛选分类">{visibleConfig.map((config) => { const count = getSelectedCount(config.key, draft); return <button type="button" key={config.key} ref={(node) => { if (node) navItemRefs.current.set(config.key, node); else navItemRefs.current.delete(config.key) }} className={active === config.key ? 'active' : ''} aria-current={active === config.key ? 'true' : undefined} onClick={() => scrollToSection(config.key)}><span>{config.label}</span>{count > 0 && <b aria-label={`已选${count}项`}>{count}</b>}</button> })}</nav><div ref={valuesRef} className="drawer-values" aria-label="全部筛选条件" onScroll={syncActiveFromScroll}>{visibleConfig.length ? visibleConfig.map((config) => <section className="filter-section" id={`filter-section-${config.key}`} aria-labelledby={`filter-heading-${config.key}`} key={config.key} ref={(node) => { if (node) sectionRefs.current.set(config.key, node); else sectionRefs.current.delete(config.key) }}><h3 id={`filter-heading-${config.key}`}>{config.label}</h3>{renderContent(config.key, config.label)}</section>) : <div className="filter-empty" role="status">没有匹配的筛选项</div>}</div></div><footer><button type="button" onClick={() => setDraft(emptyFilters)}>重置</button><button className="primary" type="button" disabled={invalidDraft} onClick={() => { if (!invalidDraft) onApply(draft) }}>确定</button></footer></section></div>
+  return <div className={`drawer-layer ${variant === 'catalogV2' ? 'catalog-drawer-layer' : ''}`} role="dialog" aria-modal="true" aria-labelledby="filter-title"><button className="drawer-mask" type="button" aria-label="关闭筛选" onClick={onClose} /><section ref={drawerRef} id="filter-drawer" className={`filter-drawer ${variant === 'catalogV2' ? 'catalog-filter-drawer catalog-d3-filter-drawer' : ''}`}><header><h2 id="filter-title">筛选</h2><span>{gameName}</span><button type="button" aria-label="关闭" onClick={onClose}>×</button></header><label className="drawer-search"><img src={`${iconBase}/search.svg`} alt="" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索筛选项" />{search && <button type="button" aria-label="清空筛选关键词" onClick={() => setSearch('')}><img src={`${iconBase}/remove-x.svg`} alt="" /></button>}</label><div className="drawer-body"><nav ref={navRef} aria-label="筛选分类">{visibleConfig.map((config) => { const count = getSelectedCount(config.key, draft); return <button type="button" key={config.key} ref={(node) => { if (node) navItemRefs.current.set(config.key, node); else navItemRefs.current.delete(config.key) }} className={active === config.key ? 'active' : ''} aria-current={active === config.key ? 'true' : undefined} onClick={() => scrollToSection(config.key)}><span>{config.label}</span>{count > 0 && <b aria-label={`已选${count}项`}>{count}</b>}</button> })}</nav><div ref={valuesRef} className="drawer-values" aria-label="全部筛选条件" onScroll={syncActiveFromScroll}>{restored && <aside className="catalog-d3-restored" role="status"><strong>已恢复上次条件</strong><span>可继续调整，点击底部确定后生效</span></aside>}{draftResultCount === 0 && <aside className="catalog-d3-recovery" role="status"><h3>暂无完全匹配的商品</h3><p>放宽一个条件，就能看到更多合适的账号</p><h4>推荐调整</h4>{draft.skins.length > 0 && <button type="button" onClick={() => setDraft({ ...draft, skins: draft.skins.slice(0, -1) })}><strong>减少一个指定皮肤</strong><small>保留其他筛选条件</small></button>}{draft.minPrice || draft.maxPrice ? <button type="button" onClick={() => setDraft({ ...draft, minPrice: '', maxPrice: '' })}><strong>放宽价格范围</strong><small>查看全部价格商品</small></button> : null}<button type="button" className="secondary" onClick={() => setDraft(emptyFilters)}>清空全部条件</button><hr /></aside>}{visibleConfig.length ? visibleConfig.map((config) => <section className="filter-section catalog-d3-filter-section" id={`filter-section-${config.key}`} aria-labelledby={`filter-heading-${config.key}`} key={config.key} ref={(node) => { if (node) sectionRefs.current.set(config.key, node); else sectionRefs.current.delete(config.key) }}><h3 id={`filter-heading-${config.key}`}>{config.label}</h3>{renderContent(config.key, config.label)}</section>) : <div className="filter-empty" role="status">没有匹配的筛选项</div>}</div></div><footer><small><i />调整内容只会在确认后应用{typeof draftResultCount === 'number' ? ` · 找到 ${draftResultCount} 件商品` : ''}</small><button type="button" onClick={() => setDraft(emptyFilters)}>重置</button><button className="primary" type="button" disabled={invalidDraft} onClick={() => { if (!invalidDraft) onApply(draft) }}>确定{typeof draftResultCount === 'number' ? `（${draftResultCount}）` : ''}</button></footer></section></div>
 }

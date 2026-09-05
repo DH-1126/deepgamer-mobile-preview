@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { ArrowLeft, Check, ChevronRight, Copy, Headphones, Home, Search, ShieldCheck, X } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Check, ChevronRight, Copy, Headphones, Home, Search, ShieldCheck, X } from 'lucide-react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { formatOrderCountdown, formatOrderMoney, getOrderPrimaryMessage, getOrderStatusLabel, getOrderTimeline, isOrderRole } from '../components/orderModel'
 import { BUYER_ORDER_TABS, countTradeOrders, filterTradeOrders, getActionableTradeOrders, isTradeOrderTab, SELLER_ORDER_TABS, type TradeOrderTab } from '../components/orderHubModel'
@@ -62,6 +62,16 @@ function OrderEmpty({ title = '暂无订单', detail = '当前筛选条件下没
   return <section className="order-v2-empty"><span aria-hidden="true">单</span><h2>{title}</h2><p>{detail}</p><Link to="/game?gameCode=wzry">去逛逛</Link></section>
 }
 
+function OrderDomainTabs({ active, buyerCount, sellerCount }: { active: 'buyer' | 'seller' | 'recycle' | 'aftersales'; buyerCount?: number; sellerCount?: number }) {
+  const items = [
+    { key: 'buyer', label: '买入', count: buyerCount, to: '/orders?role=buyer' },
+    { key: 'seller', label: '卖出', count: sellerCount, to: '/orders?role=seller' },
+    { key: 'recycle', label: '回收', count: undefined, to: '/orders/recycle' },
+    { key: 'aftersales', label: '售后', count: undefined, to: '/aftersales' },
+  ] as const
+  return <nav className="order-domain-tabs" aria-label="订单类型">{items.map((item) => <Link key={item.key} className={active === item.key ? 'active' : ''} aria-current={active === item.key ? 'page' : undefined} to={item.to}>{item.label}{typeof item.count === 'number' && item.count > 0 ? <b>{item.count}</b> : null}</Link>)}</nav>
+}
+
 function ProductRow({ order, compact = false }: { order: OrderRecord; compact?: boolean }) {
   return <div className={`order-product ${compact ? 'compact' : ''}`}><img src={order.thumbnail} alt={order.gameName} /><span><b>{order.productTitle}</b><small>{order.gameName} · {order.server}</small><strong>{formatOrderMoney(order.goodsAmountCents)}</strong></span></div>
 }
@@ -100,7 +110,8 @@ export function OrderListPage() {
     setParams(next, { replace: true })
   }
   return <main className="order-v2-page order-list-page">
-    <header className="order-list-header"><StatusBar /><div className="order-list-title"><button type="button" onClick={() => navigate(-1)} aria-label="返回"><ArrowLeft size={19} aria-hidden="true" /></button><h1>{role === 'buyer' ? '我买到的' : '我卖出的'}</h1><form role="search" onSubmit={(event) => event.preventDefault()}><Search size={15} aria-hidden="true" /><input value={query} maxLength={80} onChange={(event) => update('query', event.target.value)} placeholder="搜索订单" aria-label="搜索订单号、商品编号、游戏或商品" />{query && <button type="button" onClick={() => update('query', '')} aria-label="清空搜索"><X size={14} /></button>}</form><Link to={SUPPORT_CONVERSATION_ROUTE} aria-label="联系平台客服"><Headphones size={18} aria-hidden="true" /></Link></div>
+    <header className="order-list-header"><StatusBar /><div className="order-list-title"><button type="button" onClick={() => navigate(-1)} aria-label="返回"><ArrowLeft size={19} aria-hidden="true" /></button><h1>订单</h1><form role="search" onSubmit={(event) => event.preventDefault()}><Search size={15} aria-hidden="true" /><input value={query} maxLength={80} onChange={(event) => update('query', event.target.value)} placeholder="搜索订单" aria-label="搜索订单号、商品编号、游戏或商品" />{query && <button type="button" onClick={() => update('query', '')} aria-label="清空搜索"><X size={14} /></button>}</form><Link to={SUPPORT_CONVERSATION_ROUTE} aria-label="联系平台客服"><Headphones size={18} aria-hidden="true" /></Link></div>
+      <OrderDomainTabs active={role} buyerCount={countTradeOrders(orders, 'buyer', 'all')} sellerCount={countTradeOrders(orders, 'seller', 'all')} />
       <div className="order-status-tabs" role="tablist" aria-label="订单状态筛选">{tabs.map((item) => <button type="button" role="tab" key={item.value} className={status === item.value ? 'active' : ''} aria-selected={status === item.value} onClick={() => update('status', item.value)}><span>{item.label}</span><b>{countTradeOrders(orders, role, item.value)}</b></button>)}</div>
     </header>
     <div className="order-list-scroll">
@@ -140,11 +151,10 @@ export function OrderCheckoutPage() {
       <section className="checkout-coupon"><b>优惠券</b><span>暂无可用优惠券 <ChevronRight size={13} /></span></section>
       <PaymentMethods value={method} onChange={setMethod} />
       <p className="checkout-agreement"><i><Check size={10} /></i>支付即同意 <button type="button">《购买须知》</button> 和 <button type="button">《支付须知》</button></p>
-      <p className="order-demo-notice" role="note">本地演示模式：不会调用支付宝或微信，也不会产生真实扣款。</p>
       {error && <p className="order-inline-error" role="alert">{error}</p>}
     </div>
     <footer className="checkout-footer"><span><strong>{formatOrderMoney(order.totalAmountCents)}</strong><small>明细⌃</small></span><button type="button" disabled={order.status !== 'pending'} onClick={() => setConfirmOpen(true)}>{order.status === 'pending' ? '立即支付' : getOrderStatusLabel(order.status, order.role)}</button></footer>
-    <OrderDialog open={confirmOpen} title="确认演示支付？" onClose={closeConfirm}><div className="order-dialog-body"><p>这是本地功能演示，不会唤起第三方支付、不会扣款，也不会创建真实交易。</p><div className="order-dialog-highlight"><span>演示金额</span><b>{formatOrderMoney(order.totalAmountCents)}</b></div><footer><button type="button" onClick={closeConfirm}>我再想想</button><button type="button" className="primary" onClick={confirmPayment}>确认演示支付</button></footer></div></OrderDialog>
+    <OrderDialog open={confirmOpen} title="风险提示" onClose={closeConfirm}><div className="order-dialog-body order-risk-dialog"><AlertTriangle size={34} aria-hidden="true" /><p>账号交易存在被找回风险，请确认已经了解平台交易规则及包赔服务范围。</p><div className="order-dialog-highlight"><span>当前已选 全倍包赔</span><b>最高赔付 {formatOrderMoney(order.goodsAmountCents)}</b></div><footer><button type="button" onClick={closeConfirm}>返回修改</button><button type="button" className="primary" onClick={confirmPayment}>我已知晓</button></footer></div></OrderDialog>
   </main>
 }
 
@@ -153,13 +163,21 @@ export function PaymentCancelPage() {
   const { orders, refresh } = useOrderData()
   const order = orders.find((item) => item.id === params.get('id')) ?? orders.find((item) => item.status === 'pending')
   const [error, setError] = useState('')
+  const [reason, setReason] = useState('找到更合适的号')
   if (!order) return <main className="order-v2-page"><OrderTopBar title="取消订单" /><OrderEmpty title="订单不存在" /></main>
   const cancel = () => {
     if (!orderRepository.cancel(order.id)) setError('订单状态已变化，无法取消。')
     refresh()
   }
   const cancelled = order.status === 'cancelled'
-  return <main className="order-v2-page cancel-page"><OrderTopBar title={cancelled ? '取消结果' : '待支付'} /><div className="cancel-page-scroll"><section className="cancel-context"><h2>{cancelled ? '订单已取消' : '确定取消订单？'}</h2><p>{cancelled ? '该操作已经完成，不会产生任何扣款。' : '取消后订单无法恢复，该账号将重新对所有买家开放，可能被其他人买走。'}</p><div><span>还有 <b>12</b> 人想要这个号</span></div>{error && <small role="alert">{error}</small>}</section><CheckoutSummary order={order} /></div><footer className="cancel-actions">{cancelled ? <><Link to="/orders?role=buyer&status=ended">返回订单</Link><Link className="primary" to="/game?gameCode=wzry">继续逛逛</Link></> : <><Link to={`/orders/checkout?id=${encodeURIComponent(order.id)}`}>我再想想</Link><button type="button" className="danger" onClick={cancel}>确定取消</button></>}</footer></main>
+  const reasons = [
+    ['找到更合适的号', '价格或账号资产更符合预期'],
+    ['价格太高了', '想再比较其他账号'],
+    ['账号信息与描述不符', '可先联系平台同步核验'],
+    ['担心交易风险', '可查看平台保障说明'],
+    ['不想买了 / 其他', '本次暂不继续购买'],
+  ]
+  return <main className="order-v2-page cancel-page"><OrderTopBar title={cancelled ? '取消结果' : '取消订单'} /><div className="cancel-page-scroll">{cancelled ? <><section className="cancel-context"><h2>订单已取消</h2><p>该操作已经完成，不会产生任何扣款。</p>{error && <small role="alert">{error}</small>}</section><CheckoutSummary order={order} /></> : <section className="cancel-reason-sheet"><h2>为什么取消？</h2><p>选择一个原因，帮助我们改进体验</p><div className="cancel-reason-list" role="radiogroup" aria-label="取消原因">{reasons.map(([label, detail]) => <button type="button" role="radio" aria-checked={reason === label} className={reason === label ? 'selected' : ''} key={label} onClick={() => setReason(label)}><span><b>{label}</b><small>{detail}</small></span><i>{reason === label && <Check size={12} strokeWidth={3} />}</i></button>)}</div><div className="cancel-risk-note">还有 <b>12 人</b>想要，该商品可能随时被其他买家买走</div>{error && <small role="alert">{error}</small>}</section>}</div><footer className="cancel-actions">{cancelled ? <><Link to="/orders?role=buyer&status=ended">返回订单</Link><Link className="primary" to="/game?gameCode=wzry">继续逛逛</Link></> : <><button type="button" className="danger" onClick={cancel}>确认取消</button><Link className="primary" to={`/orders/checkout?id=${encodeURIComponent(order.id)}`}>继续支付</Link></>}</footer></main>
 }
 
 export function PaymentSuccessPage() {
@@ -168,8 +186,8 @@ export function PaymentSuccessPage() {
   const order = orders.find((item) => item.id === params.get('id'))
   const successful = order && ['paid', 'verifying', 'binding', 'bind_success', 'completed'].includes(order.status)
   if (!order) return <main className="order-v2-page"><OrderTopBar title="支付结果" /><OrderEmpty title="订单不存在" /></main>
-  if (!successful) return <main className="order-v2-page"><OrderTopBar title="支付结果" /><section className="payment-result-state error"><i>!</i><h2>尚未完成演示支付</h2><p>当前订单状态：{getOrderStatusLabel(order.status, order.role)}</p><Link to={`/orders/checkout?id=${encodeURIComponent(order.id)}`}>返回订单</Link></section></main>
-  return <main className="order-v2-page payment-success-page"><OrderTopBar title="支付结果" side={<Link to="/"><Home size={19} aria-hidden="true" /></Link>} /><div className="payment-result-scroll"><section className="payment-success-hero"><i><Check size={28} strokeWidth={2.8} /></i><h2>支付成功</h2><strong>{formatOrderMoney(order.totalAmountCents)}</strong><p>资金已由平台托管，验号换绑后放款给卖家</p><small>本地演示成功，不包含真实扣款</small></section><section className="payment-next"><h3><i />接下来该做什么</h3><p>请尽快进入交易群，客服会在群内协助你和卖家完成验号与换绑。全程不要在群外私下交易。</p><Link to={`/im/${order.conversationId ?? 'trade-wzry'}`}>进入交易群</Link></section><section className="payment-order-info"><dl><div><dt>商品</dt><dd>{order.gameName} {order.server}</dd></div><div><dt>订单编号</dt><dd>{order.id}</dd></div><div><dt>支付方式</dt><dd>{order.paymentMethod === 'wechat' ? '微信' : '支付宝'}</dd></div></dl></section><div className="payment-result-links"><Link to="/">回到首页</Link><Link to={`/orders/${order.id}`}>查看订单详情</Link></div></div></main>
+  if (!successful) return <main className="order-v2-page"><OrderTopBar title="支付结果" /><section className="payment-result-state error"><i>!</i><h2>支付未完成</h2><p>当前订单状态：{getOrderStatusLabel(order.status, order.role)}</p><Link to={`/orders/checkout?id=${encodeURIComponent(order.id)}`}>返回订单</Link></section></main>
+  return <main className="order-v2-page payment-success-page"><OrderTopBar title="支付结果" side={<Link to="/"><Home size={19} aria-hidden="true" /></Link>} /><div className="payment-result-scroll"><section className="payment-success-hero"><i><Check size={28} strokeWidth={2.8} /></i><h2>支付成功</h2><strong>{formatOrderMoney(order.totalAmountCents)}</strong><p>资金已由平台托管，验号换绑后放款给卖家</p></section><section className="payment-next"><h3><i />接下来该做什么</h3><p>请尽快进入交易群，客服会在群内协助你和卖家完成验号与换绑。全程不要在群外私下交易。</p><Link to={`/im/${order.conversationId ?? 'trade-wzry'}`}>进入交易群</Link></section><section className="payment-order-info"><dl><div><dt>商品</dt><dd>{order.gameName} {order.server}</dd></div><div><dt>订单编号</dt><dd>{order.id}</dd></div><div><dt>支付方式</dt><dd>{order.paymentMethod === 'wechat' ? '微信' : '支付宝'}</dd></div></dl></section><div className="payment-result-links"><Link to="/">回到首页</Link><Link to={`/orders/${order.id}`}>查看订单详情</Link></div></div></main>
 }
 
 export function OrderDetailPage() {
@@ -181,11 +199,12 @@ export function OrderDetailPage() {
   if (!order) return <main className="order-v2-page"><OrderTopBar title="订单详情" /><OrderEmpty title="订单不存在" /></main>
   const hero = getOrderPrimaryMessage(order)
   const timeline = getOrderTimeline(order, now)
+  const terminal = ['pay_expired', 'cancelled', 'closed'].includes(order.status)
   const copy = async () => { try { await navigator.clipboard.writeText(order.id); setToast('订单号已复制') } catch { setToast('复制失败，请手动复制') } }
   return <main className={`order-v2-page order-detail-page state-${order.status}`}><header><OrderTopBar title="订单详情" side={<small>{order.role === 'seller' ? '卖家视角' : '买家视角'}</small>} /></header><div className="order-detail-scroll">
-    <section className="order-detail-hero"><span><b>步骤 {['pending', 'pay_expired', 'cancelled'].includes(order.status) ? '1' : order.status === 'paid' || order.status === 'verifying' ? '2' : order.status === 'binding' ? '3' : order.status === 'bind_success' ? '4' : '5'} / 5</b><em>{['pay_expired', 'cancelled', 'closed'].includes(order.status) ? '异常' : ['pending', 'bind_success'].includes(order.status) ? '该你了' : '等对方'}</em></span><h2>{hero.title}</h2><p>{hero.detail}</p>{order.status === 'pending' && <time>还剩 <b>{formatOrderCountdown(order.expiresAt, now)}</b></time>}{order.status === 'binding' && order.role === 'seller' && <time>换绑资料剩 <b>{formatOrderCountdown(order.actionExpiresAt, now)}</b></time>}<div>{order.status === 'pending' ? <><Link to={`/payment/cancel?id=${encodeURIComponent(order.id)}`}>取消订单</Link><Link className="primary" to={`/orders/checkout?id=${encodeURIComponent(order.id)}`}>继续支付</Link></> : ['paid', 'verifying', 'binding', 'bind_success'].includes(order.status) ? <><Link to={SUPPORT_CONVERSATION_ROUTE}>申请客服介入</Link><Link className="dark" to={`/im/${order.conversationId ?? 'trade-wzry'}`}>进交易群</Link></> : <Link className="primary single" to="/orders">返回订单列表</Link>}</div></section>
+    <section className={`order-detail-hero ${terminal ? 'terminal' : ''}`}>{terminal ? <><i className="order-terminal-icon" aria-hidden="true">{order.status === 'pay_expired' ? '⌛' : '×'}</i><h2>{order.status === 'pay_expired' ? '支付超时，订单已关闭' : hero.title}</h2><p>{order.status === 'pay_expired' ? '未产生费用，商品已重新开放购买' : hero.detail}</p><div><Link to={`/game?gameCode=${encodeURIComponent(order.gameCode)}`}>看看相似商品</Link><Link className="primary" to={`/game?gameCode=${encodeURIComponent(order.gameCode)}`}>重新购买</Link></div></> : <><span><b>步骤 {order.status === 'pending' ? '1' : order.status === 'paid' || order.status === 'verifying' ? '2' : order.status === 'binding' ? '3' : order.status === 'bind_success' ? '4' : '5'} / 5</b><em>{['pending', 'bind_success'].includes(order.status) ? '该你了' : '等对方'}</em></span><h2>{hero.title}</h2><p>{hero.detail}</p>{order.status === 'pending' && <time>还剩 <b>{formatOrderCountdown(order.expiresAt, now)}</b></time>}{order.status === 'binding' && order.role === 'seller' && <time>换绑资料剩 <b>{formatOrderCountdown(order.actionExpiresAt, now)}</b></time>}<div>{order.status === 'pending' ? <><Link to={`/payment/cancel?id=${encodeURIComponent(order.id)}`}>取消订单</Link><Link className="primary" to={`/orders/checkout?id=${encodeURIComponent(order.id)}`}>继续支付</Link></> : ['paid', 'verifying', 'binding', 'bind_success'].includes(order.status) ? <><Link to={SUPPORT_CONVERSATION_ROUTE}>申请客服介入</Link><Link className="dark" to={`/im/${order.conversationId ?? 'trade-wzry'}`}>进交易群</Link></> : <Link className="primary single" to="/orders">返回订单列表</Link>}</div></>}</section>
     {['paid', 'verifying', 'binding', 'bind_success'].includes(order.status) && <section className="order-escrow"><ShieldCheck size={15} /><span><b>{formatOrderMoney(order.totalAmountCents)}</b> 仍在平台托管，未支付给卖家。</span></section>}
-    <section className="order-progress"><h2>交易进度</h2><ol>{timeline.map((item) => <li key={item.key} className={item.state}><i /> <span><b>{item.title}</b>{item.detail && <small>{item.detail}</small>}</span></li>)}</ol></section>
+    {!terminal && <section className="order-progress"><h2>交易进度</h2><ol>{timeline.map((item) => <li key={item.key} className={item.state}><i /> <span><b>{item.title}</b>{item.detail && <small>{item.detail}</small>}</span></li>)}</ol></section>}
     <section className="order-detail-product"><ProductRow order={order} /><dl><div><dt>商品价</dt><dd>{formatOrderMoney(order.goodsAmountCents)}</dd></div><div><dt>包赔服务</dt><dd>{order.insuranceAmountCents ? formatOrderMoney(order.insuranceAmountCents) : '未购买'}</dd></div><div><dt>实付</dt><dd>{formatOrderMoney(order.totalAmountCents)}</dd></div></dl><footer><span>订单号 <b>{order.id}</b></span><button type="button" onClick={copy}><Copy size={13} />复制</button></footer></section>
     <Link className="order-help" to={SUPPORT_CONVERSATION_ROUTE}><span><b>遇到问题？</b><small>卖家迟迟不换绑 · 收到的号与描述不符 · 其他</small></span><ChevronRight size={15} /></Link>
   </div>{toast && <div className="order-v2-toast" role="status">{toast}</div>}</main>

@@ -36,3 +36,31 @@
 
 @media(max-width:350px){.order-list-title,.order-role-tabs,.order-status-tabs,.order-list-scroll,.checkout-scroll,.order-detail-scroll,.payment-result-scroll,.cancel-page-scroll{padding-left:12px;padding-right:12px}.order-list-title{gap:7px}.order-list-title h1{font-size:20px}.order-list-title>a{display:none}.order-list-card{padding-inline:13px}.checkout-footer,.cancel-actions{padding-inline:12px}.insurance-card>div span>small{display:none}.order-help span>small{max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
 @media(prefers-reduced-motion:reduce){.order-v2-page *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+/* Draft3 order center */
+.order-list-header{flex-basis:179px}
+.order-domain-tabs{height:37px;padding:0 16px;display:flex;align-items:flex-end;gap:26px;border-bottom:.631px solid var(--o-line)}
+.order-domain-tabs>a{height:37px;padding:0 0 9px;position:relative;display:flex;align-items:flex-end;gap:3px;color:#9a9a98;font-size:15px}
+.order-domain-tabs>a>b{font:500 11px/15px Inter,sans-serif}
+.order-domain-tabs>a.active{color:#1f1f1d;font-weight:900}
+.order-domain-tabs>a.active::after{content:"";position:absolute;right:0;bottom:0;left:0;height:3px;background:#ffe62a;border-radius:2px 2px 0 0}
+.recycle-order-card>a>footer>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.recycle-order-card>a>footer>b{flex:0 0 auto;display:flex;align-items:center;color:#1f1f1d;font-size:11px}
+.order-risk-dialog>svg{display:block;margin:0 auto 12px;color:#a28718;fill:#ffe62a}
+.order-risk-dialog>p{text-align:center}
+.order-risk-dialog .order-dialog-highlight{height:auto;min-height:54px;align-items:flex-start;flex-direction:column;justify-content:center;gap:3px}
+.order-risk-dialog .order-dialog-highlight b{color:#1f1f1d}
+.cancel-page-scroll{padding-top:14px}
+.cancel-reason-sheet{padding:20px 16px;background:#fff;border:1px solid var(--o-line);border-radius:18px}
+.cancel-reason-sheet>h2{font-size:21px}.cancel-reason-sheet>p{margin-top:5px;color:#9a9a98;font-size:12px}
+.cancel-reason-list{margin-top:15px;display:flex;flex-direction:column;gap:8px}
+.cancel-reason-list>button{width:100%;min-height:61px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;text-align:left;background:#f7f7f5;border:1px solid transparent;border-radius:12px}
+.cancel-reason-list>button.selected{background:#fffbea;border-color:#f2db59}
+.cancel-reason-list span>b,.cancel-reason-list span>small{display:block}.cancel-reason-list span>b{font-size:13px}.cancel-reason-list span>small{margin-top:3px;color:#9a9a98;font-size:10px}
+.cancel-reason-list i{width:20px;height:20px;display:grid;place-items:center;background:#e8e8e4;border-radius:50%;font-style:normal}.cancel-reason-list button.selected i{color:#ffe62a;background:#17170f}
+.cancel-risk-note{min-height:42px;margin-top:12px;padding:10px 12px;color:#8e7620;background:#fff9d8;border-radius:10px;font-size:11px;line-height:18px}.cancel-reason-sheet>small{display:block;margin-top:10px;color:#d3273a}
+.order-detail-hero.terminal{padding-top:26px;text-align:center;color:#636362;background:#fff;border-color:var(--o-line)}
+.order-detail-hero.terminal .order-terminal-icon{width:52px;height:52px;margin:0 auto 13px;display:grid;place-items:center;color:#8b8b88;background:#f1f1ee;border-radius:50%;font-size:23px;font-style:normal}
+.order-detail-hero.terminal h2{margin-top:0;font-size:20px}.order-detail-hero.terminal p{color:#9a9a98}.order-detail-hero.terminal>div{margin-top:18px}
+.order-detail-page:is(.state-pay_expired,.state-cancelled,.state-closed) .order-detail-product{opacity:.78}
+@media(hover:none){.order-v2-page :is(button,a,input):focus,.order-v2-page :is(button,a,input):focus-visible{outline:none}}

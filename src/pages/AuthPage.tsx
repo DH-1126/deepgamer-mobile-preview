@@ -93,15 +93,13 @@ export function WelcomePage() {
   </main>
 }
 
-type LoginMode = AuthMethod | 'code_entry'
-
 export function LoginPage({ method }: { method: AuthMethod }) {
   const navigate = useNavigate()
   const location = useLocation()
   const [params] = useSearchParams()
-  const [mode, setMode] = useState<LoginMode>(method)
   const [phone, setPhone] = useState('')
   const [code, setCode] = useState('')
+  const [codeSent, setCodeSent] = useState(false)
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [agreed, setAgreed] = useState(false)
@@ -139,13 +137,12 @@ export function LoginPage({ method }: { method: AuthMethod }) {
     setError('')
     const result = await authRepository.requestCode(phone)
     if (!result.ok) { setError(result.error); return }
-    setCooldownUntil(result.cooldownUntil); setNow(Date.now()); setMode('code_entry')
+    setCooldownUntil(result.cooldownUntil); setNow(Date.now()); setCodeSent(true)
   }
   const proceed = () => {
     if (method === 'one_tap') void finish(() => authRepository.loginOneTap(true))
-    else if (mode === 'code_entry') void finish(() => authRepository.loginWithCode(phone, code, true))
+    else if (method === 'code') void finish(() => authRepository.loginWithCode(phone, code, true))
     else if (method === 'password') void finish(() => authRepository.loginWithPassword(phone, password, true))
-    else void requestCode()
   }
   const submit = (event: FormEvent) => {
     event.preventDefault()
@@ -166,11 +163,11 @@ export function LoginPage({ method }: { method: AuthMethod }) {
           <button className="auth-v2-primary auth-v2-login-action" type="submit" disabled={busy}>{busy ? '登录中…' : '本机号码一键登录'}</button>
         </> : <>
           <div className="auth-v2-login-fields">
-            <label className="auth-v2-input"><b>+86</b><i /><input inputMode="numeric" autoComplete="tel" aria-label="手机号" value={phone} onChange={(event) => setPhone(normalizePhone(event.target.value))} placeholder="请输入手机号" disabled={mode === 'code_entry'} />{phone && mode !== 'code_entry' && <button type="button" aria-label="清空手机号" onClick={() => setPhone('')}><X size={13} /></button>}</label>
-            {mode === 'code_entry' && <label className="auth-v2-input"><input inputMode="numeric" autoComplete="one-time-code" aria-label="验证码" value={code} onChange={(event) => setCode(normalizeCode(event.target.value))} placeholder="请输入6位验证码" autoFocus /><button type="button" className="auth-v2-code-link" disabled={countdown > 0} onClick={requestCode}>{countdown ? `${countdown}s` : '重新获取'}</button></label>}
+            <label className="auth-v2-input"><b>+86</b><i /><input inputMode="numeric" autoComplete="tel" aria-label="手机号" value={phone} onChange={(event) => setPhone(normalizePhone(event.target.value))} placeholder="请输入手机号" />{phone && <button type="button" aria-label="清空手机号" onClick={() => setPhone('')}><X size={13} /></button>}</label>
+            {method === 'code' && <label className="auth-v2-input"><input inputMode="numeric" autoComplete="one-time-code" aria-label="验证码" value={code} onChange={(event) => setCode(normalizeCode(event.target.value))} placeholder="请输入验证码" /><button type="button" className="auth-v2-code-link" disabled={countdown > 0} onClick={requestCode}>{countdown ? `${countdown}s` : codeSent ? '重新获取' : '获取验证码'}</button></label>}
             {method === 'password' && <><label className="auth-v2-input"><input type={showPassword ? 'text' : 'password'} autoComplete="current-password" aria-label="登录密码" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="请输入登录密码" /><button type="button" aria-label={showPassword ? '隐藏密码' : '显示密码'} onClick={() => setShowPassword((value) => !value)}>{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button></label><button type="button" className="auth-v2-forgot" onClick={() => setError('请联系玩家客服重置登录密码')}>忘记密码？</button></>}
           </div>
-          <button className="auth-v2-primary auth-v2-login-action" type="submit" disabled={busy}>{busy ? '提交中…' : mode === 'code' ? '获取验证码' : '登录'}</button>
+          <button className="auth-v2-primary auth-v2-login-action" type="submit" disabled={busy}>{busy ? '登录中…' : '登录'}</button>
         </>}
         {(error || success) && <div className={`auth-v2-feedback ${success ? 'success' : ''}`} role={success ? 'status' : 'alert'}>{success || error}</div>}
       </div>

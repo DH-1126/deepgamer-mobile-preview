@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Link, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
+import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import { HomePage } from '../pages/HomePage'
 import { SearchPage } from '../pages/SearchPage'
 import { GameZonePage } from '../pages/GameZonePage'
@@ -27,13 +27,13 @@ import {
 import { BusinessSellerContractPage, PersonalSellerContractPage, SellerCenterPage } from '../pages/SellerContractPages'
 import { RealNamePage } from '../pages/RealNamePage'
 import { AfterSaleDetailPage, AfterSalesPage } from '../pages/AfterSalesPage'
+import { FeedbackPage } from '../pages/FeedbackPage'
+import { FootprintPage } from '../pages/FootprintPage'
+import { ReminderPage } from '../pages/ReminderPage'
+import { NotificationCenterPage, NotificationSettingsPage } from '../pages/NotificationPages'
 import { authRepository } from '../repository/authRepository'
 import { SUPPORT_CONVERSATION_ROUTE } from '../data/messageFixtures'
 import type { AuthMethod } from '../types/auth'
-
-function PlaceholderPage({ title, detail }: { title: string; detail: string }) {
-  return <main className="placeholder-page"><strong>深度玩家</strong><h1>{title}</h1><p>{detail}</p><Link to="/">返回首页</Link></main>
-}
 
 function MessageAlias() {
   const { search, hash } = useLocation()
@@ -92,7 +92,7 @@ export function App() {
             <Route path="/game" element={<GameZonePage />} />
             <Route path="/game/select" element={<GameSelectPage />} />
             <Route path="/goods/:id" element={<ProductDetailPage />} />
-            <Route path="/feedback" element={<PlaceholderPage title="吐槽广场" detail="建议与吐槽入口正在接入。" />} />
+            <Route path="/feedback" element={<FeedbackPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route element={<ProtectedApp />}>
               <Route path="/push-permission" element={<PushPermissionPage />} />
@@ -107,12 +107,15 @@ export function App() {
               <Route path="/appraisal/fill" element={<AppraisalFillPage />} />
               <Route path="/appraisal/loading" element={<AppraisalLoadingPage />} />
               <Route path="/support" element={<Navigate to={SUPPORT_CONVERSATION_ROUTE} replace />} />
-              <Route path="/footprints" element={<PlaceholderPage title="全部足迹" detail="你的完整浏览足迹将在这里展示。" />} />
+              <Route path="/footprints" element={<FootprintPage />} />
+              <Route path="/reminders" element={<ReminderPage />} />
               <Route path="/messages" element={<MessageAlias />} />
               <Route path="/message" element={<MessagePage />} />
+              <Route path="/notifications" element={<NotificationCenterPage />} />
+              <Route path="/notifications/settings" element={<NotificationSettingsPage />} />
               <Route path="/im/:conversationId" element={<GroupChatPage />} />
               <Route path="/message/groups/:conversationId" element={<GroupChatPage />} />
-              <Route path="/footprint" element={<PlaceholderPage title="足迹" detail="你的完整浏览足迹将在这里展示。" />} />
+              <Route path="/footprint" element={<FootprintPage />} />
               <Route path="/orders" element={<OrderListPage />} />
               <Route path="/orders/recycle" element={<RecycleOrderListPage />} />
               <Route path="/orders/:id" element={<OrderDetailPage />} />

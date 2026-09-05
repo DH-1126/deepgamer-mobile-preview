@@ -29,11 +29,18 @@ function orderRoute(order: RecycleOrder) {
 }
 
 function RecycleOrderCard({ order }: { order: RecycleOrder }) {
+  const statusCopy = order.stage === 'inspecting' || order.stage === 'submitted'
+    ? '平台正在核对账号资产，完成后会通过消息通知你。'
+    : order.stage === 'offered'
+      ? '报价已更新，请确认是否接受本次回收报价。'
+      : order.stage === 'rejected'
+        ? '本次回收未通过，可查看原因后重新提交。'
+        : order.stage === 'completed' ? '回收款已进入结算流程。' : '查看进度并完成当前步骤。'
   return <article className={`recycle-order-card stage-${order.stage}`}>
     <header><span><em>{getRecycleOrderStatusLabel(order)}</em>{['offered', 'materials', 'formal'].includes(order.stage) || (order.stage === 'submitted' && !order.submission) ? <b>该你了</b> : null}</span><time>{formatDate(order.updatedAt)}</time></header>
     <Link to={orderRoute(order)}>
       <div className="recycle-order-game"><i>{order.gameName.slice(0, 1)}</i><span><h2>{order.gameName} {order.server}</h2><p>{order.rank} · {order.recyclerName}</p><small>回收单号 {order.id}</small></span><strong><small>¥</small>{(order.quoteCents / 100).toFixed(2)}</strong></div>
-      <footer><span>{order.stage === 'completed' ? '回收款已进入结算流程' : order.stage === 'rejected' ? '本次回收咨询已经结束' : '查看回收进度与订单详情'}</span><ChevronRight size={15} aria-hidden="true" /></footer>
+      <footer><span>{statusCopy}</span><b>查看详情 <ChevronRight size={15} aria-hidden="true" /></b></footer>
     </Link>
   </article>
 }
@@ -53,7 +60,8 @@ export function RecycleOrderListPage() {
     setParams(next, { replace: true })
   }
   return <main className="order-v2-page order-list-page recycle-order-list-page">
-    <header className="order-list-header"><StatusBar /><div className="order-list-title"><button type="button" onClick={() => navigate(-1)} aria-label="返回"><ArrowLeft size={19} aria-hidden="true" /></button><h1>我的回收</h1><form role="search" onSubmit={(event) => event.preventDefault()}><Search size={15} aria-hidden="true" /><input value={query} maxLength={80} onChange={(event) => update('query', event.target.value)} placeholder="搜索回收单" aria-label="搜索回收单号、游戏、区服、段位或回收商" />{query && <button type="button" onClick={() => update('query', '')} aria-label="清空搜索"><X size={14} /></button>}</form><Link to={SUPPORT_CONVERSATION_ROUTE} aria-label="联系平台客服"><Headphones size={18} aria-hidden="true" /></Link></div>
+    <header className="order-list-header"><StatusBar /><div className="order-list-title"><button type="button" onClick={() => navigate(-1)} aria-label="返回"><ArrowLeft size={19} aria-hidden="true" /></button><h1>订单</h1><form role="search" onSubmit={(event) => event.preventDefault()}><Search size={15} aria-hidden="true" /><input value={query} maxLength={80} onChange={(event) => update('query', event.target.value)} placeholder="搜索订单" aria-label="搜索回收单号、游戏、区服、段位或回收商" />{query && <button type="button" onClick={() => update('query', '')} aria-label="清空搜索"><X size={14} /></button>}</form><Link to={SUPPORT_CONVERSATION_ROUTE} aria-label="联系平台客服"><Headphones size={18} aria-hidden="true" /></Link></div>
+      <nav className="order-domain-tabs" aria-label="订单类型"><Link to="/orders?role=buyer">买入</Link><Link to="/orders?role=seller">卖出</Link><Link className="active" aria-current="page" to="/orders/recycle">回收{orders.length > 0 && <b>{orders.length}</b>}</Link><Link to="/aftersales">售后</Link></nav>
       <div className="order-status-tabs" role="tablist" aria-label="回收单状态筛选">{RECYCLE_ORDER_TABS.map((item) => <button type="button" role="tab" key={item.value} className={status === item.value ? 'active' : ''} aria-selected={status === item.value} onClick={() => update('status', item.value)}><span>{item.label}</span><b>{countRecycleOrders(orders, item.value)}</b></button>)}</div>
     </header>
     <div className="order-list-scroll">

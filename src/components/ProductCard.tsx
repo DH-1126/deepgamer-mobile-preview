@@ -3,22 +3,23 @@ import type { Product } from '../types/catalog'
 
 export function ProductCard({ product, compact = false, variant = 'default', to }: { product: Product; compact?: boolean; variant?: 'default' | 'catalogV2'; to?: string }) {
   if (variant === 'catalogV2') {
-    const platformLabel = product.platform.replace('iOS', '苹果') + (product.platform.includes('区') ? '' : '区')
+    const displayTitle = (product.displayTitle ?? product.title).replace(/^王者(\d+)/, '王者$1★')
+    const assetHighlights = product.tags.filter((tag) => !/^V\d+$/i.test(tag)).slice(0, 2)
     const content = <>
         <div className="catalog-product-visual">
           <img src={product.image} alt="游戏账号商品预览" loading="lazy" />
-          <b>{platformLabel}</b><span>{product.eliteLevel.replace('V', '贵族')}</span>
+          <b>已验号</b><span>{product.eliteLevel.replace('V', '贵族')}</span>
         </div>
         <div className="catalog-product-info">
-          <h3>{product.displayTitle ?? product.title}</h3>
-          <p>{product.inscriptionFull ? '铭文满' : '铭文未满'} · {product.secondRealName ? '可二次实名' : '不可二次实名'}</p>
-          <div className="catalog-product-tags">{product.tags.slice(1, 3).map((tag) => <span key={tag}>{tag}</span>)}{product.negotiable && <span className="negotiable">支持议价</span>}</div>
-          <footer><strong>{new Intl.NumberFormat('zh-CN', { style: 'currency', currency: 'CNY', maximumFractionDigits: 0 }).format(product.price)}</strong><small>{product.publishedLabel}发布 {product.wantCount} 人想要</small></footer>
+          <h3>{displayTitle}</h3>
+          <p>{[...assetHighlights, product.inscriptionFull ? '铭文满' : '无违规'].join(' · ')}</p>
+          <div className="catalog-product-tags">{assetHighlights.map((tag) => <span key={tag}>{tag}</span>)}{product.negotiable && <span className="negotiable">可小刀</span>}</div>
+          <footer><strong>{new Intl.NumberFormat('zh-CN', { style: 'currency', currency: 'CNY', maximumFractionDigits: 0 }).format(product.price)}</strong><small>{product.wantCount ?? 0}人想要</small></footer>
         </div>
       </>
     return to
-      ? <Link className="catalog-product-card" to={to} aria-label={`${product.displayTitle ?? product.title}，价格${product.price}元`}>{content}</Link>
-      : <article className="catalog-product-card" tabIndex={0} aria-label={`${product.displayTitle ?? product.title}，价格${product.price}元`}>{content}</article>
+      ? <Link className="catalog-product-card" to={to} aria-label={`${displayTitle}，价格${product.price}元`}>{content}</Link>
+      : <article className="catalog-product-card" tabIndex={0} aria-label={`${displayTitle}，价格${product.price}元`}>{content}</article>
   }
   const content = <>
       <img src={product.image} alt="游戏账号商品预览" loading="lazy" />

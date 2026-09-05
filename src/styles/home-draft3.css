@@ -1,0 +1,170 @@
+/* Design-Draft3-Pre · 首页（主视觉 3681:21355 / 无足迹 3681:22433） */
+.home-v2-brand-lockup {
+  min-width: 0;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.home-v2-brand-lockup > img {
+  flex: 0 0 29px;
+  width: 29px;
+  height: 30px;
+}
+
+.home-v2-brand-lockup > strong {
+  overflow: hidden;
+  color: #151512;
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-v2-discovery--empty {
+  height: 382px;
+}
+
+.home-v2-inquiry strong em {
+  color: #ffe62a;
+  font-style: normal;
+}
+
+.home-v2-manifesto figure.home-v2-manifesto-mascot {
+  padding: 0;
+  overflow: hidden;
+  background: #fde906;
+  border: 1px solid #ededea;
+}
+
+.home-v2-manifesto figure.home-v2-manifesto-mascot > img {
+  width: 149px;
+  height: 149px;
+  margin: 0;
+  object-fit: cover;
+  opacity: 1;
+}
+
+.home-v2-small-mascot {
+  position: relative;
+  overflow: hidden;
+  background: rgba(127, 127, 127, .08);
+  border: 0;
+}
+
+.home-v2-small-mascot > img {
+  position: absolute;
+  top: 0;
+  left: 7px;
+  width: 67px;
+  height: 101px;
+  max-width: none;
+  object-fit: cover;
+}
+
+.home-draft3-login-bar {
+  position: fixed;
+  z-index: 49;
+  left: 50%;
+  bottom: calc(82px + env(safe-area-inset-bottom));
+  width: min(361px, calc(100% - 32px));
+  height: 50px;
+  padding: 7px 12px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #1f1f1d;
+  background: #fff7cc;
+  border: 1px solid #f7e479;
+  border-radius: 14px;
+  box-shadow: 0 4px 7px rgba(90, 74, 0, .13);
+}
+
+.home-draft3-login-bar--dark {
+  color: #f9f9f8;
+  background: rgba(31, 31, 29, .9);
+  border-color: #000;
+  box-shadow: 0 4px 14px rgba(90, 74, 0, .13);
+}
+
+.home-draft3-login-bar > strong {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 15px;
+  font-weight: 700;
+  letter-spacing: .2px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-draft3-login-bar > button {
+  flex: 0 0 68px;
+  height: 36px;
+  color: #fff;
+  font-size: 14px;
+  line-height: 17px;
+  font-weight: 800;
+  letter-spacing: .6px;
+  background: #1f1f1d;
+  border-radius: 10px;
+}
+
+.home-draft3-login-bar--dark > button {
+  color: #1c1b19;
+  background: #ffe62a;
+}
+
+.home-draft3-gift {
+  position: relative;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #e5384a;
+  border-radius: 7px;
+  box-shadow: 0 1px 1.5px rgba(160, 20, 32, .28);
+}
+
+.home-draft3-gift::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 11px;
+  background: #f2555f;
+  border-radius: 7px 7px 12px 12px;
+}
+
+.home-draft3-gift i {
+  position: relative;
+  z-index: 1;
+  width: 15px;
+  height: 15px;
+  display: grid;
+  place-items: center;
+  color: #c0392f;
+  font: 900 9px/9px "Noto Sans SC", sans-serif;
+  font-style: normal;
+  background: #ffe62a;
+  border-radius: 50%;
+}
+
+@media (max-width: 350px) {
+  .home-v2-manifesto figure.home-v2-manifesto-mascot > img {
+    width: 136px;
+    height: 136px;
+  }
+
+  .home-v2-small-mascot > img {
+    left: 5px;
+  }
+}
