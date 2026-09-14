@@ -1,5 +1,14 @@
 import type { RecycleFormInput, RecycleMaterial, RecycleStage } from '../types/recycle'
-import type { Recycler, SellGame, SellGameCode } from '../types/sell'
+import type { GameAccessRequestInput, Recycler, SellGame, SellGameCode } from '../types/sell'
+
+export function validateGameAccessRequest(input: GameAccessRequestInput) {
+  const errors: Partial<Record<keyof GameAccessRequestInput, string>> = {}
+  if (!input.gameName.trim()) errors.gameName = '请输入游戏名称'
+  else if (input.gameName.trim().length > 40) errors.gameName = '游戏名称不能超过40字'
+  if (!input.manufacturer.trim()) errors.manufacturer = '请输入游戏厂商'
+  else if (input.manufacturer.trim().length > 60) errors.manufacturer = '游戏厂商不能超过60字'
+  return errors
+}
 
 export function filterSellGames(games: SellGame[], query: string) {
   const value = query.trim().toLocaleLowerCase('zh-CN')
@@ -14,7 +23,7 @@ export function validateConsultationText(value: string) {
   const text = value.trim()
   if (!text) return '请输入账号情况'
   if (text.length > 500) return '内容不能超过500字'
-  if (/(密码|验证码|身份证|银行卡|vx|微信号|qq号[:：]?\s*\d{5,})/i.test(text)) return '咨询阶段请勿发送密码、验证码、实名材料或站外联系方式'
+  if (/(密码|验证码|身份证|银行卡|vx|微信号|qq号[:：]?\s*\d{5,}|(?:^|\D)1[3-9]\d{9}(?:\D|$))/i.test(text)) return '咨询阶段请勿发送密码、验证码、实名材料或站外联系方式'
   return ''
 }
 
@@ -51,4 +60,3 @@ export function formatRecycleCountdown(expiresAt: number, now: number) {
   const seconds = Math.max(0, Math.floor((expiresAt - now) / 1000))
   return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
 }
-

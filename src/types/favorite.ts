@@ -22,6 +22,7 @@ export type FavoriteView = {
   gameIcon: string
   title: string
   price: number
+  priceDrop: number
   image: string
   platform: string
   eliteLevel: string

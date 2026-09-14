@@ -7,11 +7,13 @@ export function formatWalletMoney(cents: number) {
 }
 
 export function formatWalletTransactionAmount(transaction: WalletTransaction) {
-  return `${transaction.direction === 'income' ? '+' : '-'}${formatWalletMoney(transaction.amountCents)}`
+  return `${transaction.direction === 'income' ? '+' : '-'}${formatWalletMoney(transaction.amountCents).slice(1)}`
 }
 
-export function getWalletStatusLabel(status: WalletTransactionStatus) {
-  return status === 'completed' ? '已完成' : '处理中'
+export function getWalletStatusLabel(status: WalletTransactionStatus, kind?: WalletTransaction['kind']) {
+  if (status === 'frozen' || status === 'pending') return '托管中'
+  if (kind === 'withdrawal') return '已到账'
+  return status === 'completed' ? '已入账' : '处理中'
 }
 
 export function filterWalletTransactions(transactions: WalletTransaction[], filter: WalletTransactionFilter) {

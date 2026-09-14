@@ -4,6 +4,7 @@ import { assetPath } from '../components/assetPath'
 export const games: Game[] = [
   { code: 'sjzxd', name: '三角洲行动', description: '高战号 / 安全箱 / 近战', image: assetPath('assets/games/delta.png'), saleCount: 16382 },
   { code: 'wzry', name: '王者荣耀', description: '皮肤 / 贵族 / 全英雄', image: assetPath('assets/games/wzry.png'), saleCount: 28546 },
+  { code: 'luoke', name: '洛克王国', description: '精灵 / 满级 / 稀有宠物', image: assetPath('assets/games/luoke.png'), saleCount: 4260 },
   { code: 'hpjy', name: '和平精英', description: '载具 / 热力 / 战神', image: assetPath('assets/games/hpjy.png'), saleCount: 12880 },
   { code: 'lol', name: '英雄联盟', description: '全英雄 / 稀有皮肤', image: assetPath('assets/games/lol.png'), saleCount: 9860 },
   { code: 'ys', name: '原神', description: '五星角色 / 满命武器', image: assetPath('assets/games/genshin.png'), saleCount: 7350 },
@@ -25,6 +26,15 @@ const productsSeed = [
   ['【WZAHC1652】贵族等级10/荣耀典藏数量6/传说皮肤数量79/史诗皮肤数量210/皮肤数量606/英雄数量128/段位最强王者/小国标白起/小国标刘邦/', 4945, ['V10', '蔷薇恋人', '铠银白咏叹调'], 606, 'iOS 微信', '最强王者'],
 ] as const
 
+const wzryHeroCounts = [108, 121, 130, 132, 131, 130, 129, 129, 128, 128] as const
+const wzryDisplayTitles = [
+  '王者50★ · 108英雄 · 312皮肤', '王者12★ · 121英雄 · 201皮肤',
+  '最强王者 · 130英雄 · 571皮肤', '至尊星耀 · 132英雄 · 547皮肤',
+  '永恒钻石 · 131英雄 · 408皮肤', '至尊星耀 · 130英雄 · 485皮肤',
+  '最强王者 · 129英雄 · 565皮肤', '最强王者 · 129英雄 · 278皮肤',
+  '最强王者 · 128英雄 · 345皮肤', '最强王者 · 128英雄 · 606皮肤',
+] as const
+
 const wzryProducts: Product[] = productsSeed.map((item, index) => ({
   id: String(index + 1),
   gameCode: 'wzry',
@@ -40,20 +50,23 @@ const wzryProducts: Product[] = productsSeed.map((item, index) => ({
   secondRealName: index % 2 === 0,
   faceCompensation: index % 3 !== 0,
   listedAt: 1700000000000 + index * 86400000,
-  heroCount: [108, 121, 130, 132, 131, 130, 129, 129, 128, 128][index],
+  heroCount: wzryHeroCounts[index],
   negotiable: index % 3 !== 1,
   wantCount: [12, 4, 18, 9, 6, 14, 8, 11, 20, 7][index],
   publishedLabel: ['3小时内', '1小时内', '5小时内', '今天', '今天', '1天前', '1天前', '2天前', '2天前', '3天前'][index],
   inscriptionFull: index !== 3 && index !== 6,
-  displayTitle: index === 0 ? '王者50 · 108英雄 · 312皮肤' : index === 1 ? '王者12 · 121英雄 · 201皮肤' : undefined,
+  displayTitle: wzryDisplayTitles[index],
+  presentationSource: 'design_fixture',
+  verified: true,
 }))
 
 const multiGameProducts: Product[] = [
-  { id: 'wz-search-1', gameCode: 'wzry', title: '王者荣耀 全皮肤 贵族15 典藏高配账号', price: 4200, image: assetPath('assets/products/p09.jpg'), tags: ['全皮肤', 'V15', '荣耀典藏'], eliteLevel: 'V15', skinCount: 785, platform: '安卓QQ', rank: '最强王者', realName: '已实名-可改实名', secondRealName: true, faceCompensation: true, listedAt: 1701550000000, heroCount: 132, negotiable: true, wantCount: 31, publishedLabel: '刚刚', inscriptionFull: true },
-  { id: 'wz-search-2', gameCode: 'wzry', title: '王者荣耀 贵族15 高性价比皮肤账号', price: 480, image: assetPath('assets/products/p02.jpg'), tags: ['V15', '高性价比', '限定皮肤'], eliteLevel: 'V15', skinCount: 420, platform: '安卓微信', rank: '最强王者', realName: '未实名', secondRealName: true, faceCompensation: true, listedAt: 1701540000000, heroCount: 131, negotiable: true, wantCount: 26, publishedLabel: '1小时内', inscriptionFull: true },
-  { id: 'wz-search-3', gameCode: 'wzry', title: '王者荣耀 全皮肤 贵族10 低预算账号', price: 450, image: assetPath('assets/products/p10.jpg'), tags: ['全皮肤', 'V10', '低预算'], eliteLevel: 'V10', skinCount: 720, platform: 'iOS QQ', rank: '最强王者', realName: '已实名-不可改实名', secondRealName: false, faceCompensation: true, listedAt: 1701530000000, heroCount: 130, negotiable: false, wantCount: 23, publishedLabel: '2小时内', inscriptionFull: true },
+  { id: 'wz-search-1', gameCode: 'wzry', title: '王者荣耀 全皮肤 贵族15 典藏高配账号', price: 4200, image: assetPath('assets/products/p09.jpg'), tags: ['全皮肤', 'V15', '荣耀典藏'], eliteLevel: 'V15', skinCount: 785, platform: '安卓QQ', rank: '最强王者', realName: '已实名-可改实名', secondRealName: true, faceCompensation: true, listedAt: 1701550000000, heroCount: 132, negotiable: true, wantCount: 31, publishedLabel: '刚刚', inscriptionFull: true, presentationSource: 'design_fixture' },
+  { id: 'wz-search-2', gameCode: 'wzry', title: '王者荣耀 贵族15 高性价比皮肤账号', price: 480, image: assetPath('assets/products/p02.jpg'), tags: ['V15', '高性价比', '限定皮肤'], eliteLevel: 'V15', skinCount: 420, platform: '安卓微信', rank: '最强王者', realName: '未实名', secondRealName: true, faceCompensation: true, listedAt: 1701540000000, heroCount: 131, negotiable: true, wantCount: 26, publishedLabel: '1小时内', inscriptionFull: true, presentationSource: 'design_fixture' },
+  { id: 'wz-search-3', gameCode: 'wzry', title: '王者荣耀 全皮肤 贵族10 低预算账号', price: 450, image: assetPath('assets/products/p10.jpg'), tags: ['全皮肤', 'V10', '低预算'], eliteLevel: 'V10', skinCount: 720, platform: 'iOS QQ', rank: '最强王者', realName: '已实名-不可改实名', secondRealName: false, faceCompensation: true, listedAt: 1701530000000, heroCount: 130, negotiable: false, wantCount: 23, publishedLabel: '2小时内', inscriptionFull: true, presentationSource: 'design_fixture' },
   { id: 'hpjy-1', gameCode: 'hpjy', title: '和平精英 微信区 满级 精品衣服号 载具皮肤齐全', price: 860, image: assetPath('assets/products/p03.jpg'), tags: ['满级', '载具皮肤', '热力值'], eliteLevel: 'V7', skinCount: 186, platform: '安卓微信', rank: '超级王牌', realName: '已实名-可改实名', secondRealName: true, faceCompensation: true, listedAt: 1701000000000, negotiable: true, wantCount: 18, publishedLabel: '1小时内', inscriptionFull: true },
   { id: 'hpjy-2', gameCode: 'hpjy', title: '和平精英 QQ区 无敌战神 稀有军需多载具号', price: 2480, image: assetPath('assets/products/p06.jpg'), tags: ['无敌战神', '稀有军需', '特斯拉'], eliteLevel: 'V9', skinCount: 328, platform: '安卓QQ', rank: '无敌战神', realName: '已实名-不可改实名', secondRealName: false, faceCompensation: true, listedAt: 1701100000000, negotiable: false, wantCount: 9, publishedLabel: '3小时内', inscriptionFull: true },
+  { id: 'luoke-1', gameCode: 'luoke', title: '洛克王国 满级成品号 稀有宠物图鉴账号', price: 680, image: assetPath('assets/games/luoke.png'), tags: ['满级', '稀有宠物', '高图鉴'], eliteLevel: '满级', skinCount: 126, platform: '安卓QQ', rank: '王者训练师', realName: '未实名', secondRealName: true, faceCompensation: true, listedAt: 1701120000000, negotiable: true, wantCount: 16, publishedLabel: '2小时内', inscriptionFull: true },
   { id: '2114872829163482747', gameCode: 'sjzxd', title: '三角洲行动 总资产547M 传说近战6 安全箱高战号', price: 3308, image: assetPath('assets/product-detail-v2/780e9aff187347c08953458a0bf6a05e_14eb650cb7bd93500176731970015440.jpg'), tags: ['547M资产', '传说近战6', '安全箱'], eliteLevel: '行动60', skinCount: 98, platform: '安卓QQ', rank: '行动等级60', realName: '已实名-不可改实名', secondRealName: false, faceCompensation: true, listedAt: 1701200000000, negotiable: false, wantCount: 27, publishedLabel: '刚刚', inscriptionFull: true },
   { id: 'sjzxd-2', gameCode: 'sjzxd', title: '三角洲行动 Steam区 典藏枪皮 高价值仓库号', price: 1680, image: assetPath('assets/product-detail-v2/d24bca1b077d4338911ee642a44a25fa_3eedd391e8d3f2489755269523381776.jpg'), tags: ['Steam', '典藏枪皮', '仓库号'], eliteLevel: '行动52', skinCount: 63, platform: 'Steam', rank: '行动等级52', realName: '未实名', secondRealName: true, faceCompensation: true, listedAt: 1701150000000, negotiable: true, wantCount: 14, publishedLabel: '2小时内', inscriptionFull: true },
   { id: 'ys-1', gameCode: 'ys', title: '原神 亚服 五星6 满级冒险等级 成品号', price: 520, image: assetPath('assets/products/p07.jpg'), tags: ['五星6', '满级', '成品号'], eliteLevel: '冒险60', skinCount: 42, platform: '安卓QQ', rank: '冒险等级60', realName: '未实名', secondRealName: true, faceCompensation: true, listedAt: 1701300000000, negotiable: true, wantCount: 22, publishedLabel: '30分钟内', inscriptionFull: true },

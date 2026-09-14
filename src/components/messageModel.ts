@@ -1,5 +1,21 @@
 import type { Conversation, ConversationMessage, MessageCategory, MessageStore } from '../types/message'
 
+/** Conversation timestamps use local calendar days, not elapsed 24-hour windows. */
+export function formatConversationTime(timestamp: number, now = Date.now()) {
+  const messageDate = new Date(timestamp)
+  const currentDate = new Date(now)
+  if (!Number.isFinite(messageDate.getTime()) || !Number.isFinite(currentDate.getTime())) return '--'
+  const sameDay = (other: Date) => messageDate.getFullYear() === other.getFullYear()
+    && messageDate.getMonth() === other.getMonth() && messageDate.getDate() === other.getDate()
+  const pad = (value: number) => String(value).padStart(2, '0')
+  if (sameDay(currentDate)) return `${pad(messageDate.getHours())}:${pad(messageDate.getMinutes())}`
+  const yesterday = new Date(currentDate)
+  yesterday.setDate(yesterday.getDate() - 1)
+  if (sameDay(yesterday)) return '昨天'
+  if (messageDate.getFullYear() !== currentDate.getFullYear()) return String(messageDate.getFullYear())
+  return `${pad(messageDate.getMonth() + 1)}-${pad(messageDate.getDate())}`
+}
+
 export function filterConversations(conversations: Conversation[], category: MessageCategory, query = '') {
   const normalized = query.trim().toLowerCase()
   return conversations.filter((item) => {
@@ -21,7 +37,9 @@ export function groupTradeConversations(conversations: Conversation[]) {
 
 export function getMessageSummary(store: MessageStore) {
   return {
-    unreadCount: store.conversations.reduce((sum, item) => sum + item.unreadCount, 0),
+    // Detailed notifications replace the legacy notification summary, never count both.
+    unreadCount: store.conversations.reduce((sum, item) => sum + (store.notifications && item.kind === 'notification' ? 0 : item.unreadCount), 0)
+      + (store.notifications?.filter(item => item.unread).length ?? 0),
     groupCount: store.conversations.filter((item) => item.kind === 'trade_group' && item.stage !== 'closed').length,
     taskCount: store.conversations.filter((item) => item.kind === 'trade_group' && item.stage === 'need_action').length,
   }
@@ -40,5 +58,5 @@ export function markDelivery(message: ConversationMessage, delivery: 'sent' | 'f
 export function canSendQuick(lastSentAt: number | null, now: number, cooldownMs = 10_000) { return lastSentAt === null || now - lastSentAt >= cooldownMs }
 export function canAdvanceBinding(conversation: Conversation) { return conversation.kind === 'trade_group' && conversation.tradeState === 'binding' && !conversation.closed }
 export function appendMessage(store: MessageStore, message: ConversationMessage): MessageStore {
-  return { conversations: store.conversations.map((item) => item.id === message.conversationId ? { ...item, lastMessage: `${message.senderName}：${message.content}`, updatedAt: message.createdAt } : item), messages: [...store.messages, message] }
+  return { ...store, conversations: store.conversations.map((item) => item.id === message.conversationId ? { ...item, lastMessage: `${message.senderName}：${message.content}`, updatedAt: message.createdAt } : item), messages: [...store.messages, message] }
 }

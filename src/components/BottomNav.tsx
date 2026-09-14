@@ -1,81 +1,81 @@
-import { Gamepad2, Home, MessageCircle, PlusCircle, UserRound } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import type { MouseEvent } from 'react'
 import { buildLoginRoute } from './authModel'
 import { useAuthPrompt, useAuthStatus } from './AuthAccess'
 import { assetPath } from './assetPath'
+import { LoginFloatingBar } from './LoginFloatingBar'
+import { CountBadge } from './ui'
+import { useMessageUnreadCount } from './useMessageState'
+import { usePendingOrderSummary } from './usePendingOrderSummary'
+import './bottom-nav.css'
 
-const items = [
-  { label: '首页', href: '/', icon: Home },
-  { label: '游戏', href: '/game?gameCode=wzry', icon: Gamepad2 },
-  { label: '卖号', href: '/sell', icon: PlusCircle, featured: true },
-  { label: '消息', href: '/message', icon: MessageCircle },
-  { label: '我的', href: '/profile', icon: UserRound },
-]
-
-function GuestLoginBar({ variant, onLogin }: { variant: 'default' | 'home' | 'catalog'; onLogin: () => void }) {
-  return <aside className={`guest-login-bar guest-login-bar-${variant}`} data-node-id="159:2667">
-    <span>快来登录吧，一起成为深度玩家！</span>
-    <button type="button" onClick={onLogin}>登录</button>
-  </aside>
+export type NavKey = 'home' | 'catalog' | 'sell' | 'message' | 'profile'
+export type BottomNavItem = { key: NavKey; label: string; href: string; icon?: string; requiresLogin?: boolean; badgeCount?: number }
+type BottomNavProps = {
+  /** Variants only configure business context; all pages share the homepage visual style. */
+  variant?: 'default' | 'home' | 'catalog'
+  placement?: 'fixed' | 'absolute' | 'flow'
+  gameCode?: string
+  gameName?: string
+  showGuestPrompt?: boolean
 }
 
-export function BottomNav({ variant = 'default', gameCode = 'wzry', gameName = '王者荣耀', showGuestPrompt = true }: { variant?: 'default' | 'home' | 'catalog'; gameCode?: string; gameName?: string; showGuestPrompt?: boolean }) {
+export function getActiveNavKey(pathname: string): NavKey | undefined {
+  if (pathname === '/') return 'home'
+  if (pathname === '/game' || pathname.startsWith('/game/')) return 'catalog'
+  if (pathname === '/sell' || pathname.startsWith('/sell/')) return 'sell'
+  if (['/message', '/notifications', '/im'].some(path => pathname === path || pathname.startsWith(path + '/'))) return 'message'
+  if (pathname === '/profile' || pathname.startsWith('/profile/')) return 'profile'
+  return undefined
+}
+
+export function BottomNav({ variant = 'home', placement = variant === 'catalog' ? 'absolute' : 'fixed', gameCode = 'wzry', gameName = '王者荣耀', showGuestPrompt = true }: BottomNavProps) {
   const location = useLocation()
   const navigate = useNavigate()
   const authenticated = useAuthStatus()
+  const unreadCount = useMessageUnreadCount()
+  const { totalPendingCount } = usePendingOrderSummary()
   const { requireAuth } = useAuthPrompt()
-  const currentPath = `${location.pathname}${location.search}${location.hash}`
+  const currentPath = location.pathname + location.search + location.hash
   const openLogin = () => navigate(buildLoginRoute('one_tap', currentPath, currentPath))
-  const protectedClick = (href: string) => (event: React.MouseEvent<HTMLAnchorElement>) => {
-    if (requireAuth({ title: '登录后体验完整服务', description: '登录后可使用卖号、消息、个人中心等完整服务。', returnTo: href })) return
-    event.preventDefault()
-  }
-  const guestBar = !authenticated && showGuestPrompt ? <GuestLoginBar variant={variant} onLogin={openLogin} /> : null
-  if (variant === 'home') {
-    const homeItems = [
-      { label: '首页', href: '/', icon: assetPath('assets/home-v2/nav-home.svg') },
-      { label: '买号', href: '/game?gameCode=wzry', icon: assetPath('assets/home-v2/nav-buy.svg') },
-      { label: '卖', href: '/sell', featured: true },
-      { label: '消息', href: '/message', icon: assetPath('assets/home-v2/nav-message.svg') },
-      { label: '我的', href: '/profile', icon: assetPath('assets/home-v2/nav-profile.svg') },
-    ]
-    return <>
-      {guestBar}
-      <nav className="bottom-nav bottom-nav-home" aria-label="主导航">
-        {homeItems.map(({ label, href, icon, featured }) => {
-          const active = href === '/' ? location.pathname === '/' : location.pathname.startsWith(href.split('?')[0])
-          const requiresLogin = href === '/sell' || href === '/message' || href === '/profile'
-          return <Link key={label} to={href} onClick={requiresLogin ? protectedClick(href) : undefined} className={`${active ? 'active' : ''} ${featured ? 'featured' : ''}`} aria-current={active ? 'page' : undefined}>{featured ? <span className="home-sell-mark">卖</span> : <><img src={icon} alt="" /><span>{label}</span></>}</Link>
-        })}
-      </nav>
-    </>
-  }
-  if (variant === 'catalog') {
-    const catalogItems = [
-      { label: '首页', href: '/', icon: assetPath('assets/catalog-v2/nav-home.svg') },
-      { label: gameName, href: `/game?gameCode=${gameCode}`, icon: assetPath('assets/catalog-v2/nav-game.svg') },
-      { label: '卖', href: '/sell', featured: true },
-      { label: '消息', href: '/message', icon: assetPath('assets/catalog-v2/nav-message.svg') },
-      { label: '我的', href: '/profile', icon: assetPath('assets/catalog-v2/nav-profile.svg') },
-    ]
-    return <>{guestBar}<nav className="bottom-nav bottom-nav-catalog" aria-label="主导航">{catalogItems.map(({ label, href, icon, featured }, index) => {
-      const requiresLogin = href === '/sell' || href === '/message' || href === '/profile'
-      return <Link key={label} to={href} onClick={requiresLogin ? protectedClick(href) : undefined} className={`${index === 1 ? 'active' : ''} ${featured ? 'featured' : ''}`} aria-current={index === 1 ? 'page' : undefined}>{featured ? <span className="catalog-sell-mark">卖</span> : <><img src={icon} alt="" /><span>{label}</span></>}</Link>
-    })}</nav></>
-  }
+  const activeKey = getActiveNavKey(location.pathname)
+  const items: BottomNavItem[] = [
+    { key: 'home', label: '首页', href: '/', icon: 'nav-home.svg' },
+    { key: 'catalog', label: variant === 'catalog' ? gameName : '买号', href: '/game?gameCode=' + encodeURIComponent(gameCode), icon: 'nav-buy.svg' },
+    { key: 'sell', label: '卖', href: '/sell', requiresLogin: true },
+    { key: 'message', label: '消息', href: '/message', icon: 'nav-message.svg', requiresLogin: true, badgeCount: unreadCount },
+    { key: 'profile', label: '我的', href: '/profile', icon: 'nav-profile.svg', requiresLogin: true, badgeCount: totalPendingCount },
+  ]
+
   return <>
-    {guestBar}
-    <nav className="bottom-nav" aria-label="主导航">
-      {items.map(({ label, href, icon: Icon, featured }) => {
-        const active = href === '/' ? location.pathname === '/' : location.pathname.startsWith(href.split('?')[0])
-        const requiresLogin = href === '/sell' || href === '/message' || href === '/profile'
-        return (
-          <Link key={label} to={href} onClick={requiresLogin ? protectedClick(href) : undefined} className={`${active ? 'active' : ''} ${featured ? 'featured' : ''}`} aria-current={active ? 'page' : undefined}>
-            <span className="nav-icon"><Icon size={featured ? 25 : 21} strokeWidth={2.1} /></span>
-            <span>{label}</span>
-          </Link>
-        )
-      })}
-    </nav>
+    {!authenticated && showGuestPrompt && <LoginFloatingBar onLogin={openLogin} />}
+    <BottomNavView items={items} activeKey={activeKey} placement={placement} onNavigate={(event, item) => {
+      if (item.requiresLogin && !requireAuth({ title: '登录后体验完整服务', description: '登录后可使用卖号、消息、个人中心等完整服务。', returnTo: item.href })) event.preventDefault()
+    }} />
   </>
+}
+
+/** Pure presentation: consumers own routing, authentication and badge counts. */
+export function BottomNavView({ items, activeKey, placement = 'flow', onNavigate }: {
+  items: BottomNavItem[]
+  activeKey?: NavKey
+  placement?: BottomNavProps['placement']
+  onNavigate?: (event: MouseEvent<HTMLAnchorElement>, item: BottomNavItem) => void
+}) {
+  return <nav data-ui="BottomNav" className={'dg-bottom-nav dg-bottom-nav--' + placement} aria-label="主导航">
+      {items.map(item => {
+        const { key, label, href, icon, badgeCount = 0 } = item
+        return <Link key={key} to={href}
+        className={'dg-bottom-nav__item' + (activeKey === key ? ' active' : '') + (key === 'sell' ? ' featured' : '')}
+        aria-current={activeKey === key ? 'page' : undefined}
+        onClick={event => onNavigate?.(event, item)}>
+        {key === 'sell' ? <span className="dg-bottom-nav__sell">卖</span> : <>
+          <span className="dg-bottom-nav__icon-wrap">
+            <span className="dg-bottom-nav__icon" aria-hidden="true" style={{ maskImage: 'url("' + assetPath('assets/home-v2/' + icon) + '")', WebkitMaskImage: 'url("' + assetPath('assets/home-v2/' + icon) + '")' }} />
+            {badgeCount > 0 && <span className="dg-bottom-nav__badge"><CountBadge count={badgeCount} /></span>}
+          </span>
+          <span className="dg-bottom-nav__label">{label}</span>
+        </>}
+      </Link>})}
+    </nav>
 }

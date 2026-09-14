@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { games } from '../data/fixtures'
-import { emptyFilters } from '../types/catalog'
+import { emptyFilters, type Product, type ProductFilters } from '../types/catalog'
 import { catalogRepository } from './catalogRepository'
 
 describe('catalogRepository', () => {
@@ -34,5 +34,29 @@ describe('catalogRepository', () => {
     for (const game of games) {
       expect(catalogRepository.queryProducts('', 'default', emptyFilters, game.code).length, game.name).toBeGreaterThan(0)
     }
+  })
+
+  const filterCases: Array<[string, Partial<ProductFilters>, (item: Product) => boolean]> = [
+    ['闭区间价格和皮肤数量', { minPrice: '1200', maxPrice: '2000', minSkin: '200', maxSkin: '400' }, (item: { price: number; skinCount: number }) => item.price >= 1200 && item.price <= 2000 && item.skinCount >= 200 && item.skinCount <= 400],
+    ['区服多选 OR', { platforms: ['安卓QQ', 'iOS QQ'] }, (item: { platform: string }) => ['安卓QQ', 'iOS QQ'].includes(item.platform)],
+    ['段位多选 OR', { ranks: ['最强王者', '荣耀王者'] }, (item: { rank: string }) => ['最强王者', '荣耀王者'].includes(item.rank)],
+    ['实名多选 OR', { realNames: ['未实名', '已实名-可改实名'] }, (item: { realName: string }) => ['未实名', '已实名-可改实名'].includes(item.realName)],
+    ['贵族多选 OR', { eliteLevels: ['V10', 'V12'] }, (item: { eliteLevel: string }) => ['V10', 'V12'].includes(item.eliteLevel)],
+    ['二次实名 false', { secondRealName: 'false' }, (item: { secondRealName: boolean }) => item.secondRealName === false],
+    ['人脸包赔 false', { faceCompensation: 'false' }, (item: { faceCompensation: boolean }) => item.faceCompensation === false],
+    ['支持议价 false', { negotiable: 'false' }, (item: { negotiable?: boolean }) => item.negotiable === false],
+  ]
+
+  it.each(filterCases)('%s 能按数据契约收敛结果', (_name, partial, matches) => {
+    const result = catalogRepository.queryProducts('', 'default', { ...emptyFilters, ...partial })
+    expect(result.length).toBeGreaterThan(0)
+    expect(result.every(matches)).toBe(true)
+  })
+
+  it('将不同字段以 AND 组合', () => {
+    const combined = catalogRepository.queryProducts('', 'default', { ...emptyFilters, maxPrice: '1500', ranks: ['最强王者'], platforms: ['安卓QQ'] })
+    expect(combined.length).toBeGreaterThan(0)
+    expect(combined.every((item) => item.price <= 1500 && item.rank === '最强王者' && item.platform === '安卓QQ')).toBe(true)
+
   })
 })

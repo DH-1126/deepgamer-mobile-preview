@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useSyncExternalStore, type Prop
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { authRepository } from '../repository/authRepository'
 import { buildLoginRoute, sanitizeReturnTo } from './authModel'
+import { isLinkedDataMode } from '../runtime/dataMode'
 
 type AuthPromptOptions = {
   title?: string
@@ -16,7 +17,8 @@ type AuthPromptContextValue = {
 const AuthPromptContext = createContext<AuthPromptContextValue | null>(null)
 
 export function useAuthStatus() {
-  return useSyncExternalStore(authRepository.subscribe, authRepository.isAuthenticated, authRepository.isAuthenticated)
+  const authenticated = useSyncExternalStore(authRepository.subscribe, authRepository.isAuthenticated, authRepository.isAuthenticated)
+  return isLinkedDataMode || authenticated
 }
 
 export function useAuthPrompt() {
@@ -29,7 +31,7 @@ export function AuthPromptProvider({ children }: PropsWithChildren) {
   const navigate = useNavigate()
   const location = useLocation()
   const requireAuth = useCallback((options: AuthPromptOptions) => {
-    if (authRepository.isAuthenticated()) return true
+    if (isLinkedDataMode || authRepository.isAuthenticated()) return true
     const closeTo = `${location.pathname}${location.search}${location.hash}`
     navigate(buildLoginRoute('one_tap', sanitizeReturnTo(options.returnTo), closeTo))
     return false

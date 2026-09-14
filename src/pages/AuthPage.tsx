@@ -1,67 +1,48 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Bell, Check, Eye, EyeOff, RotateCw, UserRound, X } from 'lucide-react'
-import { agreementSections, AUTH_POLICY_UPDATED_AT, DEMO_MASKED_PHONE, privacySections } from '../data/authFixtures'
-import { buildLoginRoute, getCountdown, normalizeCode, normalizePhone, sanitizeReturnTo } from '../components/authModel'
+import { agreementSections, AUTH_POLICY_UPDATED_AT, DEMO_MASKED_PHONE, DEMO_PASSWORD, privacySections } from '../data/authFixtures'
+import { buildLoginRoute, formatLoginPhone, getCountdown, getLoginFigmaNodeId, getWelcomeFigmaNodeId, normalizeCode, normalizePhone, sanitizeReturnTo, type WelcomePhase } from '../components/authModel'
 import { isGuestAccessiblePath } from '../components/authAccessModel'
 import { assetPath } from '../components/assetPath'
+import { Button, Checkbox, Dialog, Heading, IconButton, Spinner, StatusBar, TextField, Toast } from '../components/ui'
+import { SUPPORT_CONVERSATION_ROUTE } from '../data/messageFixtures'
 import { authRepository } from '../repository/authRepository'
 import type { AuthMethod, PolicySection } from '../types/auth'
 import '../styles/auth-v2.css'
 
-function StatusBar({ inverse = false }: { inverse?: boolean }) {
-  return <div className={`auth-v2-status ${inverse ? 'inverse' : ''}`} aria-hidden="true">
-    <time>9:41</time>
-    <span>
-      <img src={assetPath('assets/home-v2/status-signal.svg')} alt="" />
-      <img src={assetPath('assets/home-v2/status-wifi.svg')} alt="" />
-      <img src={assetPath('assets/home-v2/status-battery.svg')} alt="" />
-    </span>
-  </div>
+const LOGIN_METHOD_LABELS: Record<AuthMethod, string> = {
+  one_tap: '一键登录',
+  code: '验证码登录',
+  password: '密码登录',
 }
 
 function Brand({ compact = false }: { compact?: boolean }) {
   return <div className={`auth-v2-brand ${compact ? 'compact' : ''}`}>
-    <b>DG</b><strong>{compact ? '登录深度玩家' : '深度玩家'}</strong>
+    <span className="auth-v2-brand-mark"><img src={assetPath('assets/auth-draft3/brand-mark.svg')} alt="" /></span>
+    <strong>{compact ? '登录深度玩家' : '深度玩家'}</strong>
+    {!compact && <small>一亿玩家自己的游戏平台</small>}
   </div>
 }
 
-function AgreementLinks({ includePrivacy = true }: { includePrivacy?: boolean }) {
-  return <span>已阅读并同意 <Link to="/user-agreement">《用户服务协议》</Link>{includePrivacy && <> 和 <Link to="/privacy-policy">《隐私政策》</Link></>}</span>
+function AgreementLinks() {
+  return <span>已阅读并同意 <Link to="/user-agreement">《用户服务协议》</Link> 和 <Link to="/privacy-policy">《隐私政策》</Link></span>
 }
 
-function AgreementCheck({ checked, onChange, includePrivacy = true }: { checked: boolean; onChange: () => void; includePrivacy?: boolean }) {
-  return <div className="auth-v2-agreement">
-    <button type="button" role="checkbox" aria-checked={checked} aria-label={checked ? '取消同意协议' : '同意协议'} onClick={onChange}>
-      {checked && <Check size={12} strokeWidth={3} aria-hidden="true" />}
-    </button>
-    <div className="auth-v2-agreement-copy">
-      <AgreementLinks includePrivacy={includePrivacy} />
-      {includePrivacy && <small>。用未注册的手机号将自动创建账号。</small>}
-    </div>
-  </div>
+function AgreementCheck({ checked, onChange }: { checked: boolean; onChange: () => void }) {
+  return <Checkbox className="auth-v2-agreement" checked={checked} onCheckedChange={onChange} label={<span className="auth-v2-agreement-copy"><AgreementLinks /></span>} />
 }
 
 function InitialAgreementDialog({ confirmExit, onAgree, onReject, onContinue }: { confirmExit: boolean; onAgree: () => void; onReject: () => void; onContinue: () => void }) {
-  return <div className="auth-v2-modal-layer">
-    <section className="auth-v2-dialog initial-agreement-dialog" role="dialog" aria-modal="true" aria-labelledby="initial-agreement-title">
-      <h2 id="initial-agreement-title">{confirmExit ? '不同意将无法继续使用' : '温馨提示'}</h2>
-      {confirmExit
-        ? <p>登录和交易服务需要基于协议提供。你可以返回继续阅读，也可以退出深度玩家。</p>
-        : <p>欢迎来到深度玩家。在您开始使用前，请阅读并同意 <Link to="/user-agreement">《服务条款》</Link> 与 <Link to="/privacy-policy">《隐私政策》</Link>。<br />为了向您提供核心服务，我们需要收集必要的设备信息与日志数据。我们承诺严加保护您的个人信息安全，未经许可不会用于其他用途。</p>}
-      <footer>
-        {confirmExit
-          ? <><button type="button" className="primary" onClick={onContinue}>返回查看协议</button><button type="button" className="secondary" onClick={onReject}>退出深度玩家</button></>
-          : <><button type="button" className="secondary" onClick={onReject}>不同意</button><button type="button" className="primary" onClick={onAgree}>同意并继续</button></>}
-      </footer>
-    </section>
-  </div>
+  return <Dialog open onClose={onReject} showClose={false} closeOnBackdrop={false} title={confirmExit ? '暂不同意隐私协议？' : '请先阅读并同意协议'} className="initial-agreement-dialog" actions={confirmExit ? <><Button onClick={onContinue}>返回查看协议</Button><Button variant="outline" onClick={onReject}>退出深度玩家</Button></> : <><Button variant="outline" onClick={onReject}>不同意</Button><Button onClick={onAgree}>同意并登录</Button></>}>
+    {confirmExit ? <div className="auth-v2-dialog-copy"><p>不同意后无法继续使用深度玩家，包括浏览商品、下单和查看订单。</p><p>你随时可以返回重新阅读协议。</p></div> : <p>继续登录前，需要你阅读并同意 <Link to="/user-agreement">《用户服务协议》</Link> 和 <Link to="/privacy-policy">《隐私政策》</Link>。未注册的手机号将在登录成功后自动创建账号。</p>}
+  </Dialog>
 }
 
 export function WelcomePage() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
-  const [phase, setPhase] = useState<'splash' | 'agreement' | 'exit' | 'loading' | 'error'>('splash')
+  const [phase, setPhase] = useState<WelcomePhase>('splash')
   const requestedPath = sanitizeReturnTo(params.get('returnTo'))
   const requestedMethod = params.get('loginMethod')
   const loginMethod: AuthMethod = requestedMethod === 'code' || requestedMethod === 'password' ? requestedMethod : 'one_tap'
@@ -71,6 +52,7 @@ export function WelcomePage() {
 
   useEffect(() => {
     if (phase !== 'splash') return undefined
+    // Every launch must ask for consent; loading starts only after the user agrees.
     const timer = window.setTimeout(() => setPhase('agreement'), 2_000)
     return () => window.clearTimeout(timer)
   }, [phase])
@@ -83,13 +65,17 @@ export function WelcomePage() {
     if (!authRepository.acceptInitialAgreement()) { setPhase('error'); return }
     setPhase('loading')
   }
-  return <main className={`auth-v2-page auth-v2-welcome ${phase === 'loading' ? 'is-loading' : ''}`} aria-busy={phase === 'loading'} data-node-id="511:11253">
-    <StatusBar />
+  const leaveAsGuest = () => {
+    authRepository.completeLaunch()
+    navigate(closeTo, { replace: true })
+  }
+  return <main className={`auth-v2-page auth-v2-welcome ${phase === 'loading' ? 'is-loading' : ''}`} aria-busy={phase === 'loading'} data-node-id={getWelcomeFigmaNodeId(phase)}>
+    <StatusBar tone={phase === 'agreement' || phase === 'exit' ? 'inverse' : 'default'} className="auth-v2-status" />
     <Brand />
-    {phase === 'loading' && <span className="auth-v2-loading-status" role="status">正在加载安全交易环境</span>}
-    <p className="auth-v2-welcome-foot">深度玩家 ｜ 一亿玩家自己的游戏平台</p>
+    {phase === 'loading' && <span className="auth-v2-loading-status"><Spinner label="正在加载安全交易环境" size="sm" />正在加载安全交易环境</span>}
+    <p className="auth-v2-welcome-foot">深度玩家 · 玩家自己的交易平台</p>
     {phase === 'error' && <div className="auth-v2-load-error" role="alert"><span>协议状态保存失败</span><button type="button" onClick={() => setPhase('agreement')}><RotateCw size={15} />重试</button></div>}
-    {(phase === 'agreement' || phase === 'exit') && <InitialAgreementDialog confirmExit={phase === 'exit'} onAgree={agree} onReject={() => phase === 'exit' ? navigate('/', { replace: true }) : setPhase('exit')} onContinue={() => setPhase('agreement')} />}
+    {(phase === 'agreement' || phase === 'exit') && <InitialAgreementDialog confirmExit={phase === 'exit'} onAgree={agree} onReject={() => phase === 'exit' ? leaveAsGuest() : setPhase('exit')} onContinue={() => setPhase('agreement')} />}
   </main>
 }
 
@@ -97,12 +83,12 @@ export function LoginPage({ method }: { method: AuthMethod }) {
   const navigate = useNavigate()
   const location = useLocation()
   const [params] = useSearchParams()
-  const [phone, setPhone] = useState('')
+  const [phone, setPhone] = useState(() => (location.state as { loginPhone?: string } | null)?.loginPhone ?? '18788660033')
   const [code, setCode] = useState('')
   const [codeSent, setCodeSent] = useState(false)
-  const [password, setPassword] = useState('')
+  const [password, setPassword] = useState(() => method === 'password' ? DEMO_PASSWORD : '')
   const [showPassword, setShowPassword] = useState(false)
-  const [agreed, setAgreed] = useState(false)
+  const [agreed, setAgreed] = useState(method !== 'one_tap')
   const [protocolPrompt, setProtocolPrompt] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -118,15 +104,12 @@ export function LoginPage({ method }: { method: AuthMethod }) {
     const timer = window.setInterval(() => setNow(Date.now()), 500)
     return () => window.clearInterval(timer)
   }, [countdown])
-  useEffect(() => {
-    if (!success) return undefined
-    const timer = window.setTimeout(() => navigate(returnTo, { replace: true }), 500)
-    return () => window.clearTimeout(timer)
-  }, [navigate, returnTo, success])
+  const finishLoginFeedback = useCallback(() => navigate(returnTo, { replace: true }), [navigate, returnTo])
 
-  const goToMethod = (next: AuthMethod) => navigate(buildLoginRoute(next, returnTo, closeTo))
+  const goToMethod = (next: AuthMethod) => navigate(buildLoginRoute(next, returnTo, closeTo), { state: { loginPhone: phone } })
   const requireAgreement = () => { if (agreed) return true; setProtocolPrompt(true); return false }
   const finish = async (request: () => ReturnType<typeof authRepository.loginOneTap>) => {
+    if (busy || success) return
     setBusy(true); setError('')
     const result = await request()
     setBusy(false)
@@ -150,31 +133,35 @@ export function LoginPage({ method }: { method: AuthMethod }) {
     proceed()
   }
 
-  return <main className={`auth-v2-page auth-v2-login auth-v2-login-${method}`} data-node-id={method === 'one_tap' ? '511:10305' : method === 'code' ? '511:10439' : '511:10566'}>
-    <StatusBar />
+  const manual = method !== 'one_tap'
+  const displayedPhone = formatLoginPhone(phone)
+
+  return <main className={`auth-v2-page auth-v2-login auth-v2-login-${method}${manual ? ' auth-v2-login-manual' : ''}`} data-node-id={getLoginFigmaNodeId(method)}>
+    <StatusBar className="auth-v2-status" />
     <nav className="auth-v2-login-nav" aria-label="登录页导航">
-      <button type="button" onClick={() => navigate(closeTo, { replace: true })} aria-label="关闭登录，返回之前页面"><X size={21} /></button>
+      <IconButton label="关闭登录，返回之前页面" onClick={() => navigate(closeTo, { replace: true })}><X size={21} /></IconButton>
     </nav>
     <form className="auth-v2-login-body" onSubmit={submit} noValidate>
       <Brand compact />
       <div className="auth-v2-login-controls">
         {method === 'one_tap' ? <>
           <div className="auth-v2-login-fields one-tap"><div className="auth-v2-one-tap-phone">{DEMO_MASKED_PHONE}</div></div>
-          <button className="auth-v2-primary auth-v2-login-action" type="submit" disabled={busy}>{busy ? '登录中…' : '本机号码一键登录'}</button>
+          <Button className="auth-v2-login-action" type="submit" size="xl" fullWidth loading={busy}>{LOGIN_METHOD_LABELS[method]}</Button>
         </> : <>
           <div className="auth-v2-login-fields">
-            <label className="auth-v2-input"><b>+86</b><i /><input inputMode="numeric" autoComplete="tel" aria-label="手机号" value={phone} onChange={(event) => setPhone(normalizePhone(event.target.value))} placeholder="请输入手机号" />{phone && <button type="button" aria-label="清空手机号" onClick={() => setPhone('')}><X size={13} /></button>}</label>
-            {method === 'code' && <label className="auth-v2-input"><input inputMode="numeric" autoComplete="one-time-code" aria-label="验证码" value={code} onChange={(event) => setCode(normalizeCode(event.target.value))} placeholder="请输入验证码" /><button type="button" className="auth-v2-code-link" disabled={countdown > 0} onClick={requestCode}>{countdown ? `${countdown}s` : codeSent ? '重新获取' : '获取验证码'}</button></label>}
-            {method === 'password' && <><label className="auth-v2-input"><input type={showPassword ? 'text' : 'password'} autoComplete="current-password" aria-label="登录密码" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="请输入登录密码" /><button type="button" aria-label={showPassword ? '隐藏密码' : '显示密码'} onClick={() => setShowPassword((value) => !value)}>{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button></label><button type="button" className="auth-v2-forgot" onClick={() => setError('请联系玩家客服重置登录密码')}>忘记密码？</button></>}
+            <TextField className="auth-v2-login-field auth-v2-phone-field" inputMode="tel" autoComplete="tel" aria-label="手机号" value={displayedPhone} onChange={(event) => setPhone(normalizePhone(event.target.value))} placeholder="请输入手机号" leading={<span className="auth-v2-phone-prefix"><b>+86</b><i /></span>} trailing={phone ? <button type="button" className="auth-v2-phone-clear" aria-label="清空手机号" onClick={() => setPhone('')}><X size={11} /></button> : undefined} />
+            {method === 'code' && <><TextField className="auth-v2-login-field auth-v2-code-field" inputMode="numeric" autoComplete="one-time-code" aria-label="验证码" value={code} onChange={(event) => setCode(normalizeCode(event.target.value))} placeholder="请输入验证码" trailing={<button type="button" className="auth-v2-code-link" disabled={countdown > 0} onClick={requestCode}>{countdown ? `${countdown}s后重试` : codeSent ? '重新获取' : '获取验证码'}</button>} /><div className="auth-v2-code-help"><span>收不到验证码？</span><Link to={SUPPORT_CONVERSATION_ROUTE}>联系客服</Link></div></>}
+            {method === 'password' && <><TextField className="auth-v2-login-field auth-v2-password-field" type={showPassword ? 'text' : 'password'} autoComplete="current-password" aria-label="登录密码" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="请输入登录密码" trailing={<button type="button" className="auth-v2-password-visibility" aria-label={showPassword ? '隐藏密码' : '显示密码'} onClick={() => setShowPassword((value) => !value)}>{showPassword ? <EyeOff size={19} /> : <Eye size={19} />}</button>} /><button type="button" className="auth-v2-forgot" onClick={() => setError('请联系玩家客服重置登录密码')}>忘记密码？</button></>}
           </div>
-          <button className="auth-v2-primary auth-v2-login-action" type="submit" disabled={busy}>{busy ? '登录中…' : '登录'}</button>
+          <Button className="auth-v2-login-action" type="submit" size="xl" fullWidth loading={busy}>{LOGIN_METHOD_LABELS[method]}</Button>
         </>}
-        {(error || success) && <div className={`auth-v2-feedback ${success ? 'success' : ''}`} role={success ? 'status' : 'alert'}>{success || error}</div>}
+        {error && <div className="auth-v2-feedback" role="alert">{error}</div>}
       </div>
-      <div className="auth-v2-method-links">{method === 'one_tap' ? <><button type="button" onClick={() => goToMethod('code')}>验证码登录</button><i /><button type="button" onClick={() => goToMethod('password')}>密码登录</button></> : <><button type="button" onClick={() => goToMethod('one_tap')}>本机号码一键登录</button><i /><button type="button" onClick={() => goToMethod(method === 'password' ? 'code' : 'password')}>{method === 'password' ? '验证码登录' : '密码登录'}</button></>}</div>
+      <div className="auth-v2-method-links">{method === 'one_tap' ? <><button type="button" onClick={() => goToMethod('code')}>{LOGIN_METHOD_LABELS.code}</button><i aria-hidden="true" /><button type="button" onClick={() => goToMethod('password')}>{LOGIN_METHOD_LABELS.password}</button></> : <><button type="button" onClick={() => goToMethod('one_tap')}>{LOGIN_METHOD_LABELS.one_tap}</button><i aria-hidden="true" /><button type="button" onClick={() => goToMethod(method === 'password' ? 'code' : 'password')}>{LOGIN_METHOD_LABELS[method === 'password' ? 'code' : 'password']}</button></>}</div>
       <AgreementCheck checked={agreed} onChange={() => setAgreed((value) => !value)} />
     </form>
-    {protocolPrompt && <div className="auth-v2-modal-layer login-prompt"><section className="auth-v2-dialog" role="dialog" aria-modal="true" aria-labelledby="login-protocol-title"><h2 id="login-protocol-title">请先阅读并同意协议</h2><p>继续登录前，需要你阅读并同意 <Link to="/user-agreement">《用户服务协议》</Link> 和 <Link to="/privacy-policy">《隐私政策》</Link>。</p><footer><button type="button" className="secondary" onClick={() => setProtocolPrompt(false)}>暂不登录</button><button type="button" className="primary" onClick={() => { setAgreed(true); setProtocolPrompt(false); proceed() }}>同意并继续</button></footer></section></div>}
+    <Toast message={success} onDismiss={finishLoginFeedback} />
+    <div className="auth-v2-protocol-dialog-node" data-node-id="3681:25048"><Dialog open={protocolPrompt} onClose={() => setProtocolPrompt(false)} title="请先阅读并同意协议" showClose={false} className="auth-v2-protocol-dialog" actions={<><Button variant="outline" onClick={() => setProtocolPrompt(false)}>不同意</Button><Button onClick={() => { setAgreed(true); setProtocolPrompt(false); proceed() }}>同意并登录</Button></>}><p data-node-id="3681:25084">继续登录前，需要你阅读并同意 <Link to="/user-agreement">《用户服务协议》</Link> 和 <Link to="/privacy-policy">《隐私政策》</Link>。未注册的手机号将在登录成功后自动创建账号。</p></Dialog></div>
   </main>
 }
 
@@ -185,11 +172,11 @@ function PolicyPage({ type }: { type: 'privacy' | 'agreement' }) {
   return <main className="auth-v2-page auth-v2-policy" data-node-id={privacy ? '511:10647' : '511:10727'}>
     <header><StatusBar /><nav><button type="button" aria-label="返回" onClick={() => navigate(-1)}><ArrowLeft size={21} /></button></nav></header>
     <article>
-      <h1>{privacy ? '深度玩家隐私政策' : '用户服务协议'}</h1>
+      <Heading variant="page">{privacy ? '深度玩家隐私政策' : '用户服务协议'}</Heading>
       {privacy ? <div className="auth-v2-policy-meta"><dl><div><dt>应用名称</dt><dd>深度玩家</dd></div><div><dt>开发者名称</dt><dd>待法务确认</dd></div><div><dt>更新日期</dt><dd>{AUTH_POLICY_UPDATED_AT}</dd></div><div><dt>生效日期</dt><dd>{AUTH_POLICY_UPDATED_AT}</dd></div></dl></div>
-        : <><p className="auth-v2-policy-date">更新时间 {AUTH_POLICY_UPDATED_AT}<span>生效时间 {AUTH_POLICY_UPDATED_AT}</span></p><section className="auth-v2-policy-important"><h2>重点条款提示</h2><ul><li>免除或限制平台责任的条款</li><li>对用户权利进行限制的条款</li><li>争议解决方式与司法管辖条款</li></ul><p>上述条款在正文中以加粗标示，请在同意前重点阅读。</p></section></>}
+        : <><p className="auth-v2-policy-date">更新时间 {AUTH_POLICY_UPDATED_AT}<span>生效时间 {AUTH_POLICY_UPDATED_AT}</span></p><section className="auth-v2-policy-important"><Heading variant="section">重点条款提示</Heading><ul><li>免除或限制平台责任的条款</li><li>对用户权利进行限制的条款</li><li>争议解决方式与司法管辖条款</li></ul><p>上述条款在正文中以加粗标示，请在同意前重点阅读。</p></section></>}
       {privacy && <nav className="auth-v2-policy-chips" aria-label="政策章节">{sections.map((section) => <a key={section.id} href={`#${section.id}`}>{section.title}</a>)}</nav>}
-      <div className="auth-v2-policy-copy">{sections.map((section) => <section id={section.id} key={section.id}><h2>{section.title}</h2>{section.paragraphs.map((paragraph, index) => <p key={index}>{privacy && section.id === 'notice' ? `${index + 1}. ` : ''}{paragraph}</p>)}</section>)}</div>
+      <div className="auth-v2-policy-copy">{sections.map((section) => <section id={section.id} key={section.id}><Heading as="h2" variant="section">{section.title}</Heading>{section.paragraphs.map((paragraph, index) => <p key={index}>{privacy && section.id === 'notice' ? `${index + 1}. ` : ''}{paragraph}</p>)}</section>)}</div>
       <aside><strong>文案占位说明</strong><p>以上为便于评审的产品级示例文案。正式收集范围、留存期限、第三方共享清单和权利行使方式须由法务与合规团队确认后替换。</p></aside>
     </article>
   </main>
@@ -216,7 +203,7 @@ export function PushPermissionPage() {
     <section className="auth-v2-push-profile" aria-hidden="true"><StatusBar /><div><span><UserRound size={25} /></span><strong>玩家_8471<small>已实名　ID 20260803</small></strong></div><dl><div><dt>¥0.00</dt><dd>余额</dd></div><div><dt>2</dt><dd>收藏</dd></div></dl><aside><b>待处理 2 件</b><small>待付款 1 · 待确认收货 1</small></aside></section>
     <div className="auth-v2-push-mask" />
     <section className="auth-v2-push-dialog" role="dialog" aria-modal="true" aria-labelledby="push-title">
-      <header><i><Bell size={18} /></i><h1 id="push-title">开启交易提醒？</h1></header>
+      <header><i><Bell size={18} /></i><Heading as="h1" variant="page" id="push-title">开启交易提醒？</Heading></header>
       <p>开启后，卖家换绑、客服回复和付款倒计时会及时通知你，避免订单超时。</p>
       <small>你可以稍后在系统设置中修改。{current !== 'prompt' && ` 当前为${current === 'allowed' ? '已开启' : '未开启'}。`}</small>
       {error && <em role="alert">{error}</em>}

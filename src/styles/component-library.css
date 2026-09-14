@@ -1,0 +1,67 @@
+.cl-page { width: 100%; max-width: 393px; min-height: 100dvh; margin: auto; padding-bottom: env(safe-area-inset-bottom, 0px); color: var(--dg-color-text); background: var(--dg-color-page); }
+.cl-header { position: sticky; top: 0; z-index: 30; }
+.cl-header-mark { color: var(--dg-color-text-muted); font-size: 10px; letter-spacing: 1px; text-align: right; }
+.cl-back { display: grid; place-items: center; width: 40px; height: 44px; color: inherit; }
+.cl-intro { display: flex; align-items: center; gap: 12px; padding: 23px 16px; }
+.cl-brand { display: grid; flex: 0 0 46px; place-items: center; height: 46px; background: var(--dg-color-yellow); border-radius: var(--dg-radius-control); }
+.cl-intro p { margin-top: 4px; color: var(--dg-color-text-secondary); font-size: 12px; }
+.cl-update-note { display: block; margin-top: 5px; color: var(--dg-color-text-muted); font-size: 10px; line-height: 16px; }
+.cl-intro > strong { margin-left: auto; font-size: 24px; text-align: right; }
+.cl-intro > strong small { display: block; margin-top: 2px; color: var(--dg-color-text-muted); font-size: 10px; font-weight: 400; }
+.cl-finder { display: grid; gap: 14px; margin: 0 16px; padding: 16px; background: var(--dg-color-surface); border: 1px solid var(--dg-color-line); border-radius: var(--dg-radius-card); }
+.cl-finder > .dg-tabs { flex-wrap: wrap; overflow: visible; }
+.cl-results-heading { display: flex; justify-content: space-between; gap: 12px; padding: 22px 17px 12px; color: var(--dg-color-text-secondary); font-size: 13px; }
+.cl-results-heading > span { min-width: 0; overflow-wrap: anywhere; }
+.cl-results-heading > small { flex-shrink: 0; color: var(--dg-color-text-muted); font-size: 11px; }
+.cl-cards { display: grid; gap: 14px; margin: 0 16px; }
+.cl-card { min-width: 0; }
+.cl-card > header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.cl-card > header code { color: var(--dg-color-text-muted); font-size: 11px; line-height: 18px; }
+.cl-card > header > span { color: var(--dg-color-text-secondary); font-size: 11px; white-space: nowrap; }
+.cl-card > p { margin-top: 9px; color: var(--dg-color-text-secondary); font-size: 12px; line-height: 20px; }
+.cl-preview { min-width: 0; margin-top: 18px; }
+.cl-stack { display: grid; gap: 12px; }
+.cl-two, .cl-choice-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.cl-wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.cl-caption { color: var(--dg-color-text-muted); font-size: 12px; line-height: 19px; overflow-wrap: anywhere; }
+.cl-icon-examples { display: flex; justify-content: space-around; }
+.cl-icon-examples > span { display: grid; justify-items: center; gap: 6px; }
+.cl-icon-examples small { color: var(--dg-color-text-secondary); font-size: 12px; }
+.cl-labeled { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; }
+.cl-count-examples { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.cl-count-examples > span { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.cl-count-examples small { color: var(--dg-color-text-muted); font-size: 11px; }
+.cl-swatches { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 10px; }
+.cl-swatches > div { min-width: 0; }
+.cl-swatches > div > span { display: block; height: 38px; margin-bottom: 6px; border: 1px solid var(--dg-color-line); border-radius: var(--dg-radius-chip); }
+.cl-swatches b, .cl-swatches small { display: block; font-size: 11px; line-height: 18px; }
+.cl-swatches small { color: var(--dg-color-text-muted); font-size: 10px; }
+.cl-type-samples { display: grid; gap: 7px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--dg-color-line); }
+.cl-type-samples > b { font-size: var(--dg-font-title); }
+.cl-type-samples > span { font-size: var(--dg-font-body); }
+.cl-type-samples > small { color: var(--dg-color-text-secondary); font-size: var(--dg-font-meta); }
+.cl-heading-examples { display: grid; gap: 10px; }
+.cl-heading-examples > * { margin: 0; }
+.cl-space-samples { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 18px; }
+.cl-space-samples > span { display: grid; justify-items: center; gap: 6px; color: var(--dg-color-text-muted); font-size: 10px; }
+.cl-space-samples i { display: block; height: 12px; background: var(--dg-color-yellow); border-radius: 2px; }
+.cl-spec { margin-top: 18px; border-top: 1px solid var(--dg-color-line); }
+.cl-spec > summary { padding-top: 13px; cursor: pointer; font-size: 12px; font-weight: 600; }
+.cl-spec > div { padding-top: 12px; color: var(--dg-color-text-secondary); font-size: 12px; line-height: 20px; }
+.cl-spec ul { display: grid; gap: 6px; margin: 0; padding-left: 17px; }
+.cl-spec p { margin-top: 12px; }
+.cl-spec pre { margin: 14px 0; padding: 12px; color: var(--dg-color-surface); background: var(--dg-color-dark-selected); border-radius: var(--dg-radius-chip); white-space: pre-wrap; overflow-wrap: anywhere; font-size: 10px; line-height: 18px; }
+.cl-spec a { color: var(--dg-color-text); text-decoration: underline; text-decoration-color: var(--dg-color-yellow); text-underline-offset: 4px; }
+.cl-source-note { color: var(--dg-color-text-muted); font-size: 11px; }
+.cl-code-value { display: inline-flex; align-items: center; justify-content: flex-end; gap: 1px; }
+.cl-code-value .dg-icon-button { width: 28px; height: 28px; color: var(--dg-color-text-muted); }
+.cl-message-preview { display: grid; overflow: hidden; border: 1px solid var(--dg-color-line); border-radius: var(--dg-radius-card); }
+.cl-message-preview .message-conversation { min-width: 0; }
+.cl-product-preview { min-height: 0; height: auto; padding: 0; background: transparent; }
+.cl-product-preview .catalog-product-card { width: 100%; margin: 0; }
+.cl-footer { padding: 24px 22px 32px; color: var(--dg-color-text-muted); font-size: 11px; line-height: 19px; text-align: center; }
+@media (max-width: 359px) {
+  .cl-finder, .cl-cards { margin-inline: 12px; }
+  .cl-finder, .cl-card { padding: 12px; }
+  .cl-intro { gap: 9px; padding-inline: 12px; }
+}

@@ -7,12 +7,13 @@ describe('sellModel', () => {
   it('支持游戏搜索并只返回支持该游戏的回收商', () => {
     expect(filterSellGames(sellGames, '王者').map((item) => item.code)).toEqual(['wzry'])
     expect(availableRecyclers(recyclerFixtures, 'wzry')).toHaveLength(4)
-    expect(availableRecyclers(recyclerFixtures, 'delta')).toHaveLength(0)
+    expect(availableRecyclers(recyclerFixtures, 'delta').map((item) => item.id)).toEqual(['fun'])
   })
 
   it('阻止咨询阶段发送敏感信息', () => {
     expect(validateConsultationText('')).toBe('请输入账号情况')
     expect(validateConsultationText('我的密码是 123456')).toContain('请勿发送')
+    expect(validateConsultationText('联系我 13800138000')).toContain('请勿发送')
     expect(validateConsultationText('86皮肤，可以二次实名')).toBe('')
   })
 

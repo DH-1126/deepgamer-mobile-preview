@@ -1,0 +1,56 @@
+/* Figma 3681:33164 · Isolated from the earlier drawer's cascade. */
+.advanced-filter-layer { position: fixed; z-index: 100; inset: 0; display: flex; justify-content: center; align-items: flex-end; }
+.advanced-filter-mask { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; background: rgba(23, 23, 15, .55); }
+.advanced-filter-sheet {
+  position: relative;
+  width: min(393px, 100%);
+  height: calc(100dvh - max(76px, env(safe-area-inset-top)));
+  display: grid;
+  grid-template-rows: 55px minmax(0, 1fr) auto;
+  overflow: hidden;
+  color: #1f1f1d;
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 10px 34px rgba(9, 9, 0, .16);
+  animation: drawer-in .2s ease-out;
+}
+.advanced-filter-sheet[hidden] { display: none; }
+.advanced-filter-header { min-width: 0; padding: 0 16px; display: flex; align-items: center; border-bottom: 1px solid #ededea; }
+.advanced-filter-header .dg-heading { flex: 1; margin: 0; letter-spacing: .3px; }
+.advanced-filter-header > span { min-width: 0; margin-right: 10px; color: #9a9a98; font-size: 12.5px; }
+.advanced-filter-header > button { margin-right: -6px; }
+.advanced-filter-header img { width: 19px; height: 19px; }
+.advanced-filter-body { min-height: 0; display: grid; grid-template-columns: 96px minmax(0, 1fr); }
+.advanced-filter-nav { position: relative; min-height: 0; overflow-y: auto; overscroll-behavior: contain; background: #fbfbf9; }
+.advanced-filter-nav > button { position: relative; width: 100%; min-height: 80px; padding: 15px 10px 15px 13px; display: flex; align-items: center; color: #6f6f68; font-size: 13.5px; font-weight: 500; line-height: 20px; letter-spacing: .3px; text-align: left; overflow-wrap: anywhere; }
+.advanced-filter-nav > button[aria-current] { color: #1f1f1d; font-weight: 600; background: #fff; }
+.advanced-filter-nav > button[aria-current]::before { content: ''; position: absolute; left: 0; top: 15px; bottom: 15px; width: 3px; border-radius: 0 3px 3px 0; background: #ffe62a; }
+.advanced-filter-values { position: relative; min-height: 0; min-width: 0; padding: 14px 16px; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.advanced-filter-section { margin: 0 0 26px; padding: 0; scroll-margin-top: 14px; }
+.advanced-filter-section:nth-last-child(2) { margin-bottom: 0; }
+.advanced-filter-section .dg-heading { margin: 0 0 8px; letter-spacing: .3px; }
+.advanced-filter-choices { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.advanced-filter-ranks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.advanced-filter-ranks > button { min-width: 0; white-space: nowrap; }
+.advanced-filter-range { width: 100%; }
+.advanced-filter-range .dg-range__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.advanced-filter-scroll-spacer { height: var(--filter-trailing-space, 0px); }
+.advanced-filter-footer { padding: 9px 16px max(22px, env(safe-area-inset-bottom)); border-top: 1px solid #ededea; background: #fff; }
+.advanced-filter-footer > p { margin: 0 0 8px; display: flex; align-items: center; gap: 7px; color: #9a9a98; font-size: 11px; font-weight: 400; line-height: 16px; }
+.advanced-filter-footer > p i { flex: 0 0 5px; height: 5px; border-radius: 50%; background: #ffb020; }
+.advanced-filter-footer > div { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 12px; }
+.advanced-filter-recovery { min-width: 0; padding: 16px; overflow-y: auto; overscroll-behavior: contain; }
+.advanced-filter-recovery .dg-heading { margin: 0 0 10px; }
+.advanced-filter-recovery p { color: #9a9a98; font-size: 12px; line-height: 20px; }
+.advanced-filter-recovery h4.dg-heading { margin: 18px 0 8px; }
+.advanced-filter-recovery > button { width: 100%; min-height: 44px; margin: 0 0 8px; padding: 12px; color: #1f1f1d; font-size: 13px; border: 1px solid #ededea; border-radius: 12px; text-align: left; background: #fff; }
+.advanced-filter-recovery strong, .advanced-filter-recovery small { display: block; }
+.advanced-filter-recovery small { margin-top: 4px; color: #9a9a98; font-size: 11px; }
+.advanced-filter-recovery hr { margin: 20px 0; border: 0; border-top: 1px solid #ededea; }
+.advanced-filter-recovery .advanced-filter-request { border-style: dashed; }
+@media (max-width: 374px) {
+  .advanced-filter-body { grid-template-columns: 88px minmax(0, 1fr); }
+  .advanced-filter-values { padding-inline: 12px; }
+  .advanced-filter-choices { gap: 8px; }
+}
+@media (prefers-reduced-motion: reduce) { .advanced-filter-sheet { animation: none; } }

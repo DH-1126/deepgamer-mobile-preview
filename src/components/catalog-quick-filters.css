@@ -1,0 +1,112 @@
+.catalog-qf-layer {
+  --catalog-qf-top: 0px;
+  position: fixed;
+  z-index: 80;
+  inset: var(--catalog-qf-top) 0 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.catalog-qf-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: rgba(23, 23, 15, .55);
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.catalog-qf-panel {
+  position: relative;
+  z-index: 1;
+  width: min(393px, 100%);
+  max-height: calc(100dvh - var(--catalog-qf-top));
+  box-sizing: border-box;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  padding: 20px 16px 18px;
+  border-radius: 0 0 18px 18px;
+  outline: 0;
+  background: var(--dg-color-surface);
+  box-shadow: 0 12px 24px rgba(9, 9, 0, .16);
+  animation: catalog-qf-enter .16s ease-out;
+}
+
+.catalog-qf-panel::-webkit-scrollbar {
+  display: none;
+}
+
+.catalog-qf-panel .dg-heading { margin: 0 0 16px; }
+
+.catalog-qf-options {
+  display: grid;
+  gap: 10px;
+}
+
+.catalog-qf-options--sort,
+.catalog-qf-options--server {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.catalog-qf-options > .dg-choice-chip {
+  width: 100%;
+}
+
+.catalog-qf-price {
+  display: grid;
+  gap: 16px;
+}
+
+.catalog-qf-options--price {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.catalog-qf-options--price .dg-choice-chip {
+  min-width: 0;
+}
+
+.catalog-qf-options--price .dg-choice-chip strong {
+  overflow: hidden;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.catalog-qf-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.catalog-qf-actions > .dg-button {
+  width: 100%;
+}
+
+.catalog-sort--linked {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.catalog-sort > .dg-filter-trigger {
+  position: relative;
+}
+
+@keyframes catalog-qf-enter {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 350px) {
+  .catalog-qf-panel { padding-inline: 12px; }
+  .catalog-qf-options { gap: 8px; }
+  .catalog-qf-options--price { gap: 6px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .catalog-qf-panel { animation: none; }
+}

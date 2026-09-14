@@ -1,0 +1,14 @@
+.guarantee-rules-panel.dg-full-screen-panel { background: #f7f7f5; }
+.guarantee-rules-panel__nav { flex: 0 0 48px; height: 48px; display: flex; align-items: center; padding: 0 12px; box-sizing: border-box; background: #fff; border-bottom: 1px solid #e9e9e7; }
+.guarantee-rules-panel__nav .dg-icon-button { color: #20201f; }
+.guarantee-rules-panel__nav img { display: block; }
+.guarantee-rules-panel__content { padding: 8px 20px 32px; color: #3b3b3a; }
+.guarantee-rules-panel__content .dg-heading { margin: 0 0 16px; color: #20201f; letter-spacing: .4px; }
+.guarantee-rules-panel__dates { display: flex; flex-wrap: wrap; gap: 0 14px; margin: 0 0 16px; color: #9a9a98; font-size: 12px; line-height: 20px; }
+.guarantee-rules-panel__dates b { color: #636362; font-size: 9.8px; font-weight: 400; letter-spacing: .1px; }
+.guarantee-rules-panel__rule { margin: 0 0 16px; }
+.guarantee-rules-panel__rule .dg-heading { margin: 0 0 16px; color: #20201f; letter-spacing: .3px; }
+.guarantee-rules-panel__rule p { margin: 0; color: #3b3b3a; font-size: 14px; letter-spacing: .1px; line-height: 25.9px; }
+@media (max-width: 350px) {
+  .guarantee-rules-panel__content { padding-right: 16px; padding-left: 16px; }
+}

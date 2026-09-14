@@ -23,6 +23,25 @@ export function sanitizeReturnTo(value: string | null | undefined, fallback = '/
 
 export type LoginRouteMethod = 'one_tap' | 'code' | 'password'
 
+export type WelcomePhase = 'splash' | 'agreement' | 'exit' | 'loading' | 'error'
+
+export function getWelcomeFigmaNodeId(phase: WelcomePhase) {
+  if (phase === 'agreement') return '3681:25465'
+  if (phase === 'exit') return '3681:25569'
+  return '3681:25436'
+}
+
+export function getLoginFigmaNodeId(method: LoginRouteMethod) {
+  if (method === 'code') return '3681:36411'
+  if (method === 'password') return '3681:36326'
+  return '3681:24987'
+}
+
+export function formatLoginPhone(value: string) {
+  const phone = normalizePhone(value)
+  return phone.replace(/^(\d{3})(\d{1,4})?(\d{1,4})?$/, (_, first: string, middle?: string, last?: string) => [first, middle, last].filter(Boolean).join(' '))
+}
+
 export function buildLoginRoute(method: LoginRouteMethod, returnTo = '/', closeTo?: string) {
   const pathname = method === 'one_tap' ? '/login' : `/login/${method}`
   const params = new URLSearchParams()

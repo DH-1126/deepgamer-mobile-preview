@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildLoginRoute, getCountdown, isValidMainlandPhone, maskPhone, normalizeCode, normalizePhone, sanitizeReturnTo } from './authModel'
+import { buildLoginRoute, formatLoginPhone, getCountdown, getLoginFigmaNodeId, getWelcomeFigmaNodeId, isValidMainlandPhone, maskPhone, normalizeCode, normalizePhone, sanitizeReturnTo } from './authModel'
 
 describe('authModel', () => {
   it('normalizes and validates mainland phone numbers', () => {
@@ -11,6 +11,20 @@ describe('authModel', () => {
 
   it('normalizes verification codes', () => {
     expect(normalizeCode('24a68 10')).toBe('246810')
+  })
+
+  it('formats the editable phone using the Draft3 groups', () => {
+    expect(formatLoginPhone('+86 187-8866-0033')).toBe('187 8866 0033')
+    expect(formatLoginPhone('18788')).toBe('187 88')
+  })
+
+  it('maps launch and login states to the approved Draft3 Figma frames', () => {
+    expect(getWelcomeFigmaNodeId('splash')).toBe('3681:25436')
+    expect(getWelcomeFigmaNodeId('agreement')).toBe('3681:25465')
+    expect(getWelcomeFigmaNodeId('exit')).toBe('3681:25569')
+    expect(getLoginFigmaNodeId('one_tap')).toBe('3681:24987')
+    expect(getLoginFigmaNodeId('code')).toBe('3681:36411')
+    expect(getLoginFigmaNodeId('password')).toBe('3681:36326')
   })
 
   it('only permits local safe return paths', () => {

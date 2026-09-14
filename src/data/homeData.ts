@@ -14,8 +14,8 @@ import { assetPath } from '../components/assetPath'
 const asset = (name: string) => assetPath(`assets/home-v2/${name}`)
 
 export const recentGames = [
-  { name: '王者荣耀', code: 'wzry', image: asset('game-wzry.png'), footprint: '看过 12 个 ·', reducedText: '3 个降价' },
-  { name: '和平精英', code: 'hpjy', image: asset('game-hpjy.png'), footprint: '看过 3个', reducedText: '' },
+  { name: '王者荣耀', code: 'wzry', image: asset('game-wzry.png'), footprint: '看过 12 个' },
+  { name: '和平精英', code: 'hpjy', image: asset('game-hpjy.png'), footprint: '看过 3 个' },
 ] as const
 
 export const homeGames: HomeGame[] = [

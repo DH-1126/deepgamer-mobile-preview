@@ -7,9 +7,12 @@
     "dev": "vite --host 0.0.0.0 --port 5174 --strictPort",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --pretty false",
-    "test": "vitest run"
+    "test": "vitest run",
+    "release:prepare": "node scripts/prepare-pages.mjs",
+    "release:verify": "node scripts/verify-pages.mjs"
   },
   "dependencies": {
+    "@deepgamer/product-presentation": "file:../运营平台/packages/product-presentation",
     "@vitejs/plugin-react": "4.3.4",
     "lucide-react": "0.468.0",
     "react": "18.3.1",

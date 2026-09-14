@@ -1,4 +1,5 @@
 import type { FulfillmentContract } from '../types/fulfillment'
+import { getRuntimeStorage, isLinkedDataMode } from '../runtime/dataMode'
 
 const storageKey = 'deepgamer.fulfillment.v2'
 const eventName = 'deepgamer:fulfillment'
@@ -10,11 +11,11 @@ const seed: FulfillmentContract = {
 }
 
 function read(): FulfillmentContract {
-  try { const raw = localStorage.getItem(storageKey); return raw ? JSON.parse(raw) as FulfillmentContract : seed } catch { return seed }
+  try { const raw = getRuntimeStorage().getItem(storageKey); return raw ? JSON.parse(raw) as FulfillmentContract : seed } catch { return seed }
 }
 
 function write(contract: FulfillmentContract) {
-  localStorage.setItem(storageKey, JSON.stringify(contract))
+  getRuntimeStorage().setItem(storageKey, JSON.stringify(contract))
   window.dispatchEvent(new CustomEvent(eventName))
 }
 
@@ -28,6 +29,7 @@ export const fulfillmentRepository = {
     write(next); return next
   },
   subscribe(listener: () => void) {
+    if (isLinkedDataMode) return () => undefined
     const handler = () => listener(); window.addEventListener(eventName, handler); window.addEventListener('storage', handler)
     return () => { window.removeEventListener(eventName, handler); window.removeEventListener('storage', handler) }
   },

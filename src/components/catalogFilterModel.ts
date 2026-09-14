@@ -14,7 +14,6 @@ export function getActiveFilterCount(filters: ProductFilters) {
     filters.eliteLevels.length,
     filters.ranks.length,
     filters.realNames.length,
-    filters.skins.length,
     filters.minPrice || filters.maxPrice,
     filters.minSkin || filters.maxSkin,
     filters.minHero,
@@ -39,7 +38,6 @@ export function getActiveFilterChips(filters: ProductFilters): ActiveFilterChip[
   if (filters.realNames.length) chips.push({ key: 'realNames', label: filters.realNames.join('/'), editor: 'drawer' })
   if (filters.secondRealName) chips.push({ key: 'secondRealName', label: filters.secondRealName === 'true' ? '可二次实名' : '不可二次实名', editor: 'drawer' })
   if (filters.faceCompensation) chips.push({ key: 'faceCompensation', label: filters.faceCompensation === 'true' ? '支持人脸包赔' : '不支持人脸包赔', editor: 'drawer' })
-  if (filters.skins.length) chips.push({ key: 'skins', label: filters.skins.join('/'), editor: 'drawer' })
   if (filters.negotiable) chips.push({ key: 'negotiable', label: '支持议价', editor: 'drawer' })
   return chips
 }
@@ -55,6 +53,5 @@ export function removeActiveFilter(filters: ProductFilters, key: keyof ProductFi
   if (key === 'realNames') return { ...filters, realNames: [] }
   if (key === 'secondRealName') return { ...filters, secondRealName: '' }
   if (key === 'faceCompensation') return { ...filters, faceCompensation: '' }
-  if (key === 'skins') return { ...filters, skins: [] }
   return filters
 }

@@ -1,30 +1,68 @@
 /* Design-Draft3-Pre · 首页（主视觉 3681:21355 / 无足迹 3681:22433） */
-.home-v2-brand-lockup {
+.home-v2-top.home-v2-top--download { height: 216px; }
+.home-draft3-download { position: relative; height: 40px; margin: 8px -16px; padding: 8px 12px; display: flex; align-items: center; gap: 10px; color: #101010; background: #fff8c2; box-shadow: 0 4px 7px rgba(90,74,0,.13); }
+.home-draft3-download > img { flex: 0 0 23px; width: 23px; height: 24px; }
+.home-draft3-download > strong { flex: 1; min-width: 0; font-size: 12px; font-weight: 700; line-height: 16px; letter-spacing: .2px; }
+.home-draft3-download > button { flex-shrink: 0; height: 24px; padding: 0 8px; color: #1c1b19; font-size: 12px; font-weight: 700; line-height: 14px; letter-spacing: .6px; background: #ffe62a; border-radius: 6px; }
+.home-draft3-download-message { position: absolute; z-index: 5; top: calc(100% + 8px); left: 12px; right: 12px; padding: 10px 12px; color: #fff; font-size: 12px; line-height: 18px; text-align: center; pointer-events: none; background: rgba(31,31,29,.95); border-radius: 10px; }
+
+.home-v2-brand-row > button.home-draft3-brand-button {
+  flex: 1 1 auto;
   min-width: 0;
-  height: 38px;
+  max-width: calc(100% - 50px);
+  width: auto;
+  height: 40px;
+  margin-right: 12px;
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 6px;
+  padding: 0;
+  color: #151512;
+  text-align: left;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
 }
 
-.home-v2-brand-lockup > img {
+.home-v2-brand-row > button.home-draft3-brand-button > img {
   flex: 0 0 29px;
   width: 29px;
   height: 30px;
 }
 
-.home-v2-brand-lockup > strong {
+.home-draft3-brand-button > span {
+  min-width: 0;
+  height: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.home-draft3-brand-button > span > b,
+.home-draft3-brand-button > span > strong {
+  display: block;
   overflow: hidden;
   color: #151512;
-  font-size: 20px;
   line-height: 26px;
-  font-weight: 900;
   letter-spacing: 0;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.home-v2-discovery--empty {
+.home-draft3-brand-button > span > b {
+  height: 22px;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.home-draft3-brand-button > span > strong {
+  height: 18px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.home-v2-discovery.home-v2-discovery--empty {
   height: 382px;
 }
 
@@ -58,113 +96,44 @@
 .home-v2-small-mascot > img {
   position: absolute;
   top: 0;
-  left: 7px;
-  width: 67px;
-  height: 101px;
+  left: 8px;
+  width: 64px;
+  height: 96px;
   max-width: none;
   object-fit: cover;
 }
 
-.home-draft3-login-bar {
-  position: fixed;
-  z-index: 49;
-  left: 50%;
-  bottom: calc(82px + env(safe-area-inset-bottom));
-  width: min(361px, calc(100% - 32px));
-  height: 50px;
-  padding: 7px 12px;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #1f1f1d;
-  background: #fff7cc;
-  border: 1px solid #f7e479;
-  border-radius: 14px;
-  box-shadow: 0 4px 7px rgba(90, 74, 0, .13);
-}
+.home-draft3-follow-layer { position: fixed; z-index: 180; inset: 0; display: flex; align-items: flex-end; justify-content: center; }
+.home-draft3-follow-mask { position: absolute; inset: 0; width: 100%; height: 100%; background: rgba(15,15,10,.42); }
+.home-draft3-follow-layer > section { position: relative; width: min(393px,100%); max-height: 100dvh; overflow-y: auto; overscroll-behavior: contain; padding: 22px 24px calc(30px + env(safe-area-inset-bottom)); text-align: center; background: #fff; border-radius: 22px 22px 0 0; box-shadow: 0 -10px 17px rgba(9,9,0,.18); animation: home-follow-enter .24s ease-out; }
+.home-draft3-follow-close { position: absolute; top: 22px; right: 24px; width: 24px; height: 24px; padding: 2.5px; background: transparent; }
+.home-draft3-follow-close img { width: 19px; height: 19px; }
+.home-draft3-follow-layer h2 { margin: 0 24px; color: #1f1f1d; font-size: 18px; font-weight: 900; line-height: 24px; letter-spacing: .4px; }
+.home-draft3-follow-layer p { margin: 8px 0 0; color: #8c8c8a; font-size: 13px; line-height: 16px; letter-spacing: .2px; }
+.home-draft3-qr-placeholder { width: 213px; height: 213px; margin: 20px auto 0; display: grid; place-items: center; background: #fff; border: 1px solid #ededea; border-radius: 14px; }
+.home-draft3-qr-placeholder > div { width: 180px; height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px; color: #a5a5a4; background: #f7f7f5; border-radius: 6px; }
+.home-draft3-qr-placeholder img { width: 34px; height: 34px; }
+.home-draft3-qr-placeholder small { font-size: 11.5px; line-height: 14px; }
+.home-draft3-follow-layer > section > small { display: block; margin-top: 22px; color: #8c8c8a; font-size: 12.5px; line-height: 22px; }
+.home-draft3-save-qr { width: 100%; height: 48px; margin-top: 20px; color: #1f1f1d; font-size: 15.5px; font-weight: 900; letter-spacing: .4px; background: #ffe62a; border-radius: 999px; }
+.home-draft3-follow-message { display: block; margin-top: 9px; color: #6f6f68; font-size: 11px; }
 
-.home-draft3-login-bar--dark {
-  color: #f9f9f8;
-  background: rgba(31, 31, 29, .9);
-  border-color: #000;
-  box-shadow: 0 4px 14px rgba(90, 74, 0, .13);
-}
+/* 将共享按钮的点击范围扩展至整张卡片，保留原有入口交互。 */
+.home-draft3-feedback-trigger::after { content: ''; position: absolute; z-index: 1; inset: 0; border-radius: var(--dg-radius-card); }
+/* 缩放会改变伪元素的定位容器，导致点击卡片正文时丢失点击目标。 */
+.home-draft3-feedback-trigger:active:not(:disabled) { transform: none; }
 
-.home-draft3-login-bar > strong {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  font-size: 12px;
-  line-height: 15px;
-  font-weight: 700;
-  letter-spacing: .2px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.home-draft3-login-bar > button {
-  flex: 0 0 68px;
-  height: 36px;
-  color: #fff;
-  font-size: 14px;
-  line-height: 17px;
-  font-weight: 800;
-  letter-spacing: .6px;
-  background: #1f1f1d;
-  border-radius: 10px;
-}
-
-.home-draft3-login-bar--dark > button {
-  color: #1c1b19;
-  background: #ffe62a;
-}
-
-.home-draft3-gift {
-  position: relative;
-  flex: 0 0 28px;
-  width: 28px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  background: #e5384a;
-  border-radius: 7px;
-  box-shadow: 0 1px 1.5px rgba(160, 20, 32, .28);
-}
-
-.home-draft3-gift::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 11px;
-  background: #f2555f;
-  border-radius: 7px 7px 12px 12px;
-}
-
-.home-draft3-gift i {
-  position: relative;
-  z-index: 1;
-  width: 15px;
-  height: 15px;
-  display: grid;
-  place-items: center;
-  color: #c0392f;
-  font: 900 9px/9px "Noto Sans SC", sans-serif;
-  font-style: normal;
-  background: #ffe62a;
-  border-radius: 50%;
-}
+@keyframes home-follow-enter { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .home-draft3-follow-layer > section { animation: none; } }
 
 @media (max-width: 350px) {
+  .home-draft3-download { margin-inline: -12px; }
+  .home-draft3-follow-layer > section { padding-inline: 16px; }
+  .home-draft3-follow-layer h2 { font-size: 16px; }
+  .home-draft3-follow-close { right: 16px; }
   .home-v2-manifesto figure.home-v2-manifesto-mascot > img {
     width: 136px;
     height: 136px;
   }
 
-  .home-v2-small-mascot > img {
-    left: 5px;
-  }
 }

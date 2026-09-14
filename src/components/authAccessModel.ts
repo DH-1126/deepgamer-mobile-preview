@@ -1,3 +1,5 @@
+import { SUPPORT_CONVERSATION_ID, SUPPORT_CONVERSATION_ROUTE } from '../data/messageFixtures'
+
 export type AuthRequirement = {
   title: string
   description: string
@@ -13,6 +15,9 @@ export function isGuestAccessiblePath(value: string) {
     || pathname === '/game/select'
     || pathname === '/feedback'
     || pathname === '/profile'
+    || pathname === '/support'
+    || pathname === SUPPORT_CONVERSATION_ROUTE
+    || pathname === `/message/groups/${SUPPORT_CONVERSATION_ID}`
     || pathname.startsWith('/goods/')
 }
 

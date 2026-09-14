@@ -77,14 +77,15 @@ export const catalogProductDetails: ProductDetail[] = products.map((product) => 
   const game = games.find((item) => item.code === product.gameCode)
   return {
     id: product.id, aliases: [], productCode: product.gameCode === 'wzry' ? `WZ${product.id.padStart(4, '0')}` : `${product.gameCode.toUpperCase()}-${product.id.padStart(4, '0')}`, gameCode: product.gameCode, gameName: game?.name ?? '游戏账号', gameIcon: game?.image ?? assetPath('assets/games/wzry.png'),
-    title: product.title, price: product.price, status: 'on_sale', platform: product.platform, rank: product.rank, heroCount: product.heroCount ?? 0, skinCount: product.skinCount,
-    realName: product.realName, secondRealName: product.secondRealName, negotiable: Boolean(product.negotiable), verified: true, wantCount: product.wantCount,
+    title: product.title, displayTitle: product.displayTitle, presentationSource: product.presentationSource, price: product.price, status: 'on_sale', platform: product.platform, rank: product.rank, heroCount: product.heroCount ?? 0, skinCount: product.skinCount,
+    realName: product.realName, secondRealName: product.secondRealName, negotiable: Boolean(product.negotiable), verified: product.verified === true, wantCount: product.wantCount, attributeValues: product.attributeValues,
     gallery: [product.image, detailAsset('screen-1.png'), detailAsset('screen-2.png'), detailAsset('screen-3.png')],
+    evidenceImages: product.id === '1' ? ['screen-1.png', 'screen-2.png', 'screen-3.png', 'screen-4.png'].map(detailAsset) : undefined,
     metrics: [{ label: '段位', value: product.rank }, { label: '英雄', value: String(product.heroCount ?? 0) }, { label: '皮肤', value: String(product.skinCount) }],
     summary: [{ label: '贵族等级', value: product.eliteLevel }, { label: '铭文', value: product.inscriptionFull ? '满级' : '未满' }, { label: '想要人数', value: String(product.wantCount ?? 0) }],
     assetCategories: [{ name: '英雄', count: product.heroCount ?? 0, items: ['白起', '亚瑟', '荆轲', '妲己'] }, { name: '皮肤', count: product.skinCount, items: product.tags.slice(1) }, { name: '星元', count: Math.max(1, Math.round(product.skinCount / 25)), items: ['稀有星元部件'] }],
     description: ['商品资料来自卖家发布与平台核验记录，请以下单前展示的数据为准。', product.title], groupName: `深度玩家${game?.name ?? '游戏'}交易群`, groupNumber: '11223344',
     guaranteeCovered: ['资金托管至确认收货', '换绑全程协助', '描述不符可申诉退款', '客服介入'], guaranteeExcluded: ['泄露密码', '交易完成后私下转让', '超出规则期限'],
-    tips: ['购买前请核对账号资料。', '付款后按订单交易群步骤完成验号和换绑。'],
+    tips: ['购买前请核对账号资料。', '付款后按订单交易群步骤完成验号和换绑。'], tags: product.tags, eliteLevel: product.eliteLevel, inscriptionFull: product.inscriptionFull,
   }
 })

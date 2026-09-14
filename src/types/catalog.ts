@@ -1,7 +1,12 @@
 export type SortKey = 'default' | 'price_asc' | 'price_desc' | 'listed_at_desc'
 
+export type PublicAttributeScalar = string | number | boolean | null | undefined
+export type PublicAttributeValue = PublicAttributeScalar | PublicAttributeScalar[]
+
 export type Product = {
   id: string
+  /** Stable public goods number. Linked goods must not substitute the internal entity ID. */
+  productCode?: string
   gameCode: string
   title: string
   price: number
@@ -17,10 +22,14 @@ export type Product = {
   listedAt: number
   heroCount?: number
   negotiable?: boolean
+  verified?: boolean
   wantCount?: number
   publishedLabel?: string
   inscriptionFull?: boolean
   displayTitle?: string
+  presentationSource?: 'design_fixture'
+  /** Public game-attribute projection. Enum arrays contain stable option IDs/fullKeys, never labels. */
+  attributeValues?: Record<string, PublicAttributeValue>
 }
 
 export type Game = {
@@ -42,8 +51,6 @@ export type ProductFilters = {
   realNames: string[]
   secondRealName: string
   faceCompensation: string
-  skins: string[]
-  skinMatchRule: 'any' | 'all'
   minHero: string
   negotiable: string
 }
@@ -59,8 +66,6 @@ export const emptyFilters: ProductFilters = {
   realNames: [],
   secondRealName: '',
   faceCompensation: '',
-  skins: [],
-  skinMatchRule: 'all',
   minHero: '',
   negotiable: '',
 }

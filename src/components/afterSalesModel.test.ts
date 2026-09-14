@@ -11,8 +11,10 @@ describe('afterSalesModel', () => {
 
   it('提供页签判断、数量和状态文案', () => {
     expect(isAfterSaleTab('refunding')).toBe(true)
+    expect(isAfterSaleTab('withdrawn')).toBe(true)
     expect(isAfterSaleTab('unknown')).toBe(false)
     expect(countAfterSales(afterSalesFixtures, 'all')).toBe(6)
     expect(getAfterSaleStatusLabel('platform_processing')).toBe('平台处理中')
+    expect(getAfterSaleStatusLabel('withdrawn')).toBe('已撤销')
   })
 })

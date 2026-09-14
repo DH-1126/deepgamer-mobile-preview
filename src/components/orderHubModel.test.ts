@@ -10,21 +10,21 @@ describe('orderHubModel', () => {
 
   it('买入和卖出使用各自状态分组', () => {
     expect(countTradeOrders(orders, 'buyer', 'pending')).toBe(1)
-    expect(countTradeOrders(orders, 'buyer', 'trading')).toBe(1)
+    expect(countTradeOrders(orders, 'buyer', 'trading')).toBe(3)
     expect(countTradeOrders(orders, 'buyer', 'bind_success')).toBe(1)
-    expect(countTradeOrders(orders, 'seller', 'binding')).toBe(1)
-    expect(countTradeOrders(orders, 'seller', 'trading')).toBe(1)
+    expect(countTradeOrders(orders, 'seller', 'binding')).toBe(2)
+    expect(countTradeOrders(orders, 'seller', 'trading')).toBe(2)
   })
 
   it('订单搜索覆盖订单号、商品号、标题、游戏和区服', () => {
     expect(filterTradeOrders(orders, 'buyer', 'all', 'p02')[0]?.productId).toBe('p02')
-    expect(filterTradeOrders(orders, 'seller', 'all', '三角洲')).toHaveLength(1)
+    expect(filterTradeOrders(orders, 'seller', 'all', '三角洲').map(order => order.id)).toEqual(['OD20260820000000006', 'OD-DEMO-0914-004'])
     expect(filterTradeOrders(orders, 'buyer', 'all', '不存在')).toEqual([])
   })
 
   it('待处理角标只统计需要用户动作的订单', () => {
     expect(getActionableTradeOrders(orders, 'buyer')).toHaveLength(2)
-    expect(getActionableTradeOrders(orders, 'seller')).toHaveLength(1)
+    expect(getActionableTradeOrders(orders, 'seller')).toHaveLength(2)
     expect(formatEntryBadge(0)).toBe('')
     expect(formatEntryBadge(100)).toBe('99+')
   })

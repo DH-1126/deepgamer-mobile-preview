@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { App } from './app/App'
+import { NetworkStatusBoundary } from './components/NetworkStatusBoundary'
 import './styles/global.css'
 
 const basename = import.meta.env.BASE_URL === '/' ? undefined : import.meta.env.BASE_URL.replace(/\/$/, '')
@@ -9,7 +10,7 @@ const basename = import.meta.env.BASE_URL === '/' ? undefined : import.meta.env.
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter basename={basename} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <App />
+      <NetworkStatusBoundary><App /></NetworkStatusBoundary>
     </BrowserRouter>
   </StrictMode>,
 )

@@ -1,5 +1,6 @@
 import { createDefaultFavoriteRecords, FAVORITES_STORAGE_KEY, LEGACY_FAVORITE_PREFIX } from '../data/favoriteFixtures'
 import type { FavoriteRecord, FavoriteStatus } from '../types/favorite'
+import { getRuntimeStorage, isLinkedDataMode } from '../runtime/dataMode'
 
 export type FavoriteStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem' | 'key' | 'length'>
 type Listener = () => void
@@ -135,10 +136,8 @@ function createMemoryStorage(): FavoriteStorage {
   }
 }
 
-let storage: FavoriteStorage = createMemoryStorage()
+let storage: FavoriteStorage = getRuntimeStorage()
 let target: RepositoryOptions['eventTarget']
-if (typeof window !== 'undefined') {
-  try { storage = window.localStorage; target = window } catch { /* Private mode can deny storage access. */ }
-}
+if (typeof window !== 'undefined' && !isLinkedDataMode) target = window
 
 export const favoriteRepository = createFavoriteRepository({ storage, eventTarget: target })

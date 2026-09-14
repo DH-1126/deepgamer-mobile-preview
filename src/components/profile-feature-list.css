@@ -1,0 +1,9 @@
+.profile-v2-feature-list {
+  overflow: hidden;
+  padding-inline: 15px;
+  background: var(--dg-color-surface);
+  border-radius: var(--dg-radius-card);
+  box-shadow: 0 2px 4px rgba(9, 9, 0, .04);
+}
+.profile-v2-feature-list > .dg-cell + .dg-cell { border-top: 1px solid var(--dg-color-line); }
+.profile-v2-feature-list .dg-cell__label { font-size: 14px; line-height: 20px; font-weight: 500; }

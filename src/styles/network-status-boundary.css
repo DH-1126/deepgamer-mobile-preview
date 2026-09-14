@@ -1,0 +1,117 @@
+.network-status-overlay {
+  position: fixed;
+  z-index: 5000;
+  inset: 0;
+  min-height: 100dvh;
+  overflow: hidden;
+  color: #1f1f1d;
+  background: #f7f7f5;
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+.network-status-overlay button:focus-visible {
+  outline: 2px solid #ffe62a;
+  outline-offset: 3px;
+}
+
+.network-status-bar {
+  width: min(100%, 393px);
+  height: 44px;
+  margin: 0 auto;
+  padding: 0 max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border-bottom: 1px solid #ededea;
+}
+
+.network-status-bar time {
+  font-size: 15px;
+  line-height: 15px;
+  font-weight: 700;
+}
+
+.network-status-bar span {
+  font-size: 11px;
+  line-height: 11px;
+  font-weight: 400;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+.network-status-body {
+  position: relative;
+  width: min(100%, 393px);
+  height: calc(100dvh - 44px);
+  min-height: 450px;
+  margin: 0 auto;
+}
+
+.network-status-icon {
+  position: absolute;
+  top: 169px;
+  left: 50%;
+  width: 68px;
+  height: 68px;
+  display: grid;
+  place-items: center;
+  transform: translateX(-50%);
+  background: #fff;
+  border: 1px solid #ededea;
+  border-radius: 999px;
+}
+
+.network-status-icon img {
+  width: 28px;
+  height: 28px;
+}
+
+.network-status-body h1 {
+  position: absolute;
+  top: 251px;
+  left: 24px;
+  right: 24px;
+  color: #1f1f1d;
+  font-size: 20px;
+  line-height: 25px;
+  font-weight: 900;
+  letter-spacing: .4px;
+  text-align: center;
+}
+
+.network-status-body p {
+  position: absolute;
+  top: 296px;
+  left: 24px;
+  right: 24px;
+  color: #6f6f68;
+  font-size: 13px;
+  line-height: 22.1px;
+  font-weight: 400;
+  text-align: center;
+}
+
+.network-status-body > button {
+  position: absolute;
+  top: 339px;
+  left: 24px;
+  right: 24px;
+  width: calc(100% - 48px);
+  height: 48px;
+  padding: 0;
+  color: #fff;
+  font-size: 15px;
+  line-height: 18px;
+  font-weight: 900;
+  text-align: center;
+  background: #17170f;
+  border-radius: 999px;
+}
+
+@media (max-height: 520px) {
+  .network-status-icon { top: 62px; }
+  .network-status-body h1 { top: 144px; }
+  .network-status-body p { top: 189px; }
+  .network-status-body > button { top: 232px; }
+}

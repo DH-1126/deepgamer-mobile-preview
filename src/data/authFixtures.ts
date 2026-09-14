@@ -2,7 +2,7 @@ import type { AuthUser, PolicySection } from '../types/auth'
 
 export const DEMO_MASKED_PHONE = '187 **** 0033'
 export const DEMO_CODE = '246810'
-export const DEMO_PASSWORD = 'deepgamer'
+export const DEMO_PASSWORD = 'demo2026'
 export const AUTH_POLICY_UPDATED_AT = '2026-08-18'
 
 export const demoAuthUser: AuthUser = {

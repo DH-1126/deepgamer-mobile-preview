@@ -19,4 +19,13 @@ describe('authAccessModel', () => {
     expect(isGuestAccessiblePath('/message')).toBe(false)
     expect(isGuestAccessiblePath('/orders/preview')).toBe(false)
   })
+
+  it('allows login assistance without opening private conversations to guests', () => {
+    expect(isGuestAccessiblePath('/support')).toBe(true)
+    expect(isGuestAccessiblePath('/im/support-mengmeng')).toBe(true)
+    expect(isGuestAccessiblePath('/message/groups/support-mengmeng')).toBe(true)
+    expect(isGuestAccessiblePath('/im/trade-wzry')).toBe(false)
+    expect(isGuestAccessiblePath('/im/support-mengmeng-other')).toBe(false)
+    expect(isGuestAccessiblePath('/message/groups/trade-wzry')).toBe(false)
+  })
 })

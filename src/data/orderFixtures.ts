@@ -1,5 +1,7 @@
 import type { OrderRecord } from '../types/order'
 import { assetPath } from '../components/assetPath'
+import { createTradeMessageSeed } from './tradeMessageFixtures'
+import { createArchivedTradeSeed } from './archivedTradeFixtures'
 
 export const ORDERS_STORAGE_KEY = 'deepgamer.orders.v1'
 
@@ -12,7 +14,7 @@ export function createOrderSeed(now: number): OrderRecord[] {
       id: 'OD20260821000000001', role: 'buyer', status: 'pending', productId: 'p01',
       productTitle: '王者50★ 108英雄 312皮肤 倪克斯神谕', gameName: '王者荣耀', gameCode: 'wzry', server: '安卓QQ',
       thumbnail: assetPath('assets/games/wzry.png'), goodsAmountCents: 128_000, serviceAmountCents: 0, insuranceAmountCents: 25_600,
-      totalAmountCents: 153_600, expiresAt: now + 30 * 60_000, conversationId: 'trade-wzry', createdOffset: -10_000,
+      totalAmountCents: 153_600, expiresAt: now + 30 * 60_000, conversationId: 'trade-wzry', createdOffset: -4 * hour,
     },
     {
       id: 'OD20260821000000002', role: 'buyer', status: 'binding', productId: 'p02',
@@ -24,7 +26,7 @@ export function createOrderSeed(now: number): OrderRecord[] {
       id: 'OD20260821000000003', role: 'buyer', status: 'bind_success', productId: 'p03',
       productTitle: '王者荣耀 QQ区 王者50星 108英雄', gameName: '王者荣耀', gameCode: 'wzry', server: '安卓QQ',
       thumbnail: assetPath('assets/games/wzry.png'), goodsAmountCents: 128_000, serviceAmountCents: 0, insuranceAmountCents: 0,
-      totalAmountCents: 128_000, actionExpiresAt: now + 61 * hour + 4 * 60_000 + 22_000, conversationId: 'trade-wzry', createdOffset: -3 * hour,
+      totalAmountCents: 128_000, actionExpiresAt: now + 61 * hour + 4 * 60_000 + 22_000, conversationId: 'trade-wzry-od03', createdOffset: -3 * hour,
     },
     {
       id: 'OD20260801000000004', role: 'buyer', status: 'completed', productId: 'p04',
@@ -36,7 +38,7 @@ export function createOrderSeed(now: number): OrderRecord[] {
       id: 'OD20260820000000005', role: 'seller', status: 'binding', productId: 'p05',
       productTitle: '王者荣耀 QQ区 王者50星 108英雄', gameName: '王者荣耀', gameCode: 'wzry', server: '安卓QQ',
       thumbnail: assetPath('assets/games/wzry.png'), goodsAmountCents: 128_000, serviceAmountCents: 0, insuranceAmountCents: 0,
-      totalAmountCents: 128_000, actionExpiresAt: now + 5 * hour + 42 * 60_000, conversationId: 'trade-wzry', createdOffset: -18 * hour,
+      totalAmountCents: 128_000, actionExpiresAt: now + 5 * hour + 42 * 60_000, conversationId: 'trade-wzry-od05', createdOffset: -18 * hour,
     },
     {
       id: 'OD20260820000000006', role: 'seller', status: 'verifying', productId: 'p06',
@@ -45,5 +47,5 @@ export function createOrderSeed(now: number): OrderRecord[] {
       totalAmountCents: 330_800, conversationId: 'trade-delta', createdOffset: -24 * hour,
     },
   ]
-  return seeds.map(({ createdOffset, ...record }) => ({ ...record, createdAt: now + createdOffset, updatedAt: now + createdOffset }))
+  return [...seeds.map(({ createdOffset, ...record }) => ({ ...record, createdAt: now + createdOffset, updatedAt: now + createdOffset })), ...createTradeMessageSeed(now).orders, createArchivedTradeSeed(now).order]
 }

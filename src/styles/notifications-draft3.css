@@ -58,10 +58,6 @@
 
 .notification-heading h1 {
   margin: 0;
-  font-size: 26px;
-  line-height: 34px;
-  font-weight: 900;
-  letter-spacing: .8px;
 }
 
 .notification-heading > div {
@@ -90,6 +86,7 @@
 }
 
 .notification-root-tabs {
+  --dg-tab-underline-bottom: 0px;
   height: 45px;
   padding: 0 16px;
   display: flex;
@@ -99,7 +96,7 @@
 
 .notification-root-tabs button {
   height: 45px;
-  padding: 4px 0 10px;
+  padding: 6px 0 8px;
   border: 0;
   background: transparent;
   position: relative;
@@ -124,41 +121,15 @@
   transform: translateX(-50%);
 }
 
-.notification-filter-row {
+.notification-filter-tabs {
   height: 50px;
   padding: 8px 16px 9px;
-  display: flex;
-  gap: 8px;
   overflow-x: auto;
   border-top: 1px solid #f2f2ef;
   scrollbar-width: none;
 }
 
-.notification-filter-row::-webkit-scrollbar { display: none; }
-
-.notification-filter-row button {
-  height: 32px;
-  padding: 0 12px;
-  border: 1px solid #e8e8e4;
-  border-radius: 999px;
-  background: #f7f7f5;
-  color: #777771;
-  white-space: nowrap;
-  font: 700 12px/1 inherit;
-}
-
-.notification-filter-row button.active {
-  border-color: var(--notice-ink);
-  background: var(--notice-ink);
-  color: #fff;
-}
-
-.notification-filter-row small {
-  margin-left: 4px;
-  font: inherit;
-}
-
-.notification-filter-row button.active small { color: var(--notice-yellow); }
+.notification-filter-tabs::-webkit-scrollbar { display: none; }
 
 .notification-scroll,
 .notification-settings-scroll {
@@ -177,10 +148,6 @@
   margin: 0;
   padding: 16px 2px 7px;
   color: #777771;
-  font-size: 13px;
-  line-height: 20px;
-  font-weight: 700;
-  letter-spacing: .3px;
 }
 
 .notification-group > div {
@@ -319,8 +286,6 @@
 
 .notification-empty h2 {
   margin: 0;
-  font-size: 18px;
-  line-height: 26px;
 }
 
 .notification-empty p {
@@ -367,9 +332,6 @@
 .notification-subheader h1 {
   margin: 0;
   text-align: center;
-  font-size: 17px;
-  line-height: 24px;
-  font-weight: 800;
 }
 
 .notification-settings-scroll { padding-top: 21px; }
@@ -377,9 +339,6 @@
 .notification-settings-scroll > h2 {
   margin: 0 4px 8px;
   color: #8c8c88;
-  font-size: 12px;
-  line-height: 18px;
-  font-weight: 600;
 }
 
 .notification-settings-card {
@@ -412,30 +371,7 @@
 .notification-setting-row b { font-size: 14px; line-height: 20px; }
 .notification-setting-row small { color: #9a9a98; font-size: 11px; line-height: 17px; }
 
-.notification-setting-row > button {
-  width: 44px;
-  height: 26px;
-  padding: 2px;
-  flex: 0 0 44px;
-  border: 0;
-  border-radius: 999px;
-  background: #d7d7d3;
-  transition: background .16s ease;
-}
-
-.notification-setting-row > button i {
-  display: block;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, .2);
-  transition: transform .16s ease;
-}
-
-.notification-setting-row > button.active { background: var(--notice-yellow); }
-.notification-setting-row > button.active i { transform: translateX(18px); }
-.notification-setting-row > button:disabled { opacity: 1; cursor: default; }
+.notification-setting-row > [data-ui="ToggleSwitch"] { flex: 0 0 50px; }
 
 .notification-settings-scroll > p {
   margin: 11px 4px 0;
@@ -444,7 +380,7 @@
   line-height: 17px;
 }
 
-.notification-page :is(button, a):focus-visible {
+.notification-page :is(button, a):not([data-ui]):focus-visible {
   outline: 2px solid rgba(23, 23, 15, .75);
   outline-offset: 2px;
 }
@@ -452,7 +388,7 @@
 @media (max-width: 350px) {
   .notification-scroll,
   .notification-settings-scroll { padding-inline: 11px; }
-  .notification-filter-row { padding-inline: 11px; }
+  .notification-filter-tabs { padding-inline: 11px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -462,3 +398,24 @@
     transition-duration: .01ms !important;
   }
 }
+
+/* Migrated headings retain shared component type scale. */
+.notification-group > .dg-heading--group,.notification-settings-scroll > .dg-heading--group { }
+.notification-empty .dg-heading--result { }
+
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined
+undefined

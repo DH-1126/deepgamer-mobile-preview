@@ -9,7 +9,7 @@ export function projectFavorite(record: FavoriteRecord): FavoriteView {
   return {
     productId: record.productId, favoritedAt: record.favoritedAt, status,
     gameCode: detail?.gameCode ?? 'unknown', gameName: detail?.gameName ?? '未知游戏', gameIcon: detail?.gameIcon ?? '',
-    title: detail?.title ?? `商品 ${record.productId}`, price: detail?.price ?? 0, image: detail?.gallery[0] ?? '', platform: detail?.platform ?? '商品已下架',
+    title: detail?.title ?? `商品 ${record.productId}`, price: detail?.price ?? 0, priceDrop: detail?.originalPrice ? Math.max(0, detail.originalPrice - detail.price) : 0, image: detail?.gallery[0] ?? '', platform: detail?.platform ?? '商品已下架',
     eliteLevel: detail?.summary[0]?.value ?? '', tags: detail?.summary.slice(0, 2).map((item) => `${item.label}${item.value}`) ?? [],
     navigable: Boolean(detail && status !== 'off_shelf'),
   }

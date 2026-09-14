@@ -1,0 +1,7 @@
+@import '../ui/tokens.css';
+
+.detail-header-seller { width: 100%; min-height: 28px; display: flex; align-items: center; gap: 5px; padding: 0; border: 0; text-align: left; color: var(--dg-color-text-secondary); background: transparent; }
+.detail-header-seller-label { flex-shrink: 0; font-size: var(--dg-font-chip); font-weight: 700; color: var(--dg-color-text); }
+.detail-header-seller-text { min-width: 0; flex: 1; overflow: hidden; font-size: 12px; line-height: 18px; text-overflow: ellipsis; white-space: nowrap; }
+.detail-header-seller--two-lines .detail-header-seller-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; max-height: 36px; white-space: normal; overflow-wrap: anywhere; }
+.detail-header-seller > svg { flex-shrink: 0; }

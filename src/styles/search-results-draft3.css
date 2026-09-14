@@ -1,0 +1,17 @@
+.search-v2-results { --dg-tab-underline-bottom: 5px; margin: -16px; display: flex; flex-direction: column; }
+.search-v2-results-toolbar { height: 44px; padding: 0 16px; display: flex; align-items: center; gap: 18px; background: #fff; border-bottom: 1px solid #ededea; }
+.search-v2-results-toolbar > button:not([data-ui]) { position: relative; height: 44px; padding: 2px 0 4px; color: #9a9a98; font-size: 14px; font-weight: 500; letter-spacing: .3px; background: transparent; }
+.search-v2-results-toolbar > button:not([data-ui]).active { color: #1f1f1d; font-weight: 700; }
+.search-v2-results-toolbar > button:not([data-ui]).active::after { content: ""; position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%); width: 18px; height: 3px; background: #ffe62a; border-radius: 2px; }
+.search-v2-results-toolbar .search-v2-filter-trigger { margin-left: auto; gap: 6px; }
+.search-v2-filter-trigger > img { flex: 0 0 15px; width: 15px; height: 15px; }
+.search-v2-results-toolbar .search-v2-filter-trigger::after { display: none; }
+.search-v2-filter-trigger b { min-width: 27px; height: 17px; padding: 0 7px; display: grid; place-items: center; color: #1f1f1d; font-size: 10px; background: #ffe62a; border-radius: 999px; }
+.search-v2-result-meta { height: 45px; padding: 0 16px; display: flex; align-items: center; justify-content: flex-end; gap: 12px; background: #fff; }
+.search-v2-result-meta button { color: #b3b3b1; font-size: 11px; background: transparent; }
+.search-v2-result-meta span { color: #3b3b3a; font-size: 12px; }
+.search-v2-results-list { padding: 10px 8px 0; display: flex; flex-direction: column; gap: 10px; }
+.search-v2-result-item { min-width: 0; }
+.search-v2-result-item > .search-v2-fit { padding: 8px 12px; margin-top: 4px; border: 0; }
+.search-v2-results-end { height: 52px; margin: 0; display: grid; place-items: center; color: #b3b3b1; font-size: 11px; }
+@media (max-width: 350px) { .search-v2-results-toolbar { gap: 17px; padding-inline: 12px; } .search-v2-results { margin-inline: -12px; } }

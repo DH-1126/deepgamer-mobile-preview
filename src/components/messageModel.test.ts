@@ -1,20 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import { createMessageSeed } from '../data/messageFixtures'
-import { canAdvanceBinding, canSendQuick, createPendingMessage, filterConversations, getMessageSummary, groupTradeConversations, markDelivery, validateMessageText } from './messageModel'
+import { canAdvanceBinding, canSendQuick, createPendingMessage, filterConversations, formatConversationTime, getMessageSummary, groupTradeConversations, markDelivery, validateMessageText } from './messageModel'
 
 describe('messageModel', () => {
   const now = 2_000_000_000_000
   const store = createMessageSeed(now)
 
   it('默认任务、交易群与未读计数符合契约', () => {
-    expect(getMessageSummary(store)).toEqual({ unreadCount: 3, groupCount: 4, taskCount: 2 })
-    expect(store.conversations.filter((item) => item.kind === 'trade_group')).toHaveLength(5)
+    expect(getMessageSummary(store)).toEqual({ unreadCount: 17, groupCount: 10, taskCount: 7 })
+    expect(store.conversations.filter((item) => item.kind === 'trade_group')).toHaveLength(14)
   })
 
-  it('全部隐藏关闭项，交易群按2/2/1分组', () => {
+  it('全部隐藏关闭项，交易群按7/3/4分组', () => {
     expect(filterConversations(store.conversations, 'all').some((item) => item.stage === 'closed')).toBe(false)
     const groups = groupTradeConversations(filterConversations(store.conversations, 'groups'))
-    expect([groups.need_action.length, groups.in_progress.length, groups.closed.length]).toEqual([2, 2, 1])
+    expect([groups.need_action.length, groups.in_progress.length, groups.closed.length]).toEqual([7, 3, 4])
     expect(filterConversations(store.conversations, 'notifications').map((item) => item.id)).toEqual(['system-notice'])
   })
 
@@ -37,5 +37,32 @@ describe('messageModel', () => {
   it('只有换绑中的未关闭交易可以推进', () => {
     expect(canAdvanceBinding(store.conversations[0])).toBe(true)
     expect(canAdvanceBinding(store.conversations.find((item) => item.stage === 'closed')!)).toBe(false)
+  })
+})
+
+describe('conversation time labels', () => {
+  const now = new Date(2026, 8, 14, 12).getTime()
+  it.each([
+    [new Date(2026, 8, 14, 9, 5).getTime(), '09:05'],
+    [new Date(2026, 8, 14, 0, 0).getTime(), '00:00'],
+    [new Date(2026, 8, 13, 23, 59).getTime(), '昨天'],
+    [new Date(2026, 8, 13, 0, 1).getTime(), '昨天'],
+    [new Date(2026, 8, 12, 23, 59).getTime(), '09-12'],
+    [new Date(2026, 0, 2, 9).getTime(), '01-02'],
+    [new Date(2025, 11, 31, 23, 59).getTime(), '2025'],
+    [new Date(2024, 0, 1, 9).getTime(), '2024'],
+  ])('formats %s as %s', (timestamp, expected) => {
+    expect(formatConversationTime(timestamp, now)).toBe(expected)
+  })
+
+  it('uses yesterday across a month or year boundary, even just minutes after midnight', () => {
+    expect(formatConversationTime(new Date(2026, 7, 31, 23, 59).getTime(), new Date(2026, 8, 1, 0, 1).getTime())).toBe('昨天')
+    expect(formatConversationTime(new Date(2025, 11, 31, 23, 59).getTime(), new Date(2026, 0, 1, 0, 1).getTime())).toBe('昨天')
+    expect(formatConversationTime(new Date(2025, 11, 30, 23, 59).getTime(), new Date(2026, 0, 1, 0, 1).getTime())).toBe('2025')
+  })
+
+  it('does not render an invalid date', () => {
+    expect(formatConversationTime(NaN, now)).toBe('--')
+    expect(formatConversationTime(Infinity, now)).toBe('--')
   })
 })

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createOrderSeed, ORDERS_STORAGE_KEY } from '../data/orderFixtures'
+import { ARCHIVED_TRADE_ID } from '../data/archivedTradeFixtures'
 import type { OrderStorage } from './orderRepository'
 import { createOrderRepository } from './orderRepository'
 
@@ -20,10 +21,30 @@ function fakeStorage(initial: Record<string, string> = {}): OrderStorage & { val
 describe('orderRepository', () => {
   const now = 2_000_000_000_000
 
+  it('为旧演示补齐已关闭群关联的完成订单，不覆盖既有订单且不重复添加', () => {
+    const legacy = createOrderSeed(now).filter(order => order.conversationId !== ARCHIVED_TRADE_ID)
+    const storage = fakeStorage({ [ORDERS_STORAGE_KEY]: JSON.stringify(legacy) })
+    const repository = createOrderRepository({ storage, now: () => now })
+    const updated = repository.list()
+    expect(updated.filter(order => order.conversationId === ARCHIVED_TRADE_ID)).toHaveLength(1)
+    expect(updated.find(order => order.conversationId === ARCHIVED_TRADE_ID)?.status).toBe('completed')
+    for (const order of legacy) expect(repository.get(order.id)).toEqual(order)
+    expect(repository.list()).toEqual(updated)
+  })
+
   it('只在 key 缺失时 seed，持久空数组不会被重新填充', () => {
-    expect(createOrderRepository({ storage: fakeStorage(), now: () => now }).list()).toHaveLength(6)
+    expect(createOrderRepository({ storage: fakeStorage(), now: () => now }).list()).toHaveLength(13)
     const empty = fakeStorage({ [ORDERS_STORAGE_KEY]: '[]' })
     expect(createOrderRepository({ storage: empty, now: () => now }).list()).toEqual([])
+  })
+
+  it('旧种子中共享的王者会话会定向迁移为每订单唯一', () => {
+    const legacy = createOrderSeed(now).map(order => ['OD20260821000000003', 'OD20260820000000005'].includes(order.id) ? { ...order, conversationId: 'trade-wzry' } : order)
+    const repository = createOrderRepository({ storage: fakeStorage({ [ORDERS_STORAGE_KEY]: JSON.stringify(legacy) }), now: () => now })
+    const conversationIds = repository.list().map(order => order.conversationId)
+    expect(new Set(conversationIds).size).toBe(conversationIds.length)
+    expect(repository.get('OD20260821000000003')?.conversationId).toBe('trade-wzry-od03')
+    expect(repository.get('OD20260820000000005')?.conversationId).toBe('trade-wzry-od05')
   })
 
   it('支付、超时和取消共享唯一状态并保持幂等', () => {
@@ -46,6 +67,32 @@ describe('orderRepository', () => {
     expect(repository.pay('OD20260821000000001', 'alipay')).toBe(true)
     expect(repository.pay('OD20260821000000001', 'alipay')).toBe(true)
     expect(repository.get('OD20260821000000001')).toMatchObject({ status: 'paid', paymentMethod: 'alipay', totalAmountCents: 153_600 })
+  })
+
+  it('确认收货只允许从待确认推进到完成', () => {
+    const repository = createOrderRepository({ storage: fakeStorage(), now: () => now })
+    expect(repository.confirmReceipt('OD20260821000000001')).toBe(false)
+    expect(repository.confirmReceipt('OD20260821000000003')).toBe(true)
+    expect(repository.get('OD20260821000000003')?.status).toBe('completed')
+  })
+
+  it('异常暂停以订单为粒度并拦截详情页直接放款', () => {
+    const repository = createOrderRepository({ storage: fakeStorage(), now: () => now })
+    expect(repository.pause('OD20260821000000003', 'release')).toBe(true)
+    expect(repository.get('OD20260821000000003')).toMatchObject({ status: 'bind_success', pausedPhase: 'release' })
+    expect(repository.confirmReceipt('OD20260821000000003')).toBe(false)
+    expect(repository.advance('OD20260821000000003', 'completed')).toBe(false)
+    expect(repository.get('OD20260821000000002')?.pausedPhase).toBeUndefined()
+  })
+
+  it('动态订单幂等创建且拒绝复用其他订单的会话', () => {
+    const repository = createOrderRepository({ storage: fakeStorage(), now: () => now })
+    const record = { ...createOrderSeed(now)[0], id: 'OD-RC-1', productId: 'recycle-RC-1', conversationId: 'trade-recycle-RC-1', role: 'seller' as const, status: 'paid' as const }
+    expect(repository.ensure(record)).toBe(true)
+    expect(repository.ensure(record)).toBe(true)
+    expect(repository.ensure({ ...record, id: 'OD-RC-2' })).toBe(false)
+    expect(repository.get('OD-RC-1')).toMatchObject({ conversationId: 'trade-recycle-RC-1', status: 'paid', role: 'seller' })
+    expect(repository.restore([record, { ...record, id: 'OD-RC-2' }])).toBe(false)
   })
 
   it('到期批处理仅提交一次并通知订阅', () => {

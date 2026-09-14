@@ -1,182 +1,122 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowLeft, Check, Image as ImageIcon, MoreVertical, Plus, Search, ShieldCheck, Upload, X } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { ArrowLeft, ArrowLeftRight, ArrowRight, Check, ChevronRight, FileCheck2, FileText, MessagesSquare, MoreVertical, Plus, RefreshCw, ShieldAlert, ShieldCheck, X, Zap } from 'lucide-react'
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
-import { availableRecyclers, filterSellGames, formatRecycleCountdown, incompleteMaterials, validateConsultationText, validateRecycleForm } from '../components/sellModel'
 import { assetPath } from '../components/assetPath'
+import { Button, EmptyStateView, Heading, IconButton, PageHeader, SearchField, StatusBar, TextAreaField, TextField, Toast } from '../components/ui'
+import { RecyclerCard } from '../components/RecyclerCard'
+import { GameAccessRequestDialog } from '../components/GameAccessRequestDialog'
+import { getRecycleConversationName, getRecycleUnreadCount } from '../components/recycleConversationModel'
+import { createRecycleConversation, createRecyclePaidOrderRecord, getRecyclePayableCents, getRecycleStatusLabel, isRecycleViewerRole, validateRecycleOrderDraft, type RecycleViewerRole } from '../components/recycleModel'
+import { availableRecyclers, filterSellGames, formatRecycleCountdown, validateConsultationText } from '../components/sellModel'
 import { recyclerFixtures, sellGames } from '../data/sellFixtures'
+import { messageRepository } from '../repository/messageRepository'
+import { RecycleHistory } from '../components/RecycleHistory'
+import { orderRepository } from '../repository/orderRepository'
 import { recycleRepository } from '../repository/recycleRepository'
 import { sellRepository } from '../repository/sellRepository'
-import type { RecycleFormInput, RecycleOrder } from '../types/recycle'
+import type { RecycleOrder, RecycleOrderDraft } from '../types/recycle'
 import type { Recycler, SellGame, SellGameCode } from '../types/sell'
 import '../styles/sell-v2.css'
 
-function StatusBar() {
-  return <div className="sell-v2-status" aria-hidden="true"><time>9:41</time><span><img src={assetPath('assets/home-v2/status-signal.svg')} alt="" /><img src={assetPath('assets/home-v2/status-wifi.svg')} alt="" /><img src={assetPath('assets/home-v2/status-battery.svg')} alt="" /></span></div>
-}
-
-function BackTitle({ title, subtitle, fallback = '/profile', menu = false }: { title: string; subtitle?: string; fallback?: string; menu?: boolean }) {
-  const navigate = useNavigate()
-  return <><StatusBar /><div className="sell-v2-titlebar"><button type="button" aria-label="返回" onClick={() => window.history.length > 1 ? navigate(-1) : navigate(fallback)}><ArrowLeft size={20} aria-hidden="true" /></button><span><h1>{title}</h1>{subtitle && <small>{subtitle}</small>}</span>{menu ? <button type="button" aria-label="更多操作"><MoreVertical size={20} aria-hidden="true" /></button> : <i />}</div></>
-}
+function BackTitle({ title, subtitle, fallback = '/profile', menu = false }: { title: string; subtitle?: string; fallback?: string; menu?: boolean }) { const navigate = useNavigate(); return <><StatusBar className="sell-v2-status" /><PageHeader className="sell-page-header" bordered={false} title={title} left={<IconButton label="返回" onClick={() => window.history.length > 1 ? navigate(-1) : navigate(fallback)}><ArrowLeft size={20} /></IconButton>} right={menu ? <IconButton label="更多操作"><MoreVertical size={20} /></IconButton> : undefined}>{subtitle}</PageHeader></> }
+function GameButton({ game, onChoose }: { game: SellGame; onChoose: (game: SellGame) => void }) { return <button type="button" className={`dg-ui-focus${!game.consultationCount ? ' unavailable' : ''}`} onClick={() => onChoose(game)}><i style={{ background: game.color }}>{game.image ? <img src={assetPath(game.image)} alt="" /> : game.mark}</i><b>{game.name}</b><small>{game.consultationCount ? <><em>{game.consultationCount}</em> 家可咨询</> : '暂无回收商'}</small></button> }
 
 export function SellPage() {
-  const navigate = useNavigate()
-  const [query, setQuery] = useState('')
-  const [toast, setToast] = useState('')
-  const recent = sellGames.filter((game) => game.featured)
-  const hot = filterSellGames(query ? sellGames : sellGames.filter((game) => !game.featured), query)
-  const choose = (game: SellGame) => {
-    if (!game.consultationCount) { setToast('该游戏暂无回收商，可先选择其他游戏'); return }
-    if (!sellRepository.selectGame(game.code)) { setToast('选择保存失败，请重试'); return }
-    navigate(`/appraisal?game=${game.code}`)
-  }
-  useEffect(() => { if (!toast) return; const timer = window.setTimeout(() => setToast(''), 1800); return () => window.clearTimeout(timer) }, [toast])
+  const [requestOpen, setRequestOpen] = useState(false)
+  const navigate = useNavigate(); const [draftQuery, setDraftQuery] = useState(''); const [query, setQuery] = useState(''); const [toast, setToast] = useState(''); const recent = sellGames.filter((game) => game.featured); const hot = filterSellGames(query ? sellGames : sellGames.filter((game) => !game.featured), query)
+  const choose = (game: SellGame) => { if (!game.consultationCount) return setToast('该游戏暂无回收商'); if (!sellRepository.selectGame(game.code)) return setToast('选择保存失败，请重试'); navigate(`/appraisal?game=${game.code}`) }
   return <main className="sell-v2-page sell-v2-games-page">
-    <header><BackTitle title="账号回收" /><div className="sell-v2-intro"><h2>选择要卖的游戏</h2><p>选择后查看可咨询的回收商</p></div><label className="sell-v2-search"><Search size={17} aria-hidden="true" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索游戏名称" aria-label="搜索游戏名称" /><span>{query && <button type="button" onClick={() => setQuery('')} aria-label="清空搜索"><X size={14} /></button>}</span></label></header>
-    <section className="sell-v2-game-scroll" aria-label="可回收游戏">
-      {!query && <><h3>你最近看过</h3><div className="sell-v2-game-grid recent">{recent.map((game) => <GameButton key={game.code} game={game} onChoose={choose} />)}</div></>}
-      <div className="sell-v2-section-line"><h3>{query ? '搜索结果' : '热门回收'}</h3>{!query && <small>回收商多、报价快</small>}</div>
-      <div className="sell-v2-game-grid">{hot.map((game) => <GameButton key={game.code} game={game} onChoose={choose} />)}{!query && <button type="button" className="sell-v2-more-game" onClick={() => setToast('更多游戏正在接入')}><i><Plus size={20} /></i><b>更多游戏</b><small>共 48 个</small></button>}</div>
-      {query && hot.length === 0 && <div className="sell-v2-empty"><h2>没有找到这个游戏</h2><p>换个关键词，或等待更多游戏接入。</p></div>}
+    <header className="sell-v2-recycle-hero">
+      <StatusBar />
+      <div className="sell-v2-recycle-nav"><IconButton label="返回" onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/profile')}><ArrowLeft size={20} aria-hidden="true" /></IconButton></div>
+      <div className="sell-v2-recycle-brand">
+        <div className="sell-v2-recycle-copy"><Heading as="h1" variant="hero">账号回收 <span>· 秒拿钱</span></Heading><p className="sell-v2-recycle-benefits" aria-label="高价回收，安全换绑，极速到账，0手续费"><span>高价回收</span><span>安全换绑</span><span>极速到账</span><span>0手续费</span></p></div>
+        <img src={assetPath('assets/messages-draft3/support-mascot.png')} alt="深度玩家吉祥物" width={72} height={72} />
+      </div>
+    </header>
+    <section className="sell-v2-game-scroll" aria-label="选择回收游戏">
+      <div className="sell-v2-search-layout" role="search"><SearchField value={draftQuery} onChange={(event) => setDraftQuery(event.target.value)} onClear={() => setDraftQuery('')} onSearch={() => setQuery(draftQuery.trim())} placeholder="搜索游戏名称" aria-label="搜索游戏名称" /></div>
+      {!query && <><Heading as="h2" variant="section">最近看过</Heading><div className="sell-v2-game-grid recent">{recent.map((game) => <GameButton key={game.code} game={game} onChoose={choose} />)}</div></>}
+      <div className="sell-v2-section-line"><Heading as="h2" variant="section">{query ? '搜索结果' : '热门回收'}</Heading></div>
+      <div className="sell-v2-game-grid">{hot.map((game) => <GameButton key={game.code} game={game} onChoose={choose} />)}{!query && <button type="button" className="sell-v2-more-game dg-ui-focus" onClick={() => setRequestOpen(true)}><i><Plus size={20} /></i><b>更多游戏</b><small>申请接入</small></button>}</div>
+      {query && !hot.length && <EmptyStateView compact title="没有找到这个游戏" description="换个关键词试试。" />}
     </section>
-    <footer className="sell-v2-note">回收是把账号直接卖给平台回收商。想挂牌等买家出价，可以回到「卖号」发布商品。</footer>
-    {toast && <div className="sell-v2-toast" role="status">{toast}</div>}
+    <section className="sell-v2-quick-flow" aria-labelledby="recycle-flow-title">
+      <Heading id="recycle-flow-title" as="h2" variant="section">快速回收流程</Heading>
+      <ol>{[{ label: '提供信息', Icon: FileText }, { label: '价格沟通', Icon: MessagesSquare }, { label: '验号换绑', Icon: ShieldCheck }, { label: '签署合同', Icon: FileCheck2 }, { label: '极速到账', Icon: Zap }].map(({ label, Icon }, index) => <li key={label}><span className="sell-v2-quick-flow-icon"><Icon size={22} strokeWidth={1.8} aria-hidden="true" /></span><span>{label}</span>{index < 4 && <ArrowRight className="sell-v2-quick-flow-arrow" size={12} aria-hidden="true" />}</li>)}</ol>
+    </section>
+    {requestOpen && <GameAccessRequestDialog onClose={() => setRequestOpen(false)} onSubmit={request => { if (!sellRepository.requestGame(request)) return false; setRequestOpen(false); setToast('已记录你的游戏接入建议'); return true }} />}
+    <footer className="sell-v2-note">咨询估价不等于成交，确认正式回收单前不会产生交易。</footer>
+    <Toast message={toast} onDismiss={() => setToast('')} />
   </main>
 }
-
 export const SellEntryPage = SellPage
 
-function GameButton({ game, onChoose }: { game: SellGame; onChoose: (game: SellGame) => void }) {
-  return <button type="button" className={game.consultationCount ? '' : 'unavailable'} onClick={() => onChoose(game)} aria-label={`${game.name}，${game.consultationCount ? `${game.consultationCount}家可咨询` : '暂无回收商'}`}><i style={{ background: game.color }}>{game.mark}</i><b>{game.name}</b><small>{game.consultationCount ? <><em>{game.consultationCount}</em> 家可咨询</> : '暂无回收商'}</small></button>
-}
-
 export function AppraisalPage() {
-  const navigate = useNavigate()
-  const [params] = useSearchParams()
-  const chosen = (params.get('game') ?? sellRepository.getSelection().gameCode ?? 'wzry') as SellGameCode
-  const game = sellGames.find((item) => item.code === chosen) ?? sellGames[0]
-  const recyclers = availableRecyclers(recyclerFixtures, game.code)
-  const [error, setError] = useState('')
-  const consult = (recycler: Recycler) => {
-    if (recycler.availability === 'offline') return
-    if (!sellRepository.selectGame(game.code) || !sellRepository.selectRecycler(recycler.id)) { setError('选择保存失败，请重试'); return }
-    const order = recycleRepository.begin(recycler.id)
-    if (!order) { setError('咨询创建失败，请重试'); return }
-    navigate(`/appraisal/detail?id=${encodeURIComponent(order.id)}`)
-  }
-  return <main className="sell-v2-page sell-v2-recyclers-page"><header><BackTitle title={`${game.name}回收商`} fallback="/sell" /><div className="sell-v2-selected-game"><i style={{ background: game.color }}>{game.mark}</i><span><b>{game.name}</b><small>{recyclers.length} 家回收商可咨询</small></span></div></header>
-    <section className="sell-v2-warning"><ShieldCheck size={16} aria-hidden="true" /><span><b>咨询估价不等于成交</b><small>收到正式报价后再决定卖不卖，确认前不产生交易。</small></span></section>
+  const navigate = useNavigate(); const [params] = useSearchParams(); const chosen = (params.get('game') ?? sellRepository.getSelection().gameCode ?? 'wzry') as SellGameCode; const game = sellGames.find((item) => item.code === chosen) ?? sellGames[0]; const recyclers = availableRecyclers(recyclerFixtures, game.code); const [error, setError] = useState('')
+  const consult = (recycler: Recycler) => { if (recycler.availability === 'offline') return; if (!sellRepository.selectGame(game.code) || !sellRepository.selectRecycler(recycler.id)) return setError('选择保存失败，请重试'); const order = recycleRepository.begin(recycler.id, game.code); if (!order) return setError('咨询创建失败，请重试'); navigate(`/appraisal/detail?id=${encodeURIComponent(order.id)}&role=seller`) }
+  return <main className="sell-v2-page sell-v2-recyclers-page">
+    <header className="sell-v2-studio-header sell-v2-recycle-hero">
+      <StatusBar />
+      <nav className="sell-v2-recycle-nav" aria-label="回收工作室导航"><IconButton label="返回" onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/sell')}><ArrowLeft size={20} aria-hidden="true" /></IconButton></nav>
+      <div className="sell-v2-studio-brand sell-v2-recycle-brand">
+        <div className="sell-v2-studio-identity sell-v2-recycle-copy">
+          <Heading as="h1" variant="hero">账号回收工作室</Heading>
+          <Link className="sell-v2-studio-game-switch" to="/sell" aria-label={`切换回收游戏，当前${game.name}`}>
+            {game.image && <img src={assetPath(game.image)} alt="" width={20} height={20} />}
+            <span>{game.name}</span><small>切换</small><ArrowLeftRight size={12} aria-hidden="true" />
+          </Link>
+        </div>
+        <img className="sell-v2-studio-mascot" src={assetPath('assets/messages-draft3/support-mascot.png')} alt="" width={72} height={72} />
+      </div>
+    </header>
+    <p className="sell-v2-studio-count">{recyclers.length} 家回收商 · {recyclers.filter(item => item.availability === 'online').length} 家接单中</p>
     {error && <p className="sell-v2-inline-error" role="alert">{error}</p>}
-    <section className="sell-v2-recycler-list" aria-label={`${game.name}回收商列表`}>{recyclers.length ? recyclers.map((recycler) => <article key={recycler.id} className={recycler.availability === 'offline' ? 'offline' : ''}><header><i>{recycler.mark}</i><span><h2>{recycler.name} <small>· {recycler.availability === 'online' ? '接单中' : '非服务时间'}</small></h2><p>{recycler.averageResponseMinutes ? `平均响应 ${recycler.averageResponseMinutes} 分钟 · ` : '服务时间 '}{recycler.serviceTime}</p></span><button type="button" disabled={recycler.availability === 'offline'} onClick={() => consult(recycler)}>{recycler.availability === 'online' ? '咨询估价' : '暂不可咨询'}</button></header><p>{recycler.description}</p><footer>{recycler.tags.map((tag) => <span key={tag}>{tag}</span>)}</footer></article>) : <div className="sell-v2-empty"><h2>暂无可咨询回收商</h2><p>该游戏的回收服务正在接入。</p><Link to="/sell">选择其他游戏</Link></div>}</section>
-    <p className="sell-v2-list-hint">向下继续查看其余回收商</p>
+    <section className="sell-v2-recycler-list" aria-label={`${game.name}回收商列表`}>{recyclers.map(recycler => <RecyclerCard key={recycler.id} recycler={recycler} onConsult={consult} />)}{!recyclers.length && <EmptyStateView title="暂无回收工作室" description="该游戏暂未有工作室入驻，可切换其他游戏看看。" action={<Button size="md" variant="outline" onClick={() => navigate('/sell')}>切换游戏</Button>} />}</section>
+    <footer className="sell-v2-note" aria-label="交易风险提醒">提醒：私下交易有风险，钱号两空无保障，未成年人禁止售卖账号</footer>
   </main>
 }
 
+const emptyDraft: RecycleOrderDraft = { quoteCents: 0, server: '', rank: '', accountSummary: '' }
 export function AppraisalDetailPage() {
-  const navigate = useNavigate()
-  const [params] = useSearchParams()
-  const targetOrderId = params.get('id')
-  const [order, setOrder] = useState<RecycleOrder>()
-  const [text, setText] = useState('')
-  const [error, setError] = useState('')
-  const [toast, setToast] = useState('')
-  const [now, setNow] = useState(Date.now())
-  const fileRef = useRef<HTMLInputElement>(null)
-  const sync = useCallback(() => setOrder(targetOrderId ? recycleRepository.get(targetOrderId) : recycleRepository.getActive()), [targetOrderId])
-  useEffect(() => { sync(); return recycleRepository.subscribe(sync) }, [sync])
-  useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(timer) }, [])
-  useEffect(() => { if (!toast) return; const timer = window.setTimeout(() => setToast(''), 1800); return () => window.clearTimeout(timer) }, [toast])
-  if (!order) return <main className="sell-v2-page"><BackTitle title="回收咨询" fallback="/sell" /><div className="sell-v2-empty"><h2>还没有进行中的咨询</h2><p>先选择游戏和回收商，再开始估价。</p><Link to="/sell">选择游戏</Link></div></main>
-  if (['submitted', 'inspecting', 'completed'].includes(order.stage)) return <Navigate to={`${order.stage === 'submitted' && !order.submission ? '/appraisal/fill' : '/appraisal/loading'}?id=${encodeURIComponent(order.id)}`} replace />
-  const send = () => {
-    const issue = validateConsultationText(text); setError(issue); if (issue) return
-    if (!recycleRepository.sendMessage(order.id, text)) { setError('发送失败，请重试'); return }
-    setText(''); setToast('已发送')
-  }
-  const materialCount = incompleteMaterials(order.materials)
-  const updateMaterial = (key: 'battle_screenshot' | 'platform_binding', value: string) => { if (!recycleRepository.setMaterial(order.id, key, value)) setToast('保存失败，请重试') }
-  const createFormal = () => { if (!recycleRepository.createFormalOrder(order.id)) { setToast(materialCount ? `还有 ${materialCount} 项未完成` : '创建回收单失败'); return } }
-  const reject = () => { if (recycleRepository.reject(order.id)) setToast('已结束本次回收咨询') }
-  const confirm = () => { if (!recycleRepository.confirmOrder(order.id)) { setToast('确认失败，请重试'); return } navigate(`/appraisal/fill?id=${encodeURIComponent(order.id)}`) }
-  return <main className="sell-v2-page sell-v2-chat-page">
-    <header><BackTitle title={`${order.gameName} · 回收咨询`} subtitle={`${order.recyclerName} · ${order.stage === 'formal' ? '待你确认回收单' : order.stage === 'offered' ? '待你决定' : order.stage === 'materials' ? '报价已接受' : '接单中'}`} fallback="/appraisal" menu /></header>
-    <div className="sell-v2-chat-log" role="log" aria-live="polite">
-      {order.stage === 'consulting' && <section className="sell-v2-safety"><ShieldCheck size={15} /><p>不要发送密码、验证码、实名材料和站外联系方式。所有交易在平台内完成。</p></section>}
-      {order.stage === 'consulting' && <time className="sell-v2-chat-stage">咨询阶段 · 尚未成交</time>}
-      {order.messages.map((message) => message.sender === 'system' ? <p className="sell-v2-chat-stage" key={message.id}>{message.content}</p> : <div className={`sell-v2-message ${message.sender}`} key={message.id}>{message.sender === 'recycler' && <i>趣</i>}<p>{message.content}</p></div>)}
-      {order.stage === 'consulting' && <button type="button" className="sell-v2-demo-offer" onClick={() => recycleRepository.receiveOffer(order.id)}>资料已发，查看模拟报价</button>}
-      {order.stage === 'offered' && <><div className="sell-v2-message recycler"><i>趣</i><p>看完了。星耀 2、86 皮肤、可二次实名，按这个情况给你出价。</p></div><p className="sell-v2-chat-stage">回收商已发送正式报价</p><QuoteCard order={order} now={now} formal={false} onSecondary={() => setToast('可以继续在下方沟通价格')} onPrimary={() => recycleRepository.acceptOffer(order.id)} /></>}
-      {order.stage === 'materials' && <><div className="sell-v2-message user"><p>可以，我接受 <b>¥{order.quoteCents / 100}</b></p></div><p className="sell-v2-chat-stage">你已接受 ¥{order.quoteCents / 100} 报价</p><div className="sell-v2-message recycler"><i>趣</i><p>好的。发回收单前还需要两样东西核对一下账号。</p></div><section className="sell-v2-material-card"><header><h2>补充估价资料</h2><b>¥{order.quoteCents / 100}</b><p>用于核对账号情况，不会提交密码、验证码或实名信息。</p></header>{order.materials.map((item) => <div className="sell-v2-material" key={item.key}><i className={item.completed ? 'done' : ''}>{item.completed && <Check size={13} />}</i><span><b>{item.label}</b><small>{item.value || item.detail}</small></span>{item.key === 'battle_screenshot' && <button type="button" onClick={() => fileRef.current?.click()}>{item.completed ? '已上传' : '上传'}</button>}{item.key === 'platform_binding' && <span className="sell-v2-material-options"><button type="button" className={item.value === '没有' ? 'active' : ''} onClick={() => updateMaterial('platform_binding', '没有')}>没有</button><button type="button" className={item.value === '有，说明一下' ? 'active' : ''} onClick={() => updateMaterial('platform_binding', '有，说明一下')}>有，说明一下</button></span>}</div>)}<input ref={fileRef} hidden type="file" accept="image/*" onChange={(event) => { if (event.target.files?.[0]) updateMaterial('battle_screenshot', '已上传 1 张') }} /><button className="sell-v2-material-submit" type="button" disabled={materialCount > 0} onClick={createFormal}>{materialCount ? `还有 ${materialCount} 项未完成` : '生成正式回收单'}</button></section><p className="sell-v2-material-help">补充完成后回收商会发送正式回收单。此时仍未成交，你可以随时停止。</p></>}
-      {order.stage === 'formal' && <><div className="sell-v2-message recycler"><i>趣</i><p>资料收到了，回收单发你了，确认一下就能进入正式交易。</p></div><p className="sell-v2-chat-stage">报价已转为正式回收单</p><QuoteCard order={order} now={now} formal onSecondary={reject} onPrimary={confirm} /><p className="sell-v2-material-help">确认后本次交易正式开始，回收价不再变动。有效期内未确认，回收单会自动失效。</p></>}
-      {order.stage === 'rejected' && <div className="sell-v2-empty"><h2>本次咨询已结束</h2><p>没有提交账号资料，也不会产生交易。</p><Link to="/sell">重新估价</Link></div>}
-    </div>
-    {!['rejected'].includes(order.stage) && <footer className="sell-v2-composer"><ImageIcon size={19} aria-hidden="true" /><input value={text} maxLength={500} placeholder={order.stage === 'offered' ? '对价格有疑问可以直接问…' : '说说账号情况…'} aria-label="咨询内容" aria-invalid={Boolean(error)} onChange={(event) => { setText(event.target.value); setError('') }} onKeyDown={(event) => { if (event.key === 'Enter') send() }} /><button type="button" onClick={send} aria-label="发送">{text.trim() ? '发送' : <Plus size={20} />}</button>{error && <small role="alert">{error}</small>}</footer>}
-    {toast && <div className="sell-v2-toast" role="status">{toast}</div>}
-  </main>
+  const navigate = useNavigate(); const [params, setParams] = useSearchParams(); const targetOrderId = params.get('id'); const rawRole = params.get('role'); const role: RecycleViewerRole = isRecycleViewerRole(rawRole) ? rawRole : 'seller'
+  const [order, setOrder] = useState<RecycleOrder>(); const [text, setText] = useState(''); const [error, setError] = useState(''); const [toast, setToast] = useState(''); const [draftOpen, setDraftOpen] = useState(false); const [draft, setDraft] = useState(emptyDraft); const [draftErrors, setDraftErrors] = useState<Partial<Record<keyof RecycleOrderDraft, string>>>({}); const [paying, setPaying] = useState(false); const [roleMenu, setRoleMenu] = useState(false); const [now, setNow] = useState(Date.now())
+  const sync = useCallback(() => setOrder(targetOrderId ? recycleRepository.get(targetOrderId) : recycleRepository.getActive()), [targetOrderId]); useEffect(() => { sync(); return recycleRepository.subscribe(sync) }, [sync]); useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(timer) }, []); useEffect(() => { if (!toast) return; const timer = window.setTimeout(() => setToast(''), 2000); return () => window.clearTimeout(timer) }, [toast])
+  const switchRole = () => { const next = new URLSearchParams(params); next.set('role', role === 'seller' ? 'recycler' : 'seller'); next.delete('checkout'); setParams(next, { replace: true }) }
+  useEffect(() => {
+    if (order && getRecycleUnreadCount(order) > 0 && !recycleRepository.markRead(order.id)) setToast('未读状态保存失败，请稍后重试')
+  }, [order?.id, order?.unreadCount])
+  if (!order) return <main className="sell-v2-page"><BackTitle title="回收咨询" fallback="/sell" /><Empty title="还没有咨询" text="先选择游戏和回收商。" link="/sell" /></main>
+  const send = () => { const issue = validateConsultationText(text); setError(issue); if (issue) return; if (!recycleRepository.sendMessage(order.id, text)) return setError('发送失败，请重试'); setText('') }
+  const issueFormal = () => { const issues = validateRecycleOrderDraft(draft); setDraftErrors(issues); if (Object.keys(issues).length) return; if (!recycleRepository.createFormalOrder(order.id, draft)) return setToast('发送失败，请检查内容'); setDraftOpen(false); setToast('正式回收单已发送') }
+  const pay = async () => { setPaying(true); const at = Date.now(); const thumbnail = sellGames.find((game) => game.code === order.gameCode)?.image ?? ''; if (!orderRepository.ensure(createRecyclePaidOrderRecord(order, at, thumbnail))) { setPaying(false); return setToast('订单创建失败，未完成付款') } const completed = recycleRepository.completePayment(order.id); if (!completed) { setPaying(false); return setToast('付款状态更新失败，可安全重试') } const conversation = createRecycleConversation(completed, at); const ok = conversation ? await messageRepository.ensureConversation(conversation) : false; setPaying(false); if (!ok) return setToast('已完成付款，交易群创建失败，可稍后重试'); const next = new URLSearchParams(params); next.delete('checkout'); setParams(next, { replace: true }); setToast('模拟付款完成，已创建交易群') }
+  const enterGroup = async () => { const at = Date.now(); const thumbnail = sellGames.find((game) => game.code === order.gameCode)?.image ?? ''; if (!orderRepository.ensure(createRecyclePaidOrderRecord(order, at, thumbnail))) return setToast('交易订单创建失败，请重试'); const conversation = createRecycleConversation(order, at); if (!conversation) return setToast('交易群尚未生成'); if (!await messageRepository.ensureConversation(conversation)) return setToast('交易群创建失败，请重试'); navigate(`/im/${encodeURIComponent(conversation.id)}?orderId=${encodeURIComponent(conversation.orderId ?? '')}&role=seller`) }
+  if (params.get('checkout') === '1' && role === 'recycler' && order.stage === 'submitted') return <Checkout order={order} paying={paying} onBack={() => { const next = new URLSearchParams(params); next.delete('checkout'); setParams(next, { replace: true }) }} onPay={() => void pay()} />
+  return <main className="sell-v2-page sell-v2-chat-page"><header><ChatHeader order={order} role={role} menuOpen={roleMenu} onBack={() => navigate('/message?tab=recycle')} onRefresh={() => { sync(); setToast('已刷新') }} onToggleMenu={() => setRoleMenu((open) => !open)} onSwitchRole={() => { switchRole(); setRoleMenu(false) }} /></header><div className="sell-v2-safety"><ShieldCheck size={15} /><p>请勿发送密码、验证码、实名材料或站外联系方式</p></div><div className="sell-v2-chat-log" role="log" aria-label="回收咨询内容">{order.historyPreview ? <RecycleHistory order={order} onEnterGroup={() => void enterGroup()} /> : <>{order.messages.map((message) => <div className={`sell-v2-message ${message.sender}`} key={message.id}>{message.sender === 'recycler' && <i>{getRecycleConversationName(order).slice(0, 1)}</i>}<p>{message.content}</p></div>)}<FlowCard order={order} role={role} now={now} onDraft={() => { setDraft({ quoteCents: order.quoteCents || 2200, server: order.server === '默认区服' ? '' : order.server, rank: order.rank === '账号情况待沟通' ? '' : order.rank, accountSummary: '' }); setDraftOpen(true) }} onReject={() => recycleRepository.reject(order.id)} onConfirm={() => recycleRepository.confirmOrder(order.id)} onCheckout={() => { const next = new URLSearchParams(params); next.set('checkout', '1'); setParams(next) }} onEnterGroup={() => void enterGroup()} /></>}</div>{!['completed', 'rejected'].includes(order.stage) ? <footer className="sell-v2-composer"><input value={text} maxLength={500} placeholder="输入消息，@ 可提醒成员…" aria-invalid={Boolean(error)} onChange={(event) => { setText(event.target.value); setError('') }} onKeyDown={(event) => { if (event.key === 'Enter') send() }} /><button type="button" onClick={send}>{text.trim() ? '发送' : <Plus size={20} />}</button>{error && <small role="alert">{error}</small>}</footer> : <footer className="sell-v2-readonly">咨询已结束，记录仅供查看</footer>}{draftOpen && <DraftSheet draft={draft} errors={draftErrors} onChange={setDraft} onClose={() => setDraftOpen(false)} onSubmit={issueFormal} />}{toast && <div className="sell-v2-toast" role="status">{toast}</div>}</main>
 }
 
-function QuoteCard({ order, now, formal, onSecondary, onPrimary }: { order: RecycleOrder; now: number; formal: boolean; onSecondary: () => void; onPrimary: () => void }) {
-  return <section className="sell-v2-quote"><header><b>{formal ? '✓ 正式回收单' : '• 回收报价'}</b><small>{formal ? `#${order.id}` : `剩 ${formatRecycleCountdown(order.expiresAt, now)}`}</small></header><div className="sell-v2-quote-price"><strong><small>¥</small>{order.quoteCents / 100}</strong><span>预计到手<b>¥{order.quoteCents / 100}</b></span></div><dl><div><dt>账号</dt><dd>{order.gameName} {order.server} {order.rank}</dd></div><div><dt>回收商</dt><dd>{order.recyclerName}</dd></div><div><dt>手续费</dt><dd>回收商承担</dd></div>{formal && <div><dt>回收单有效期</dt><dd className="accent">{formatRecycleCountdown(order.expiresAt, now)}</dd></div>}</dl><p>{formal ? '确认后需要填写回收资料，平台验号通过并完成换绑后打款到你的余额。资金由平台托管。' : '接受报价不代表卖号完成。回收商会据此发送正式回收单，你确认后才进入交易。'}</p><footer><button type="button" onClick={onSecondary}>{formal ? '先不卖' : '再聊聊'}</button><button type="button" onClick={onPrimary}>{formal ? '确认报价，填回收资料' : '接受这个报价'}</button></footer></section>
+function ChatHeader({ order, role, menuOpen, onBack, onRefresh, onToggleMenu, onSwitchRole }: { order: RecycleOrder; role: RecycleViewerRole; menuOpen: boolean; onBack: () => void; onRefresh: () => void; onToggleMenu: () => void; onSwitchRole: () => void }) {
+  const game = sellGames.find((item) => item.code === order.gameCode)
+  return <><StatusBar /><div className="sell-v2-chat-header"><button type="button" aria-label="返回" onClick={onBack}><ArrowLeft size={20} /></button><i style={{ background: game?.color }}>{game?.image ? <img src={assetPath(game.image)} alt="" /> : order.gameName.slice(0, 1)}</i><span><Heading as="h1" variant="page">{order.gameName} · 回收咨询</Heading><small>{getRecycleConversationName(order)}<b />{getRecycleStatusLabel(order, role)}</small></span><button type="button" aria-label="刷新咨询" onClick={onRefresh}><RefreshCw size={18} /></button><button type="button" aria-label="更多" aria-expanded={menuOpen} onClick={onToggleMenu}><MoreVertical size={18} /></button>{menuOpen && <div className="sell-v2-more-menu"><small>角色预览</small><button type="button" onClick={onSwitchRole}>切换为{role === 'seller' ? '回收商' : '卖家'}视角</button></div>}</div></>
 }
 
-const emptyForm: RecycleFormInput = { loginAccount: '', campId: '88412903', canRealname: null, screenshotCount: 0, note: '', acceptedRules: false }
-
-export function AppraisalFillPage() {
-  const navigate = useNavigate()
-  const [params] = useSearchParams()
-  const targetOrderId = params.get('id')
-  const [order] = useState(() => targetOrderId ? recycleRepository.get(targetOrderId) : recycleRepository.getActive())
-  const [form, setForm] = useState<RecycleFormInput>(emptyForm)
-  const [errors, setErrors] = useState<Partial<Record<keyof RecycleFormInput, string>>>({})
-  const [submitting, setSubmitting] = useState(false)
-  const fileRef = useRef<HTMLInputElement>(null)
-  if (!order) return <main className="sell-v2-page"><BackTitle title="填写回收资料" fallback="/sell" /><div className="sell-v2-empty"><h2>回收单不存在</h2><Link to="/sell">重新估价</Link></div></main>
-  const submit = () => {
-    const nextErrors = validateRecycleForm(form); setErrors(nextErrors); if (Object.keys(nextErrors).length) return
-    setSubmitting(true)
-    const ok = recycleRepository.submit(order.id, form)
-    setSubmitting(false)
-    if (!ok) { setErrors({ loginAccount: '提交失败，请检查回收单状态后重试' }); return }
-    setForm((current) => ({ ...current, loginAccount: '' }))
-    navigate(`/appraisal/loading?id=${encodeURIComponent(order.id)}`)
-  }
-  return <main className="sell-v2-page sell-v2-fill-page"><header><BackTitle title="填写回收资料" fallback="/appraisal/detail" /></header><QuoteSummary order={order} />
-    <form onSubmit={(event) => { event.preventDefault(); submit() }} noValidate><h2>账号资料</h2><section>
-      <label><span>登录账号 <b>*</b></span><input inputMode="numeric" autoComplete="off" value={form.loginAccount} onChange={(event) => setForm({ ...form, loginAccount: event.target.value.replace(/\D/g, '').slice(0, 12) })} placeholder="请输入用于登录的 QQ 号" aria-invalid={Boolean(errors.loginAccount)} />{errors.loginAccount && <small role="alert">{errors.loginAccount}</small>}<em>本地演示仅保存脱敏结果，请勿输入密码或验证码</em></label>
-      <label><span>营地 ID <b>*</b></span><input inputMode="numeric" value={form.campId} onChange={(event) => setForm({ ...form, campId: event.target.value.replace(/\D/g, '').slice(0, 12) })} aria-invalid={Boolean(errors.campId)} />{errors.campId && <small role="alert">{errors.campId}</small>}</label>
-      <fieldset><legend>是否能二次实名 <b>*</b></legend><div><button type="button" className={form.canRealname === true ? 'active' : ''} onClick={() => setForm({ ...form, canRealname: true })}>可以</button><button type="button" className={form.canRealname === false ? 'active' : ''} onClick={() => setForm({ ...form, canRealname: false })}>不可以</button></div>{errors.canRealname && <small role="alert">{errors.canRealname}</small>}</fieldset>
-      <fieldset><legend>账号截图 <small>{form.screenshotCount}/6</small></legend><div className="sell-v2-upload"><button type="button" onClick={() => fileRef.current?.click()}><Upload size={18} /><span>添加</span></button>{form.screenshotCount > 0 && <i><ImageIcon size={22} /><button type="button" onClick={() => setForm({ ...form, screenshotCount: 0 })} aria-label="移除截图"><X size={12} /></button></i>}</div><input ref={fileRef} hidden type="file" multiple accept="image/*" onChange={(event) => setForm({ ...form, screenshotCount: Math.min(6, event.target.files?.length ?? 0) })} /><p>建议上传皮肤页、战绩页和英雄列表。请勿包含密码、验证码或身份证信息。</p>{errors.screenshotCount && <small role="alert">{errors.screenshotCount}</small>}</fieldset>
-      <label><span>补充说明</span><textarea maxLength={200} value={form.note} onChange={(event) => setForm({ ...form, note: event.target.value })} placeholder="选填，例如账号的特殊情况" />{errors.note && <small role="alert">{errors.note}</small>}</label>
-      <label className="sell-v2-rules"><input type="checkbox" checked={form.acceptedRules} onChange={(event) => setForm({ ...form, acceptedRules: event.target.checked })} /><i>{form.acceptedRules && <Check size={12} />}</i><span>我确认账号为本人所有、无封禁与纠纷，并已阅读《账号回收规则》</span></label>{errors.acceptedRules && <small role="alert">{errors.acceptedRules}</small>}
-    </section><footer><button type="button" onClick={() => navigate(`/appraisal/detail?id=${encodeURIComponent(order.id)}`)}>取消</button><button type="submit" disabled={submitting}><b>{submitting ? '提交中…' : '提交回收单'}</b><small>提交后进入平台验号</small></button></footer></form>
-  </main>
+function FlowCard({ order, role, now, onDraft, onReject, onConfirm, onCheckout, onEnterGroup }: { order: RecycleOrder; role: RecycleViewerRole; now: number; onDraft: () => void; onReject: () => void; onConfirm: () => void; onCheckout: () => void; onEnterGroup: () => void }) {
+  if (order.stage === 'consulting') return <section className="sell-v2-flow-card empty"><span>回收单</span><Heading as="h2" variant="section">尚未发送回收单</Heading><p>{role === 'recycler' ? '确认账号概况与报价后，向卖家发送正式回收单。' : '继续沟通账号概况，等待回收商发送正式回收单。'}</p>{role === 'recycler' && <button type="button" onClick={onDraft}>发送回收单</button>}</section>
+  if (order.stage === 'formal') return <><section className="sell-v2-order-card"><header><b><i />回收单 · {role === 'seller' ? '待你确认' : '等待卖家确认'}</b><small>剩 {formatRecycleCountdown(order.expiresAt, now)}</small></header><div className="sell-v2-order-price"><strong><small>¥</small>{(order.quoteCents / 100).toFixed(2)}</strong><span>预计到手<b>¥{(order.quoteCents / 100).toFixed(2)}</b></span></div><dl><div><dt>登录账号</dt><dd>22</dd></div><div><dt>实名 / 贵族 / 防沉迷</dt><dd>包人脸 · V · 有防沉迷</dd></div><div><dt>回收单号</dt><dd>{shortId(order.id)}</dd></div></dl>{role === 'seller' ? <><aside><b>确认注意</b><p>确认后进入交易，回收商需在时限内完成付款。确认前请核对账号信息与报价，<strong>此后不能再以报价过低为由退单。</strong></p></aside><footer><button type="button" onClick={onReject}>拒绝</button><button type="button" onClick={onConfirm}>确认回收单</button></footer></> : <button type="button" className="sell-v2-order-disabled" disabled>等待卖家确认</button>}</section>{role === 'seller' && <SupportNote>确认只表示接受报价，回收商付款后才算成交。</SupportNote>}</>
+  if (order.stage === 'submitted' && role === 'seller') return <><section className="sell-v2-order-card"><header><b><i />回收单 · 待回收商付款</b><em>已确认</em></header><div className="sell-v2-order-price"><strong><small>¥</small>{(order.quoteCents / 100).toFixed(2)}</strong><span>预计到账<b>¥{(order.quoteCents / 100).toFixed(2)}</b></span></div><dl><div><dt>回收商</dt><dd>{order.recyclerName}</dd></div><div><dt>回收单号</dt><dd>{shortId(order.id)}</dd></div></dl><p className="sell-v2-order-explain">等待回收商完成付款。付款成功后回收单成交，并自动建立交易群。</p><button type="button" className="sell-v2-order-disabled" disabled>等待回收商付款</button></section><SupportNote>我马上去付款，稍等两分钟。</SupportNote></>
+  if (order.stage === 'submitted') { const total = getRecyclePayableCents(order); const fee = total - order.quoteCents; return <section className="sell-v2-order-card"><header><b><i />回收单 · 待你付款</b><small>剩 {formatRecycleCountdown(order.expiresAt, now)}</small></header><div className="sell-v2-order-price"><strong><small>¥</small>{(total / 100).toFixed(2)}</strong><span>实际应付<b className="sell-v2-payable-amount">¥{(total / 100).toFixed(2)}</b></span></div><dl><div><dt>回收价</dt><dd>¥{(order.quoteCents / 100).toFixed(2)}</dd></div><div><dt>包赔费（10%）</dt><dd>¥{(fee / 100).toFixed(2)}</dd></div><div><dt>回收单号</dt><dd>{shortId(order.id)}</dd></div></dl><aside><b>付款注意</b><p>卖家已确认回收单，请在时限内完成付款。<strong>超时未付回收单将自动关闭。</strong></p></aside><div className="sell-v2-order-success"><ShieldCheck size={14} />付款成功后回收单成交，并自动建立交易群</div><button type="button" className="sell-v2-order-pay" onClick={onCheckout}>去付款 ¥{(total / 100).toFixed(2)}</button></section> }
+  if (order.stage === 'completed') return <section className="sell-v2-flow-card completed"><i><Check size={28} /></i><Heading as="h2" variant="result">已成交</Heading><strong>¥{(order.quoteCents / 100).toFixed(2)}</strong><p>本地演示状态：付款步骤已完成。后续四步履约请在交易群内进行。</p><button type="button" onClick={onEnterGroup}>进入交易群 <ChevronRight size={16} /></button></section>
+  return <section className="sell-v2-flow-card empty"><Heading as="h2" variant="section">{order.stage === 'rejected' ? '本次咨询已结束' : '历史回收流程'}</Heading><p>{order.stage === 'rejected' ? '未产生付款或交易。' : '请在消息的回收群中查看咨询记录。'}</p></section>
 }
 
-function QuoteSummary({ order }: { order: RecycleOrder }) {
-  return <section className="sell-v2-summary"><header><b>✓ 回收单已确认</b><small>#{order.id}</small></header><div><strong><small>¥</small>{order.quoteCents / 100}</strong><span>预计到手<b>¥{order.quoteCents / 100}</b></span></div><footer>{order.gameName} {order.server} · {order.recyclerName}</footer></section>
-}
+function shortId(id: string) { return id.length > 8 ? `${id.slice(0, 2)}…${id.slice(-5)}` : id }
+function SupportNote({ children }: { children: string }) { return <div className="sell-v2-support-note"><i>萌</i><span><small>萌萌　平台客服</small><p>{children}</p></span></div> }
 
-export function AppraisalLoadingPage() {
-  const [params] = useSearchParams()
-  const targetOrderId = params.get('id')
-  const [order, setOrder] = useState(() => targetOrderId ? recycleRepository.get(targetOrderId) : recycleRepository.getActive())
-  const [working, setWorking] = useState(false)
-  const [error, setError] = useState('')
-  const sync = useCallback(() => setOrder(targetOrderId ? recycleRepository.get(targetOrderId) : recycleRepository.getActive()), [targetOrderId])
-  useEffect(() => recycleRepository.subscribe(sync), [sync])
-  if (!order) return <main className="sell-v2-page"><BackTitle title="平台验号" fallback="/sell" /><div className="sell-v2-empty"><h2>未找到回收单</h2><Link to="/sell">重新估价</Link></div></main>
-  const run = async () => {
-    setWorking(true); setError('')
-    await new Promise((resolve) => window.setTimeout(resolve, 450))
-    const ok = order.stage === 'submitted' ? recycleRepository.startInspection(order.id) : order.stage === 'inspecting' ? recycleRepository.complete(order.id) : false
-    setWorking(false); if (!ok) setError('状态更新失败，请重试')
-  }
-  return <main className="sell-v2-page sell-v2-loading-page"><header><BackTitle title="平台验号" fallback="/orders/recycle" /></header><QuoteSummary order={order} /><section className={`sell-v2-progress-state ${order.stage}`}><i>{order.stage === 'completed' ? <Check size={40} /> : <span />}</i><h2>{order.stage === 'completed' ? '回收完成' : order.stage === 'inspecting' ? '平台正在验号' : '资料提交成功'}</h2><p>{order.stage === 'completed' ? '本地演示已完成，回收款将进入余额。' : order.stage === 'inspecting' ? '正在核对账号资料与回收单，演示不会连接真实账号。' : '回收资料已安全提交，本地只保存了脱敏账号。'}</p><ol><li className="done">提交回收资料</li><li className={order.stage === 'inspecting' || order.stage === 'completed' ? 'done' : ''}>平台验号</li><li className={order.stage === 'completed' ? 'done' : ''}>完成回收</li></ol>{error && <small role="alert">{error}</small>}{order.stage === 'completed' ? <Link to="/orders/recycle">查看我的回收单</Link> : <button type="button" disabled={working} onClick={() => void run()}>{working ? '处理中…' : error ? '重试' : order.stage === 'inspecting' ? '完成本地演示' : '开始本地验号'}</button>}</section></main>
-}
+function DraftSheet({ draft, errors, onChange, onClose, onSubmit }: { draft: RecycleOrderDraft; errors: Partial<Record<keyof RecycleOrderDraft, string>>; onChange: (draft: RecycleOrderDraft) => void; onClose: () => void; onSubmit: () => void }) { return <div className="sell-v2-sheet-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}><section className="sell-v2-sheet" role="dialog" aria-modal="true" aria-labelledby="draft-title"><header><Heading as="h2" variant="section" id="draft-title">发送回收单</Heading><button type="button" onClick={onClose}><X size={20} /></button></header><p>仅填写报价与账号概况，不要填写密码、手机号或实名信息。</p><div className="sell-v2-draft-fields"><TextField label="回收价（元）" inputMode="decimal" value={draft.quoteCents ? draft.quoteCents / 100 : ''} onChange={(event) => onChange({ ...draft, quoteCents: Math.round(Number(event.target.value) * 100) })} error={errors.quoteCents} /><TextField label="游戏区服" value={draft.server} maxLength={24} onChange={(event) => onChange({ ...draft, server: event.target.value })} placeholder="例如：QQ区" error={errors.server} /><TextField label="段位 / 账号概况" value={draft.rank} maxLength={40} onChange={(event) => onChange({ ...draft, rank: event.target.value })} placeholder="例如：高段位 · 皮肤较多" error={errors.rank} /><TextAreaField label="报价依据" value={draft.accountSummary} maxLength={80} showCount onChange={(event) => onChange({ ...draft, accountSummary: event.target.value })} placeholder="简要说明报价依据" error={errors.accountSummary} /></div><Button className="sell-v2-primary" fullWidth onClick={onSubmit}>确认发送</Button></section></div> }
 
-export function SellGoodsPage() {
-  const [orders, setOrders] = useState(() => recycleRepository.list())
-  useEffect(() => recycleRepository.subscribe(() => setOrders(recycleRepository.list())), [])
-  const status = (stage: RecycleOrder['stage']) => ({ consulting: '咨询中', offered: '待决定', materials: '待补资料', formal: '待确认', submitted: '待验号', inspecting: '验号中', completed: '已完成', rejected: '已结束' }[stage])
-  return <main className="sell-v2-page sell-v2-goods-page"><header><BackTitle title="我的回收单" fallback="/profile" /></header><section>{orders.length ? orders.map((order) => <Link key={order.id} to={`${['submitted', 'inspecting', 'completed'].includes(order.stage) ? '/appraisal/loading' : '/appraisal/detail'}?id=${encodeURIComponent(order.id)}`}><header><time>{new Date(order.updatedAt).toLocaleDateString('zh-CN')}</time><b className={`stage-${order.stage}`}>{status(order.stage)}</b></header><div><i>{order.gameName.slice(0, 1)}</i><span><h2>{order.gameName} {order.server} · {order.rank}</h2><p>回收商：{order.recyclerName}</p><small>#{order.id}</small></span><strong>¥{order.quoteCents / 100}</strong></div></Link>) : <div className="sell-v2-empty"><h2>还没有回收单</h2><p>选择游戏和回收商，先咨询估价。</p><Link to="/sell">开始回收</Link></div>}</section></main>
-}
+function Checkout({ order, paying, onBack, onPay }: { order: RecycleOrder; paying: boolean; onBack: () => void; onPay: () => void }) { const total = getRecyclePayableCents(order); const fee = total - order.quoteCents; return <main className="sell-v2-page sell-v2-checkout"><header><StatusBar className="sell-v2-status" /><div className="sell-v2-checkout-title"><button type="button" onClick={onBack}><ArrowLeft size={20} /></button><Heading as="h1" variant="page">确认支付</Heading><small>剩余 {formatRecycleCountdown(order.expiresAt, Date.now())}</small></div></header><section className="sell-v2-pay-total"><small>回收订单支付</small><strong>¥{(total / 100).toFixed(2)}</strong><p>{order.id}</p></section><section className="sell-v2-pay-detail"><p><span>回收价</span><b>¥{(order.quoteCents / 100).toFixed(2)}</b></p><p><span>包赔费（10%）</span><b>¥{(fee / 100).toFixed(2)}</b></p><p className="total"><span>应付</span><b>¥{(total / 100).toFixed(2)}</b></p></section><Heading as="h2" variant="section" className="sell-v2-pay-heading">支付方式</Heading><section className="sell-v2-pay-method"><label><span className="alipay">支</span><b>支付宝</b><input type="radio" checked readOnly /></label><label><span className="wechat">微</span><b>微信</b><input type="radio" readOnly /></label></section><aside>点击确认支付后将锁定订单并发起支付。当前为本地演示，不会发生真实扣款；完成后请返回订单查看后续履约状态。</aside><footer><Button variant="outline" onClick={onBack}>返回</Button><Button loading={paying} onClick={onPay}>确认支付 ¥{(total / 100).toFixed(2)}</Button></footer></main> }
+function Empty({ title, text, link }: { title: string; text: string; link?: string }) { return <div className="sell-v2-empty"><Heading as="h2" variant="section">{title}</Heading><p>{text}</p>{link && <Link to={link}>去看看</Link>}</div> }
+
+export function AppraisalFillPage() { const [params] = useSearchParams(); return <Navigate to={`/appraisal/detail?${params.toString()}`} replace /> }
+export function AppraisalLoadingPage() { const [params] = useSearchParams(); return <Navigate to={`/appraisal/detail?${params.toString()}`} replace /> }
+export function SellGoodsPage() { return <Navigate to="/message?tab=recycle" replace /> }

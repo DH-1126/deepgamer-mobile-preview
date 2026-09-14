@@ -1,5 +1,6 @@
 import { createInitialWalletSnapshot, WALLET_STORAGE_KEY } from '../data/walletFixtures'
 import type { WalletSnapshot, WalletTransaction, WalletWithdrawalResult } from '../types/wallet'
+import { getRuntimeStorage, isLinkedDataMode } from '../runtime/dataMode'
 
 export type WalletStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
 type Options = { storage: WalletStorage; now?: () => number; eventTarget?: Pick<Window, 'addEventListener' | 'removeEventListener' | 'dispatchEvent'> }
@@ -69,7 +70,7 @@ function memoryStorage(): WalletStorage {
   return { getItem: (key) => values.get(key) ?? null, setItem: (key, value) => { values.set(key, value) }, removeItem: (key) => { values.delete(key) } }
 }
 
-let storage: WalletStorage = memoryStorage()
+let storage: WalletStorage = getRuntimeStorage()
 let eventTarget: Options['eventTarget']
-if (typeof window !== 'undefined') { try { storage = window.localStorage; eventTarget = window } catch { /* Storage may be unavailable in private mode. */ } }
+if (typeof window !== 'undefined' && !isLinkedDataMode) eventTarget = window
 export const walletRepository = createWalletRepository({ storage, eventTarget })

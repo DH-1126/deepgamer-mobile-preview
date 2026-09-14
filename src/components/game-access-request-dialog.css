@@ -1,0 +1,3 @@
+.game-access-request-form { display: grid; gap: 16px; }
+.game-access-request-form > p { margin: 0; color: var(--dg-color-text-secondary, #777); font-size: 13px; line-height: 20px; }
+.game-access-request-form > .game-access-request-error { color: var(--dg-color-danger, #c93838); }

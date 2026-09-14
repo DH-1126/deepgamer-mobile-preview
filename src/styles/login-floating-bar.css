@@ -1,0 +1,29 @@
+/* Shared browsing-page prompt: keep one visual source and viewport position. */
+.home-draft3-login-bar {
+  position: fixed;
+  z-index: 49;
+  left: 50%;
+  width: min(361px, calc(100% - 32px));
+  height: 50px;
+  padding: 7px 12px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  border: 1px solid #000;
+  border-radius: 14px;
+}
+.home-draft3-login-bar.guest-login-bar-home { bottom: calc(74px + env(safe-area-inset-bottom)); }
+.home-draft3-login-bar--flow { position: relative; left: auto; bottom: auto; margin: 0 auto; transform: none; }
+.home-draft3-login-bar--dark { color: #f9f9f8; background: rgba(31,31,29,.9); box-shadow: 0 4px 14px rgba(90,74,0,.13); }
+.home-draft3-login-bar > strong { flex: 1; min-width: 0; overflow: hidden; font-size: 12px; line-height: 15px; font-weight: 700; letter-spacing: .2px; text-overflow: ellipsis; white-space: nowrap; }
+.home-draft3-login-bar > button { flex: 0 0 68px; height: 36px; color: #1c1b19; font-size: 14px; line-height: 17px; font-weight: 800; letter-spacing: .6px; background: #ffe62a; border-radius: 10px; }
+.home-draft3-gift { position: relative; flex: 0 0 28px; width: 28px; height: 28px; display: grid; place-items: center; overflow: hidden; background: #e5384a; border-radius: 7px; box-shadow: 0 1px 1.5px rgba(160,20,32,.28); }
+.home-draft3-gift::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 11px; background: #f2555f; border-radius: 7px 7px 12px 12px; }
+.home-draft3-gift i { position: relative; z-index: 1; width: 15px; height: 15px; display: grid; place-items: center; color: #c0392f; font: 900 9px/9px "Noto Sans SC", sans-serif; font-style: normal; background: #ffe62a; border-radius: 50%; }
+.catalog-page:has(.home-draft3-login-bar) .catalog-products { padding-bottom: calc(74px + env(safe-area-inset-bottom)); }
+.catalog-page:has(.home-draft3-login-bar) :is(.catalog-d3-support, .catalog-back-top) { bottom: calc(136px + env(safe-area-inset-bottom)); }
+/* Allow the last content to scroll clear of the prompt; detail already has an action footer. */
+.product-detail-page:has(.guest-login-bar-home) > .product-detail-scroll { padding-bottom: 64px; }
+.search-v2-page:has(.guest-login-bar-home) > .search-v2-scroll { padding-bottom: calc(140px + env(safe-area-inset-bottom)); }

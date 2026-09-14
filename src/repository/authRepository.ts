@@ -1,5 +1,6 @@
 import { demoAuthUser } from '../data/authFixtures'
 import type { AgreementRecord, AuthMethod, AuthResult, AuthSession, CodeRequestResult, PushPermission } from '../types/auth'
+import { getRuntimeStorage, isLinkedDataMode } from '../runtime/dataMode'
 
 export type AuthStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
 type Options = { storage: AuthStorage; now?: () => number; eventTarget?: Pick<Window, 'addEventListener' | 'removeEventListener' | 'dispatchEvent'>; persistSession?: boolean }
@@ -88,7 +89,7 @@ function memoryStorage(): AuthStorage {
   return { getItem: (key) => data.get(key) ?? null, setItem: (key, value) => { data.set(key, value) }, removeItem: (key) => { data.delete(key) } }
 }
 
-let storage: AuthStorage = memoryStorage()
+let storage: AuthStorage = getRuntimeStorage()
 let eventTarget: Options['eventTarget']
-if (typeof window !== 'undefined') { try { storage = window.localStorage; eventTarget = window } catch { /* storage unavailable */ } }
+if (typeof window !== 'undefined' && !isLinkedDataMode) eventTarget = window
 export const authRepository = createAuthRepository({ storage, eventTarget, persistSession: false })

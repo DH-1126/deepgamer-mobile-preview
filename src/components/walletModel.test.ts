@@ -6,9 +6,9 @@ describe('walletModel', () => {
   it('使用整数分格式化余额与流水方向', () => {
     const snapshot = createInitialWalletSnapshot()
     expect(formatWalletMoney(268_600)).toBe('¥2,686.00')
-    expect(formatWalletTransactionAmount(snapshot.transactions[1])).toBe('+¥2,000.00')
-    expect(formatWalletTransactionAmount(snapshot.transactions[2])).toBe('-¥60.00')
-    expect(getWalletTotalCents(snapshot)).toBe(348_000)
+    expect(formatWalletTransactionAmount(snapshot.transactions[1])).toBe('+620.00')
+    expect(formatWalletTransactionAmount(snapshot.transactions[2])).toBe('-620.00')
+    expect(getWalletTotalCents(snapshot)).toBe(153_600)
   })
 
   it('严格解析两位小数并校验提现范围', () => {
@@ -22,15 +22,16 @@ describe('walletModel', () => {
 
   it('按收入、支出和处理中筛选同一份流水', () => {
     const transactions = createInitialWalletSnapshot().transactions
-    expect(filterWalletTransactions(transactions, 'income')).toHaveLength(3)
-    expect(filterWalletTransactions(transactions, 'expense')).toHaveLength(3)
-    expect(filterWalletTransactions(transactions, 'pending').map((item) => item.id)).toEqual(['WT20260826001'])
+    expect(filterWalletTransactions(transactions, 'income')).toHaveLength(2)
+    expect(filterWalletTransactions(transactions, 'expense')).toHaveLength(2)
+    expect(filterWalletTransactions(transactions, 'pending').map((item) => item.id)).toEqual(['WT20260910001'])
   })
 
   it('流水状态仅展示已完成或处理中，并保留完整时间', () => {
-    expect(getWalletStatusLabel('completed')).toBe('已完成')
-    expect(getWalletStatusLabel('pending')).toBe('处理中')
-    expect(getWalletStatusLabel('frozen')).toBe('处理中')
+    expect(getWalletStatusLabel('completed')).toBe('已入账')
+    expect(getWalletStatusLabel('completed', 'withdrawal')).toBe('已到账')
+    expect(getWalletStatusLabel('pending')).toBe('托管中')
+    expect(getWalletStatusLabel('frozen')).toBe('托管中')
     expect(getWalletStatusLabel('failed')).toBe('处理中')
     expect(formatWalletTime('2026-08-26T09:26:00.123+08:00', true)).toBe('2026-08-26 09:26:00.123')
   })

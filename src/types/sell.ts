@@ -7,6 +7,7 @@ export type SellGame = {
   consultationCount: number
   featured?: boolean
   color: string
+  image?: string
 }
 
 export type RecyclerAvailability = 'online' | 'offline'
@@ -29,3 +30,5 @@ export type SellSelection = {
   updatedAt: number
 }
 
+export type GameAccessRequestInput = { gameName: string; manufacturer: string }
+export type GameAccessRequest = GameAccessRequestInput & { createdAt: number }

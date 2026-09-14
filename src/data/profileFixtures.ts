@@ -2,8 +2,8 @@ import type { ProfileEntry, ProfileOrder, ProfileUser } from '../types/profile'
 import { SUPPORT_CONVERSATION_ROUTE } from './messageFixtures'
 
 export const profileUser: ProfileUser = {
-  name: '用户4761',
-  managementId: '1114782432555352661',
+  name: '玩家_8471',
+  managementId: '20260803',
   loginStatus: '已登录',
   balanceCents: 0,
   favoriteCount: 2,
@@ -19,12 +19,11 @@ export function createProfileOrders(now: number): ProfileOrder[] {
 }
 
 export const profileMoreEntries: ProfileEntry[] = [
-  { label: '卖家签约', route: '/seller/center', status: '未签约', badge: '减免手续费' },
   { label: '实名认证', route: '/realname', status: '已认证' },
-  { label: '设置', route: '/settings' },
   { label: '隐私与协议', route: '/privacy-and-agreements' },
-  { label: '退出登录', action: 'logout' },
+  { label: '账号与安全', route: '/account-security' },
+  { label: '设置', route: '/settings' },
 ]
 
-export const profilePrimaryRoutes = ['/settings', '/settings/password', '/settings/bindings', '/settings/cancellation', '/privacy-and-agreements', '/about-us', '/wallet', '/favorites', '/orders', '/sell', '/sell/goods', '/aftersales', '/aftersales/AS202608270001', '/seller/center', '/seller/apply/personal', '/seller/apply/business', '/realname', '/privacy-policy', '/user-agreement', SUPPORT_CONVERSATION_ROUTE] as const
+export const profilePrimaryRoutes = ['/account-security', '/account-security/profile', '/account-security/phone', '/settings', '/settings/password', '/settings/bindings', '/settings/cancellation', '/privacy-and-agreements', '/about-us', '/wallet', '/favorites', '/orders', '/sell', '/sell/goods', '/aftersales', '/aftersales/AS202608270001', '/seller/center', '/seller/apply/personal', '/seller/apply/business', '/realname', '/privacy-policy', '/user-agreement', SUPPORT_CONVERSATION_ROUTE] as const
 export const profileRouteAliases = [{ route: '/message', alias: '/messages' }, { route: '/footprint', alias: '/footprints' }] as const

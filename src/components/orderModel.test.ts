@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createOrderSeed } from '../data/orderFixtures'
-import { canTransitionOrder, countOrdersByStatus, expirePendingOrders, filterOrders, formatOrderCountdown, formatOrderMoney, getOrderStatusLabel, transitionOrder } from './orderModel'
+import { canTransitionOrder, countOrdersByStatus, expirePendingOrders, filterOrders, formatOrderCountdown, formatOrderMoney, getOrderStatusLabel, getOrderTimeline, getOrderWorkflowPhase, getOrderWorkflowStep, transitionOrder } from './orderModel'
 
 describe('orderModel', () => {
   const now = 2_000_000_000_000
@@ -32,10 +32,20 @@ describe('orderModel', () => {
   })
 
   it('买卖角色、状态组和关键词筛选均源自同一状态字段', () => {
-    expect(filterOrders(orders, { role: 'buyer', status: 'trading' })).toHaveLength(2)
-    expect(countOrdersByStatus(orders, 'seller', 'trading')).toBe(2)
+    expect(filterOrders(orders, { role: 'buyer', status: 'trading' })).toHaveLength(4)
+    expect(countOrdersByStatus(orders, 'seller', 'trading')).toBe(4)
     expect(filterOrders(orders, { query: 'OD20260821000000001' })[0]?.status).toBe('pending')
     expect(filterOrders(orders, { query: '三角洲' })[0]?.role).toBe('seller')
     expect(getOrderStatusLabel('binding', 'seller')).toBe('待你换绑')
+  })
+
+  it('订单详情和交易群共享四阶段映射且验号由买家完成', () => {
+    expect(getOrderWorkflowPhase('paid')).toBe('materials')
+    expect(getOrderWorkflowPhase('verifying')).toBe('inspection')
+    expect(getOrderWorkflowPhase('binding')).toBe('binding')
+    expect(getOrderWorkflowPhase('bind_success')).toBe('release')
+    expect(getOrderWorkflowStep('completed')).toBe(4)
+    const buyerInspection = { ...orders[0], status: 'verifying' as const }
+    expect(getOrderTimeline(buyerInspection, now).map((item) => item.title)).toContain('核对账号资料')
   })
 })

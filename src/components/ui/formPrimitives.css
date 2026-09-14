@@ -1,0 +1,24 @@
+@import './tokens.css';
+.dg-form-field { display:flex; flex-direction:column; min-width:0; gap:8px; color:var(--dg-color-text); font-size:var(--dg-font-body); }
+.dg-form-field__label { font-weight:600; line-height:20px; }
+.dg-form-field__textarea, .dg-form-field__select { width:100%; min-width:0; border:0; border-radius:var(--dg-radius-control); color:var(--dg-color-text); background:var(--dg-color-field); font:inherit; }
+.dg-form-field__textarea { min-height:100px; padding:12px 14px; line-height:22px; resize:vertical; }
+.dg-form-field__textarea::placeholder { color:var(--dg-color-text-muted); }
+.dg-form-field__select-wrap { display:block; position:relative; }
+.dg-form-field__select { height:52px; padding:0 40px 0 14px; appearance:none; }
+.dg-form-field__select--compact { height:38px; border-radius:10px; }
+.dg-form-field__select-wrap > svg { position:absolute; right:14px; top:50%; transform:translateY(-50%); color:var(--dg-color-text-muted); pointer-events:none; }
+.dg-form-field__textarea:disabled, .dg-form-field__select:disabled { opacity:.5; cursor:not-allowed; }
+.dg-form-field__footer { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; color:var(--dg-color-text-muted); font-size:12px; line-height:18px; }
+.dg-form-field__count { margin-left:auto; flex-shrink:0; }
+.dg-form-field__error { color:var(--dg-color-danger, #c83242); }
+.dg-form-field .dg-ui-focus:focus-visible { outline:none; }
+.dg-form-field--keyboard .dg-ui-focus:focus-visible { outline:2px solid #d0b900; outline-offset:2px; }
+.dg-option-tile { width:100%; display:flex; align-items:center; gap:12px; padding:16px; border:1px solid var(--dg-color-line); border-radius:var(--dg-radius-card); background:var(--dg-color-surface); color:var(--dg-color-text); text-align:left; font-family:inherit; cursor:pointer; }
+.dg-option-tile[aria-pressed="true"] { border-color:var(--dg-color-yellow); background:var(--dg-color-yellow-soft); }
+.dg-option-tile:disabled { opacity:.45; cursor:not-allowed; }
+.dg-option-tile__icon { flex:0 0 40px; width:40px; height:40px; display:grid; place-items:center; border-radius:12px; background:var(--dg-color-yellow-soft); }
+.dg-option-tile__content { min-width:0; flex:1; display:grid; gap:4px; overflow-wrap:anywhere; }
+.dg-option-tile__content > strong { font-size:var(--dg-font-body); line-height:20px; font-weight:700; }
+.dg-option-tile__content > span { font-size:var(--dg-font-meta); line-height:18px; color:var(--dg-color-text-secondary); }
+.dg-option-tile__trailing { display:flex; flex-shrink:0; color:var(--dg-color-text-muted); }

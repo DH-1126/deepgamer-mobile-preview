@@ -1,0 +1,2 @@
+.dg-verification-seal { display:block; width:calc(128px / 3 * 2); height:calc(128px / 3 * 2); object-fit:contain; transform:rotate(70deg); pointer-events:none; user-select:none; }
+.dg-verification-seal--watermark { opacity:.32; mix-blend-mode:multiply; }

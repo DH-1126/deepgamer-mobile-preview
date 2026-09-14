@@ -1,6 +1,8 @@
-import { expirePendingOrders, filterOrders, isOrderRole, isOrderStatus, transitionOrder } from '../components/orderModel'
+import { expirePendingOrders, filterOrders, getOrderWorkflowPhase, isOrderRole, isOrderStatus, transitionOrder } from '../components/orderModel'
 import { createOrderSeed, ORDERS_STORAGE_KEY } from '../data/orderFixtures'
-import type { OrderPaymentMethod, OrderQuery, OrderRecord, OrderStatus } from '../types/order'
+import { ARCHIVED_TRADE_ID, createArchivedTradeSeed } from '../data/archivedTradeFixtures'
+import type { OrderPaymentMethod, OrderQuery, OrderRecord, OrderStatus, OrderWorkflowPhase } from '../types/order'
+import { getRuntimeStorage, isLinkedDataMode } from '../runtime/dataMode'
 
 export type OrderStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
 type OrderRepositoryOptions = {
@@ -31,13 +33,38 @@ function cloneOrders(orders: readonly OrderRecord[]) {
   return orders.map((order) => ({ ...order }))
 }
 
+const LEGACY_CONVERSATION_MIGRATIONS: Record<string, { from: string; to: string }> = {
+  OD20260821000000003: { from: 'trade-wzry', to: 'trade-wzry-od03' },
+  OD20260820000000005: { from: 'trade-wzry', to: 'trade-wzry-od05' },
+}
+
+function migrateLegacyConversations(orders: OrderRecord[], at: number) {
+  let changed = false
+  const next = orders.map((order) => {
+    const migration = LEGACY_CONVERSATION_MIGRATIONS[order.id]
+    if (!migration || order.conversationId !== migration.from) return order
+    changed = true
+    return { ...order, conversationId: migration.to }
+  })
+  if (!next.some(order => order.conversationId === ARCHIVED_TRADE_ID)
+    && next.some(order => order.id === 'OD20260821000000001')) {
+    const archivedOrder = createArchivedTradeSeed(at).order
+    if (!next.some(order => order.id === archivedOrder.id)) { next.push(archivedOrder); changed = true }
+  }
+  return changed ? next : orders
+}
+
 export function createOrderRepository({ storage, now = Date.now, eventTarget }: OrderRepositoryOptions) {
   const listeners = new Set<() => void>()
   const source = `orders-${Math.random().toString(36).slice(2)}`
 
   const read = () => {
     const persisted = parseOrders(storage.getItem(ORDERS_STORAGE_KEY))
-    if (persisted !== null) return persisted
+    if (persisted !== null) {
+      const migrated = migrateLegacyConversations(persisted, now())
+      if (migrated !== persisted) storage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(migrated))
+      return migrated
+    }
     const seed = createOrderSeed(now())
     storage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(seed))
     return seed
@@ -82,6 +109,20 @@ export function createOrderRepository({ storage, now = Date.now, eventTarget }: 
   return {
     list(query: OrderQuery = {}) { return cloneOrders(filterOrders(read(), query)) },
     get(id: string) { const found = read().find((order) => order.id === id); return found ? { ...found } : undefined },
+    ensure(record: OrderRecord) {
+      try {
+        if (!isOrderRecord(record) || !record.conversationId) return false
+        const orders = read()
+        const existing = orders.find((order) => order.id === record.id)
+        if (existing) {
+          return existing.role === record.role
+            && existing.productId === record.productId
+            && existing.conversationId === record.conversationId
+        }
+        if (orders.some((order) => order.conversationId === record.conversationId)) return false
+        return commit([...cloneOrders(orders), { ...record }])
+      } catch { return false }
+    },
     expire(at = now()) {
       try {
         const current = read()
@@ -119,11 +160,28 @@ export function createOrderRepository({ storage, now = Date.now, eventTarget }: 
     },
     advance(id: string, status: OrderStatus) {
       return mutateOne(id, (order) => {
+        if (order.pausedPhase && order.status !== status) return null
         const next = transitionOrder(order, status, now())
         return next === order && order.status !== status ? null : next
       })
     },
-    restore(orders: readonly OrderRecord[]) { try { return commit(cloneOrders(orders)) } catch { return false } },
+    confirmReceipt(id: string) {
+      return mutateOne(id, (order) => !order.pausedPhase && order.status === 'bind_success' ? transitionOrder(order, 'completed', now()) : null)
+    },
+    pause(id: string, phase: Exclude<OrderWorkflowPhase, 'completed' | 'closed'>) {
+      return mutateOne(id, (order) => {
+        if (order.pausedPhase === phase) return order
+        if (order.pausedPhase || getOrderWorkflowPhase(order.status) !== phase) return null
+        return { ...order, pausedPhase: phase, updatedAt: now() }
+      })
+    },
+    restore(orders: readonly OrderRecord[]) {
+      try {
+        const conversationIds = orders.flatMap(order => order.conversationId ? [order.conversationId] : [])
+        if (new Set(conversationIds).size !== conversationIds.length) return false
+        return commit(cloneOrders(orders))
+      } catch { return false }
+    },
     subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener) } },
     dispose() { eventTarget?.removeEventListener(EVENT, external); eventTarget?.removeEventListener('storage', external); listeners.clear() },
   }
@@ -134,7 +192,7 @@ function memoryStorage(): OrderStorage {
   return { getItem: (key) => values.get(key) ?? null, setItem: (key, value) => { values.set(key, value) }, removeItem: (key) => { values.delete(key) } }
 }
 
-let storage: OrderStorage = memoryStorage()
+let storage: OrderStorage = getRuntimeStorage()
 let eventTarget: OrderRepositoryOptions['eventTarget']
-if (typeof window !== 'undefined') { try { storage = window.localStorage; eventTarget = window } catch { /* storage unavailable */ } }
+if (typeof window !== 'undefined' && !isLinkedDataMode) eventTarget = window
 export const orderRepository = createOrderRepository({ storage, eventTarget })
