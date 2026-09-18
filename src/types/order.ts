@@ -35,6 +35,12 @@ export type OrderRecord = {
   actionExpiresAt?: number
   paymentMethod?: OrderPaymentMethod
   conversationId?: string
+  /** 订单列表展示元数据；兼容历史订单。 */
+  orderKind?: 'account' | 'recycle'
+  listTags?: string[]
+  afterSaleEndsAt?: number
+  refundAmountCents?: number
+  cancelReason?: string
   /** 异常介入时保留被暂停的履约阶段；存在时任何正常推进都必须被拦截。 */
   pausedPhase?: Exclude<OrderWorkflowPhase, 'completed' | 'closed'>
   /** 可选展示字段，旧订单记录不提供时仍使用 productTitle。 */

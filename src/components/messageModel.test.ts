@@ -7,14 +7,14 @@ describe('messageModel', () => {
   const store = createMessageSeed(now)
 
   it('默认任务、交易群与未读计数符合契约', () => {
-    expect(getMessageSummary(store)).toEqual({ unreadCount: 17, groupCount: 10, taskCount: 7 })
-    expect(store.conversations.filter((item) => item.kind === 'trade_group')).toHaveLength(14)
+    expect(getMessageSummary(store)).toEqual({ unreadCount: 17, groupCount: 15, taskCount: 9 })
+    expect(store.conversations.filter((item) => item.kind === 'trade_group')).toHaveLength(24)
   })
 
-  it('全部隐藏关闭项，交易群按7/3/4分组', () => {
+  it('全部隐藏关闭项，新增订单交易群按9/6/9分组', () => {
     expect(filterConversations(store.conversations, 'all').some((item) => item.stage === 'closed')).toBe(false)
     const groups = groupTradeConversations(filterConversations(store.conversations, 'groups'))
-    expect([groups.need_action.length, groups.in_progress.length, groups.closed.length]).toEqual([7, 3, 4])
+    expect([groups.need_action.length, groups.in_progress.length, groups.closed.length]).toEqual([9, 6, 9])
     expect(filterConversations(store.conversations, 'notifications').map((item) => item.id)).toEqual(['system-notice'])
   })
 

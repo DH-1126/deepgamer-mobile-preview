@@ -26,13 +26,14 @@ describe('orderModel', () => {
     const expiredAt = now + 31 * 60_000
     const next = expirePendingOrders(orders, expiredAt)
     expect(next).not.toBe(orders)
+    expect(next.find((order) => order.id === 'OD3015035674505896501')?.status).toBe('pay_expired')
     expect(next.find((order) => order.id === 'OD20260821000000001')?.status).toBe('pay_expired')
     expect(next.find((order) => order.status === 'binding')).toBeTruthy()
     expect(expirePendingOrders(next, expiredAt)).toBe(next)
   })
 
   it('买卖角色、状态组和关键词筛选均源自同一状态字段', () => {
-    expect(filterOrders(orders, { role: 'buyer', status: 'trading' })).toHaveLength(4)
+    expect(filterOrders(orders, { role: 'buyer', status: 'trading' })).toHaveLength(8)
     expect(countOrdersByStatus(orders, 'seller', 'trading')).toBe(4)
     expect(filterOrders(orders, { query: 'OD20260821000000001' })[0]?.status).toBe('pending')
     expect(filterOrders(orders, { query: '三角洲' })[0]?.role).toBe('seller')

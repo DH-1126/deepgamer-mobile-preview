@@ -155,11 +155,11 @@ describe('one homepage-style navigation for every tab', () => {
     getRuntimeStorage().setItem(AFTERSALES_STORAGE_KEY, JSON.stringify(afterSalesFixtures))
     const profileLink = (route: string) => renderNav(route).match(/<a [^>]*href="\/profile"[^>]*>[\s\S]*?<\/a>/)?.[0] ?? ''
     for (const route of routes) {
-      expect(profileLink(route)).toContain('aria-label="5项"')
+      expect(profileLink(route)).toContain('aria-label="7项"')
       expect(renderNav(route)).toContain('aria-label="17项"')
     }
     orderRepository.cancel('OD20260821000000001')
-    for (const route of routes) expect(profileLink(route)).toContain('aria-label="4项"')
+    for (const route of routes) expect(profileLink(route)).toContain('aria-label="6项"')
     afterSaleRepository.restore([])
     orderRepository.restore([])
     expect(profileLink('/')).not.toContain('data-ui="CountBadge"')

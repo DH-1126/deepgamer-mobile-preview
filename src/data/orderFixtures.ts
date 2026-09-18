@@ -2,6 +2,7 @@ import type { OrderRecord } from '../types/order'
 import { assetPath } from '../components/assetPath'
 import { createTradeMessageSeed } from './tradeMessageFixtures'
 import { createArchivedTradeSeed } from './archivedTradeFixtures'
+import { createOrderListSeed } from './orderListFixtures'
 
 export const ORDERS_STORAGE_KEY = 'deepgamer.orders.v1'
 
@@ -47,5 +48,10 @@ export function createOrderSeed(now: number): OrderRecord[] {
       totalAmountCents: 330_800, conversationId: 'trade-delta', createdOffset: -24 * hour,
     },
   ]
-  return [...seeds.map(({ createdOffset, ...record }) => ({ ...record, createdAt: now + createdOffset, updatedAt: now + createdOffset })), ...createTradeMessageSeed(now).orders, createArchivedTradeSeed(now).order]
+  return [
+    ...createOrderListSeed(now).orders,
+    ...seeds.map(({ createdOffset, ...record }) => ({ ...record, createdAt: now + createdOffset, updatedAt: now + createdOffset })),
+    ...createTradeMessageSeed(now).orders,
+    createArchivedTradeSeed(now).order,
+  ]
 }

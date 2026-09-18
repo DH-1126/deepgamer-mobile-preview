@@ -10,7 +10,9 @@ import { messageRepository } from '../repository/messageRepository'
 import type { OrderPaymentMethod, OrderRecord, OrderRole } from '../types/order'
 import { assetPath } from '../components/assetPath'
 import { useTitleDefinition } from '../components/titleConfigClient'
-import { Button, Dialog, Heading, PageHeader, SearchField, StatusBadge, StatusBar, Tabs, Toast } from '../components/ui'
+import { OrderListCard } from '../components/OrderListCard'
+import { formatOrderListMoney } from '../components/orderListPresentation'
+import { Button, Dialog, Heading, PageHeader, SearchField, StatusBar, Tabs, Toast } from '../components/ui'
 import '../styles/orders-v2.css'
 
 function OrderTopBar({ title, side }: { title: string; side?: ReactNode }) {
@@ -77,6 +79,7 @@ function OrderProductTitle({ order, primaryOnly = false }: { order: OrderRecord;
     price: order.goodsAmountCents / 100,
   }), [order])
   const result = useMemo(() => resolveTitle(definition, titleProduct, 'LIST_CARD'), [definition, titleProduct])
+  if (!order.titleValues || !Object.keys(order.titleValues).length) return <strong className="order-shared-title order-product-title-fallback">{order.productTitle}</strong>
   return <TitleBlocks result={result} primaryOnly={primaryOnly} className="order-shared-title" />
 }
 
@@ -84,32 +87,12 @@ function ProductRow({ order, compact = false }: { order: OrderRecord; compact?: 
   return <div className={`order-product ${compact ? 'compact' : ''}`}><img src={order.thumbnail} alt={order.gameName} /><span><OrderProductTitle order={order} primaryOnly={compact} /><small>{order.gameName} · {order.server}</small><strong>{formatOrderMoney(order.goodsAmountCents)}</strong></span></div>
 }
 
-function cardAction(order: OrderRecord, onAdvance: (order: OrderRecord, status: 'bind_success' | 'completed') => void) {
-  if (order.status === 'pending') return <Link className="primary full" to={`/orders/checkout?id=${encodeURIComponent(order.id)}`}>去支付 <b>{formatOrderMoney(order.totalAmountCents)}</b></Link>
-  if (order.status === 'binding' && order.role === 'seller') return <><Link to={orderTradeRoute(order)}>进交易群</Link><button type="button" className="primary" onClick={() => onAdvance(order, 'bind_success')}>完成换绑</button></>
-  if (['paid', 'verifying', 'binding'].includes(order.status)) return <><Link to={orderTradeRoute(order)}>{order.role === 'seller' ? '查看步骤' : order.status === 'binding' ? '催一下卖家' : '联系卖家'}</Link><Link className="dark" to={orderTradeRoute(order)}>进交易群</Link></>
-  if (order.status === 'bind_success') return order.role === 'buyer'
-    ? <><Link className="danger" to={`/aftersales/apply?orderId=${encodeURIComponent(order.id)}`}>验号不符</Link><button type="button" className="primary" onClick={() => onAdvance(order, 'completed')}>确认收货</button></>
-    : <><Link to={orderTradeRoute(order)}>进交易群</Link><Link className="single" to={`/orders/${order.id}`}>等待买家确认</Link></>
-  return <Link className="single" to={`/orders/${order.id}`}>查看详情</Link>
-}
-
-function OrderListCard({ order, now, onAdvance }: { order: OrderRecord; now: number; onAdvance: (order: OrderRecord, status: 'bind_success' | 'completed') => void }) {
-  const countdown = order.status === 'pending' ? formatOrderCountdown(order.expiresAt, now) : order.status === 'bind_success' ? formatOrderCountdown(order.actionExpiresAt, now) : ''
-  const statusTone = order.status === 'completed' ? 'success' : ['pay_expired', 'cancelled', 'closed'].includes(order.status) ? 'neutral' : ['pending', 'bind_success'].includes(order.status) ? 'warning' : 'info'
-  return <article className={`order-list-card state-${order.status}`}>
-    <header><span><StatusBadge tone={statusTone}>{getOrderStatusLabel(order.status, order.role)}</StatusBadge>{['pending', 'bind_success'].includes(order.status) && <b>该你了</b>}</span>{countdown ? <time>{countdown}</time> : <small>{order.status === 'binding' ? '已 41分钟' : order.role === 'seller' ? '卖家订单' : ''}</small>}</header>
-    <Link className="order-card-main" to={`/orders/${order.id}`}><ProductRow order={order} compact /></Link>
-    <p>{order.status === 'pending' ? '超时未付将自动取消订单并释放该商品' : order.status === 'binding' ? (order.role === 'seller' ? '请在平台交易群内按步骤完成换绑' : '超 24 小时未换绑可申请客服介入') : order.status === 'bind_success' ? '72 小时后系统自动确认；有问题请在此之前反馈' : getOrderPrimaryMessage(order).detail}</p>
-    <footer>{cardAction(order, onAdvance)}</footer>
-  </article>
-}
-
 export function OrderListPage() {
-  const { orders, now, refresh } = useOrderData()
+  const { orders, now } = useOrderData()
   const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
-  const [feedback, setFeedback] = useState('')
+  const [payoutOrder, setPayoutOrder] = useState<OrderRecord | null>(null)
+  const closePayout = useCallback(() => setPayoutOrder(null), [])
   const query = params.get('query') ?? ''
   const [draftQuery, setDraftQuery] = useState(query)
   const role: OrderRole = isOrderRole(params.get('role')) ? params.get('role') as OrderRole : 'buyer'
@@ -126,12 +109,6 @@ export function OrderListPage() {
   }
   useEffect(() => setDraftQuery(query), [query])
   const submitSearch = () => update('query', draftQuery.trim())
-  const advance = async (order: OrderRecord, nextStatus: 'bind_success' | 'completed') => {
-    const success = nextStatus === 'completed' ? orderRepository.confirmReceipt(order.id) : orderRepository.advance(order.id, nextStatus)
-    const summarySynced = success ? await syncOrderConversation(order) : false
-    refresh()
-    setFeedback(success ? `${nextStatus === 'completed' ? '已确认收货，平台将按规则放款' : '已标记换绑完成'}${summarySynced ? '' : '，消息摘要稍后同步'}` : '订单状态已变化或交易已暂停，请刷新后重试')
-  }
   return <main className="order-v2-page order-list-page">
     <header className="order-list-header"><StatusBar /><div className="order-list-title"><button type="button" onClick={() => navigate(-1)} aria-label="返回"><ArrowLeft size={19} aria-hidden="true" /></button><Heading as="h1" variant="page">订单</Heading><div className="order-list-search-layout" role="search"><SearchField className="order-list-search-field" value={draftQuery} maxLength={80} onChange={(event) => setDraftQuery(event.target.value)} onClear={() => setDraftQuery('')} onSearch={submitSearch} placeholder="搜索订单" aria-label="搜索订单号、商品编号、游戏或商品" /></div><Link to={SUPPORT_CONVERSATION_ROUTE} aria-label="联系平台客服"><Headphones size={18} aria-hidden="true" /></Link></div>
       <OrderDomainTabs active={role} buyerCount={countTradeOrders(orders, 'buyer', 'all')} sellerCount={countTradeOrders(orders, 'seller', 'all')} />
@@ -139,8 +116,17 @@ export function OrderListPage() {
     </header>
     <div className="order-list-scroll" id="order-status-panel" role="tabpanel">
       {scenario !== 'error' && actionable.length > 0 && status === 'all' && !query && <section className="order-task-summary"><Heading as="h2" variant="section"><i />需要你处理 · <b>{actionable.length}</b>件</Heading><p>{actionable.map((order) => order.status === 'pending' ? `1 笔待付款，剩 ${formatOrderCountdown(order.expiresAt, now)}` : order.status === 'bind_success' ? `1 笔待确认，剩 ${formatOrderCountdown(order.actionExpiresAt, now)}` : '1 笔订单待换绑').join(' · ')}</p></section>}
-      {scenario === 'error' ? <section className="order-v2-empty error"><span aria-hidden="true">!</span><Heading as="h2" variant="result">订单加载失败</Heading><p>这是本地异常场景。移除 scenario 参数即可恢复正常订单列表。</p><button type="button" onClick={() => { const next = new URLSearchParams(params); next.delete('scenario'); setParams(next, { replace: true }) }}>重新加载</button></section> : scenario === 'empty' || !visible.length ? <OrderEmpty title={query ? '没有匹配的订单' : '暂无订单'} /> : visible.map((order) => <OrderListCard key={order.id} order={order} now={now} onAdvance={advance} />)}
-    </div><Toast message={feedback} onDismiss={() => setFeedback('')} />
+      {scenario === 'error' ? <section className="order-v2-empty error"><span aria-hidden="true">!</span><Heading as="h2" variant="result">订单加载失败</Heading><p>这是本地异常场景。移除 scenario 参数即可恢复正常订单列表。</p><button type="button" onClick={() => { const next = new URLSearchParams(params); next.delete('scenario'); setParams(next, { replace: true }) }}>重新加载</button></section> : scenario === 'empty' || !visible.length ? <OrderEmpty title={query ? '没有匹配的订单' : '暂无订单'} /> : visible.map((order) => <OrderListCard key={order.id} order={order} now={now} onShowPayout={setPayoutOrder} />)}
+    </div>
+    <Dialog open={Boolean(payoutOrder)} title="打款明细" onClose={closePayout} actions={<Button onClick={closePayout}>我知道了</Button>}>
+      {payoutOrder && <dl className="order-payout-details">
+        <div><dt>打款金额</dt><dd className="order-payout-amount">{formatOrderListMoney(payoutOrder.goodsAmountCents)}</dd></div>
+        <div><dt>打款状态</dt><dd>已打款</dd></div>
+        <div><dt>订单号</dt><dd>{payoutOrder.id}</dd></div>
+        <div><dt>打款时间</dt><dd>{new Date(payoutOrder.updatedAt).toLocaleString('zh-CN', { hour12: false })}</dd></div>
+        <div><dt>交易类型</dt><dd>账号回收</dd></div>
+      </dl>}
+    </Dialog>
   </main>
 }
 
@@ -211,7 +197,7 @@ export function PaymentCancelPage() {
   const [reason, setReason] = useState('找到更合适的号')
   if (!order) return <main className="order-v2-page"><OrderTopBar title="取消订单" /><OrderEmpty title="订单不存在" /></main>
   const cancel = () => {
-    if (!orderRepository.cancel(order.id)) setError('订单状态已变化，无法取消。')
+    if (!orderRepository.cancel(order.id, reason)) setError('订单状态已变化，无法取消。')
     refresh()
   }
   const cancelled = order.status === 'cancelled'

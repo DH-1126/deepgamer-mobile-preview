@@ -33,7 +33,7 @@ describe('orderRepository', () => {
   })
 
   it('只在 key 缺失时 seed，持久空数组不会被重新填充', () => {
-    expect(createOrderRepository({ storage: fakeStorage(), now: () => now }).list()).toHaveLength(13)
+    expect(createOrderRepository({ storage: fakeStorage(), now: () => now }).list()).toHaveLength(23)
     const empty = fakeStorage({ [ORDERS_STORAGE_KEY]: '[]' })
     expect(createOrderRepository({ storage: empty, now: () => now }).list()).toEqual([])
   })
@@ -69,6 +69,16 @@ describe('orderRepository', () => {
     expect(repository.get('OD20260821000000001')).toMatchObject({ status: 'paid', paymentMethod: 'alipay', totalAmountCents: 153_600 })
   })
 
+  it('保存真实取消原因，重复取消不覆盖第一次选择', () => {
+    const repository = createOrderRepository({ storage: fakeStorage(), now: () => now })
+    const id = 'OD3015035674505896501'
+    expect(repository.cancel(id, '  价格太高了  ')).toBe(true)
+    expect(repository.get(id)).toMatchObject({ status: 'cancelled', cancelReason: '价格太高了' })
+    expect(repository.cancel(id, '找到更合适的号')).toBe(true)
+    expect(repository.get(id)?.cancelReason).toBe('价格太高了')
+    expect(repository.cancel('OD3015035674505896502', '不想买了')).toBe(false)
+  })
+
   it('确认收货只允许从待确认推进到完成', () => {
     const repository = createOrderRepository({ storage: fakeStorage(), now: () => now })
     expect(repository.confirmReceipt('OD20260821000000001')).toBe(false)
@@ -98,7 +108,7 @@ describe('orderRepository', () => {
   it('到期批处理仅提交一次并通知订阅', () => {
     const repository = createOrderRepository({ storage: fakeStorage(), now: () => now })
     const listener = vi.fn(); repository.subscribe(listener)
-    expect(repository.expire(now + 31 * 60_000)).toBe(1)
+    expect(repository.expire(now + 31 * 60_000)).toBe(2)
     expect(repository.expire(now + 31 * 60_000)).toBe(0)
     expect(listener).toHaveBeenCalledTimes(1)
   })

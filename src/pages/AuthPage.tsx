@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Bell, Check, Eye, EyeOff, RotateCw, UserRound, X } from 'lucide-react'
 import { agreementSections, AUTH_POLICY_UPDATED_AT, DEMO_MASKED_PHONE, DEMO_PASSWORD, privacySections } from '../data/authFixtures'
-import { buildLoginRoute, formatLoginPhone, getCountdown, getLoginFigmaNodeId, getWelcomeFigmaNodeId, normalizeCode, normalizePhone, sanitizeReturnTo, type WelcomePhase } from '../components/authModel'
+import { buildLoginRoute, formatLoginPhone, getCountdown, getLoginFigmaNodeId, getWelcomeFigmaNodeId, isValidMainlandPhone, normalizeCode, normalizePhone, sanitizeReturnTo, type WelcomePhase } from '../components/authModel'
+import { AuthVerificationDialog, type AuthVerificationIntent } from '../components/AuthVerificationDialog'
 import { isGuestAccessiblePath } from '../components/authAccessModel'
 import { assetPath } from '../components/assetPath'
 import { Button, Checkbox, Dialog, Heading, IconButton, Spinner, StatusBar, TextField, Toast } from '../components/ui'
@@ -90,14 +91,20 @@ export function LoginPage({ method }: { method: AuthMethod }) {
   const [showPassword, setShowPassword] = useState(false)
   const [agreed, setAgreed] = useState(method !== 'one_tap')
   const [protocolPrompt, setProtocolPrompt] = useState(false)
+  const [agreementAction, setAgreementAction] = useState<'login' | 'reset'>('login')
+  const [verification, setVerification] = useState<AuthVerificationIntent | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [cooldownUntil, setCooldownUntil] = useState(0)
   const [now, setNow] = useState(Date.now())
+  const pending = useRef(false)
+  const mounted = useRef(true)
   const countdown = getCountdown(cooldownUntil, now)
   const returnTo = useMemo(() => sanitizeReturnTo(params.get('returnTo') ?? (location.state as { returnTo?: string } | null)?.returnTo), [location.state, params])
   const closeTo = useMemo(() => sanitizeReturnTo(params.get('closeTo'), isGuestAccessiblePath(returnTo) ? returnTo : '/'), [params, returnTo])
+
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false } }, [])
 
   useEffect(() => {
     if (!countdown) return undefined
@@ -107,14 +114,34 @@ export function LoginPage({ method }: { method: AuthMethod }) {
   const finishLoginFeedback = useCallback(() => navigate(returnTo, { replace: true }), [navigate, returnTo])
 
   const goToMethod = (next: AuthMethod) => navigate(buildLoginRoute(next, returnTo, closeTo), { state: { loginPhone: phone } })
-  const requireAgreement = () => { if (agreed) return true; setProtocolPrompt(true); return false }
+  const requireAgreement = (action: 'login' | 'reset' = 'login') => { if (agreed) return true; setAgreementAction(action); setProtocolPrompt(true); return false }
   const finish = async (request: () => ReturnType<typeof authRepository.loginOneTap>) => {
-    if (busy || success) return
+    if (pending.current || success) return
+    pending.current = true
     setBusy(true); setError('')
-    const result = await request()
-    setBusy(false)
-    if (!result.ok) { setError(result.error); return }
-    setSuccess('登录成功，正在返回…')
+    try {
+      const result = await request()
+      if (!mounted.current) return
+      if (!result.ok) {
+        if (result.reason === 'unregistered') setVerification({ mode: 'register', phone, password })
+        else if (result.reason === 'password_reset_required') setVerification({ mode: 'reset', phone, trigger: 'attempts' })
+        else setError(result.error)
+        return
+      }
+      setPassword('')
+      setSuccess('登录成功，正在返回…')
+    } catch {
+      if (mounted.current) setError('登录失败，请稍后重试')
+    } finally {
+      pending.current = false
+      if (mounted.current) setBusy(false)
+    }
+  }
+  const openRecovery = () => {
+    if (!isValidMainlandPhone(phone)) { setError('请先输入正确的手机号'); return }
+    setError('')
+    if (!requireAgreement('reset')) return
+    setVerification({ mode: 'reset', phone, trigger: 'manual' })
   }
   const requestCode = async () => {
     setError('')
@@ -151,7 +178,7 @@ export function LoginPage({ method }: { method: AuthMethod }) {
           <div className="auth-v2-login-fields">
             <TextField className="auth-v2-login-field auth-v2-phone-field" inputMode="tel" autoComplete="tel" aria-label="手机号" value={displayedPhone} onChange={(event) => setPhone(normalizePhone(event.target.value))} placeholder="请输入手机号" leading={<span className="auth-v2-phone-prefix"><b>+86</b><i /></span>} trailing={phone ? <button type="button" className="auth-v2-phone-clear" aria-label="清空手机号" onClick={() => setPhone('')}><X size={11} /></button> : undefined} />
             {method === 'code' && <><TextField className="auth-v2-login-field auth-v2-code-field" inputMode="numeric" autoComplete="one-time-code" aria-label="验证码" value={code} onChange={(event) => setCode(normalizeCode(event.target.value))} placeholder="请输入验证码" trailing={<button type="button" className="auth-v2-code-link" disabled={countdown > 0} onClick={requestCode}>{countdown ? `${countdown}s后重试` : codeSent ? '重新获取' : '获取验证码'}</button>} /><div className="auth-v2-code-help"><span>收不到验证码？</span><Link to={SUPPORT_CONVERSATION_ROUTE}>联系客服</Link></div></>}
-            {method === 'password' && <><TextField className="auth-v2-login-field auth-v2-password-field" type={showPassword ? 'text' : 'password'} autoComplete="current-password" aria-label="登录密码" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="请输入登录密码" trailing={<button type="button" className="auth-v2-password-visibility" aria-label={showPassword ? '隐藏密码' : '显示密码'} onClick={() => setShowPassword((value) => !value)}>{showPassword ? <EyeOff size={19} /> : <Eye size={19} />}</button>} /><button type="button" className="auth-v2-forgot" onClick={() => setError('请联系玩家客服重置登录密码')}>忘记密码？</button></>}
+            {method === 'password' && <><TextField className="auth-v2-login-field auth-v2-password-field" type={showPassword ? 'text' : 'password'} autoComplete="current-password" aria-label="登录密码" value={password} onChange={(event) => { setPassword(event.target.value); setError('') }} placeholder="请输入登录密码" trailing={<button type="button" className="auth-v2-password-visibility" aria-label={showPassword ? '隐藏密码' : '显示密码'} onClick={() => setShowPassword((value) => !value)}>{showPassword ? <EyeOff size={19} /> : <Eye size={19} />}</button>} /><button type="button" className="auth-v2-forgot" disabled={busy || Boolean(success)} onClick={openRecovery}>忘记密码？</button></>}
           </div>
           <Button className="auth-v2-login-action" type="submit" size="xl" fullWidth loading={busy}>{LOGIN_METHOD_LABELS[method]}</Button>
         </>}
@@ -160,8 +187,9 @@ export function LoginPage({ method }: { method: AuthMethod }) {
       <div className="auth-v2-method-links">{method === 'one_tap' ? <><button type="button" onClick={() => goToMethod('code')}>{LOGIN_METHOD_LABELS.code}</button><i aria-hidden="true" /><button type="button" onClick={() => goToMethod('password')}>{LOGIN_METHOD_LABELS.password}</button></> : <><button type="button" onClick={() => goToMethod('one_tap')}>{LOGIN_METHOD_LABELS.one_tap}</button><i aria-hidden="true" /><button type="button" onClick={() => goToMethod(method === 'password' ? 'code' : 'password')}>{LOGIN_METHOD_LABELS[method === 'password' ? 'code' : 'password']}</button></>}</div>
       <AgreementCheck checked={agreed} onChange={() => setAgreed((value) => !value)} />
     </form>
+    {verification && <AuthVerificationDialog intent={verification} onClose={() => setVerification(null)} onSuccess={() => { setVerification(null); setPassword(''); setError(''); setSuccess(verification.mode === 'register' ? '注册成功，正在登录…' : '密码重置成功，正在登录…') }} />}
     <Toast message={success} onDismiss={finishLoginFeedback} />
-    <div className="auth-v2-protocol-dialog-node" data-node-id="3681:25048"><Dialog open={protocolPrompt} onClose={() => setProtocolPrompt(false)} title="请先阅读并同意协议" showClose={false} className="auth-v2-protocol-dialog" actions={<><Button variant="outline" onClick={() => setProtocolPrompt(false)}>不同意</Button><Button onClick={() => { setAgreed(true); setProtocolPrompt(false); proceed() }}>同意并登录</Button></>}><p data-node-id="3681:25084">继续登录前，需要你阅读并同意 <Link to="/user-agreement">《用户服务协议》</Link> 和 <Link to="/privacy-policy">《隐私政策》</Link>。未注册的手机号将在登录成功后自动创建账号。</p></Dialog></div>
+    <div className="auth-v2-protocol-dialog-node" data-node-id="3681:25048"><Dialog open={protocolPrompt} onClose={() => setProtocolPrompt(false)} title="请先阅读并同意协议" showClose={false} className="auth-v2-protocol-dialog" actions={<><Button variant="outline" onClick={() => setProtocolPrompt(false)}>不同意</Button><Button onClick={() => { setAgreed(true); setProtocolPrompt(false); if (agreementAction === 'reset') setVerification({ mode: 'reset', phone, trigger: 'manual' }); else proceed() }}>同意并登录</Button></>}><p data-node-id="3681:25084">继续登录前，需要你阅读并同意 <Link to="/user-agreement">《用户服务协议》</Link> 和 <Link to="/privacy-policy">《隐私政策》</Link>。未注册的手机号将在登录成功后自动创建账号。</p></Dialog></div>
   </main>
 }
 

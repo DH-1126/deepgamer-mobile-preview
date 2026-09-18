@@ -2,6 +2,7 @@ import type { MessageStore } from '../types/message'
 import { createNotificationSeed } from './notificationFixtures'
 import { createTradeMessageSeed } from './tradeMessageFixtures'
 import { createArchivedTradeSeed } from './archivedTradeFixtures'
+import { createOrderListSeed } from './orderListFixtures'
 
 export const MESSAGES_STORAGE_KEY = 'deepgamer.messages.v1'
 export const SUPPORT_CONVERSATION_ID = 'support-mengmeng'
@@ -30,5 +31,10 @@ export function createMessageSeed(now: number): MessageStore {
   ] satisfies MessageStore['messages']
   const tradeSamples = createTradeMessageSeed(now)
   const archived = createArchivedTradeSeed(now)
-  return { conversations: [...conversations, ...tradeSamples.conversations, archived.conversation], messages: [...messages, ...tradeSamples.messages, ...archived.messages], notifications: createNotificationSeed() }
+  const orderList = createOrderListSeed(now)
+  return {
+    conversations: [...orderList.conversations, ...conversations, ...tradeSamples.conversations, archived.conversation],
+    messages: [...orderList.messages, ...messages, ...tradeSamples.messages, ...archived.messages],
+    notifications: createNotificationSeed(),
+  }
 }

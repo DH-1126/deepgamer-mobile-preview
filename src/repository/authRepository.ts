@@ -1,9 +1,20 @@
-import { demoAuthUser } from '../data/authFixtures'
+import { DEMO_CODE, DEMO_PASSWORD, demoAuthUser } from '../data/authFixtures'
+import { authPolicy, type AuthPolicy } from '../data/authPolicy'
+import { passwordRequirements } from '../components/accountSettingsModel'
+import { isValidMainlandPhone, normalizeCode, normalizePhone } from '../components/authModel'
 import type { AgreementRecord, AuthMethod, AuthResult, AuthSession, CodeRequestResult, PushPermission } from '../types/auth'
 import { getRuntimeStorage, isLinkedDataMode } from '../runtime/dataMode'
 
 export type AuthStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
-type Options = { storage: AuthStorage; now?: () => number; eventTarget?: Pick<Window, 'addEventListener' | 'removeEventListener' | 'dispatchEvent'>; persistSession?: boolean }
+export type PasswordCodePurpose = 'register' | 'reset'
+export type AuthRepositoryOptions = {
+  storage: AuthStorage
+  now?: () => number
+  eventTarget?: Pick<Window, 'addEventListener' | 'removeEventListener' | 'dispatchEvent'>
+  persistSession?: boolean
+  policy?: Partial<AuthPolicy>
+}
+type PasswordChallenge = { code: string; cooldownUntil: number; expiresAt: number }
 
 export const AUTH_SESSION_KEY = 'deepgamer.auth.session.v1'
 export const AUTH_AGREEMENT_KEY = 'deepgamer.auth.agreement.v1'
@@ -19,10 +30,18 @@ function validSession(value: AuthSession | undefined): value is AuthSession {
   return Boolean(value?.authenticated && value.user?.id === demoAuthUser.id && ['one_tap', 'code', 'password'].includes(value.method))
 }
 
-export function createAuthRepository({ storage, now = Date.now, eventTarget, persistSession = true }: Options) {
+export function createAuthRepository({ storage, now = Date.now, eventTarget, persistSession = true, policy: policyOverride }: AuthRepositoryOptions) {
   const listeners = new Set<() => void>()
   let documentSession: AuthSession | undefined
   let launchCompleted = false
+  // Prototype-only, per-repository memory. Never put credentials, phones, or
+  // SMS codes in Storage, logs, or a network request.
+  const passwords = new Map<string, string>([['18788660033', DEMO_PASSWORD]])
+  const passwordAttempts = new Map<string, number>()
+  const passwordChallenges = new Map<string, PasswordChallenge>()
+  const passwordErrorLimit = Number.isInteger(policyOverride?.passwordErrorLimit) && (policyOverride?.passwordErrorLimit ?? 0) > 0
+    ? policyOverride!.passwordErrorLimit!
+    : authPolicy.passwordErrorLimit
   const source = Math.random().toString(36).slice(2)
   const emit = () => {
     listeners.forEach((listener) => listener())
@@ -35,6 +54,29 @@ export function createAuthRepository({ storage, now = Date.now, eventTarget, per
     const session: AuthSession = { authenticated: true, user: { ...demoAuthUser }, method, createdAt: now() }
     if (!persistSession) { documentSession = session; emit(); return { ok: true, session } }
     return set(AUTH_SESSION_KEY, session) ? { ok: true, session } : { ok: false, error: '登录状态保存失败，请重试' }
+  }
+  const agreementError = (): AuthResult => ({ ok: false, error: '请先阅读并同意用户服务协议和隐私政策' })
+  const invalidPhone = (): AuthResult => ({ ok: false, error: '请输入正确的手机号' })
+  const passwordChallengeKey = (phone: string, purpose: PasswordCodePurpose) => `${purpose}:${phone}`
+  const getChallenge = (phone: string, purpose: PasswordCodePurpose) => {
+    const key = passwordChallengeKey(phone, purpose)
+    const challenge = passwordChallenges.get(key)
+    if (challenge && challenge.expiresAt <= now()) {
+      passwordChallenges.delete(key)
+      return undefined
+    }
+    return challenge
+  }
+  const validatePasswordCode = (phone: string, purpose: PasswordCodePurpose, code: string): AuthResult | undefined => {
+    const key = passwordChallengeKey(phone, purpose)
+    const challenge = passwordChallenges.get(key)
+    if (!challenge) return { ok: false, error: '请先获取验证码', field: 'code' }
+    if (challenge.expiresAt <= now()) {
+      passwordChallenges.delete(key)
+      return { ok: false, error: '验证码已过期，请重新获取', field: 'code' }
+    }
+    if (normalizeCode(code) !== code || code !== challenge.code) return { ok: false, error: '验证码错误，请重新输入', field: 'code' }
+    return undefined
   }
   const external = (event: Event) => {
     if (event instanceof CustomEvent && event.detail?.source === source) return
@@ -65,8 +107,68 @@ export function createAuthRepository({ storage, now = Date.now, eventTarget, per
       return createSession('code')
     },
     async loginWithPassword(phone: string, password: string, agreed: boolean): Promise<AuthResult> {
-      if (!agreed) return { ok: false, error: '请先阅读并同意用户服务协议' }
+      if (!agreed) return agreementError()
+      const normalizedPhone = normalizePhone(phone)
+      if (!isValidMainlandPhone(normalizedPhone)) return invalidPhone()
+      if (!password) return { ok: false, error: '请输入密码', field: 'password' }
+      const storedPassword = passwords.get(normalizedPhone)
+      if (storedPassword === undefined) return { ok: false, error: '该手机号尚未注册，请先完成注册', reason: 'unregistered' }
+      if (password !== storedPassword) {
+        const attempts = (passwordAttempts.get(normalizedPhone) ?? 0) + 1
+        passwordAttempts.set(normalizedPhone, attempts)
+        const attemptsRemaining = Math.max(0, passwordErrorLimit - attempts)
+        if (attempts >= passwordErrorLimit) return { ok: false, error: '密码错误次数过多，请通过验证码重置密码', reason: 'password_reset_required', field: 'password', attemptsRemaining }
+        return { ok: false, error: '密码错误，请重试', reason: 'incorrect_password', field: 'password', attemptsRemaining }
+      }
+      passwordAttempts.delete(normalizedPhone)
       return createSession('password')
+    },
+    async requestPasswordCode(phone: string, purpose: PasswordCodePurpose): Promise<CodeRequestResult> {
+      const normalizedPhone = normalizePhone(phone)
+      if (!isValidMainlandPhone(normalizedPhone)) return { ok: false, error: '请输入正确的手机号' }
+      const current = now()
+      const currentChallenge = getChallenge(normalizedPhone, purpose)
+      if (currentChallenge && currentChallenge.cooldownUntil > current) return { ok: false, error: '请稍后再试' }
+      const challenge = { code: DEMO_CODE, cooldownUntil: current + 60_000, expiresAt: current + 5 * 60_000 }
+      passwordChallenges.set(passwordChallengeKey(normalizedPhone, purpose), challenge)
+      return { ok: true, cooldownUntil: challenge.cooldownUntil, expiresAt: challenge.expiresAt }
+    },
+    getPasswordCodeCooldown(phone: string, purpose: PasswordCodePurpose) {
+      const normalizedPhone = normalizePhone(phone)
+      if (!isValidMainlandPhone(normalizedPhone)) return 0
+      const challenge = getChallenge(normalizedPhone, purpose)
+      return challenge ? challenge.cooldownUntil : 0
+    },
+    async registerWithCode(phone: string, password: string, code: string, agreed: boolean): Promise<AuthResult> {
+      if (!agreed) return agreementError()
+      const normalizedPhone = normalizePhone(phone)
+      if (!isValidMainlandPhone(normalizedPhone)) return invalidPhone()
+      if (!password) return { ok: false, error: '请输入密码', field: 'password' }
+      if (passwords.has(normalizedPhone)) return { ok: false, error: '该手机号已注册，请使用密码登录' }
+      const codeError = validatePasswordCode(normalizedPhone, 'register', code)
+      if (codeError) return codeError
+      const result = createSession('password')
+      if (!result.ok) return result
+      passwords.set(normalizedPhone, password)
+      passwordChallenges.delete(passwordChallengeKey(normalizedPhone, 'register'))
+      return result
+    },
+    async resetPasswordWithCode(phone: string, password: string, confirmation: string, code: string, agreed: boolean): Promise<AuthResult> {
+      if (!agreed) return agreementError()
+      const normalizedPhone = normalizePhone(phone)
+      if (!isValidMainlandPhone(normalizedPhone)) return invalidPhone()
+      if (!passwords.has(normalizedPhone)) return { ok: false, error: '该手机号尚未注册', reason: 'unregistered' }
+      const requirements = passwordRequirements(password, confirmation)
+      if (!requirements.length || !requirements.composition) return { ok: false, error: '密码需为 8-18 位，并同时包含字母和数字', field: 'password' }
+      if (!requirements.matches) return { ok: false, error: '两次输入的密码不一致', field: 'confirmation' }
+      const codeError = validatePasswordCode(normalizedPhone, 'reset', code)
+      if (codeError) return codeError
+      const result = createSession('password')
+      if (!result.ok) return result
+      passwords.set(normalizedPhone, password)
+      passwordAttempts.delete(normalizedPhone)
+      passwordChallenges.delete(passwordChallengeKey(normalizedPhone, 'reset'))
+      return result
     },
     logout() {
       if (!persistSession) { documentSession = undefined; emit(); return true }
@@ -90,6 +192,6 @@ function memoryStorage(): AuthStorage {
 }
 
 let storage: AuthStorage = getRuntimeStorage()
-let eventTarget: Options['eventTarget']
+let eventTarget: AuthRepositoryOptions['eventTarget']
 if (typeof window !== 'undefined' && !isLinkedDataMode) eventTarget = window
 export const authRepository = createAuthRepository({ storage, eventTarget, persistSession: false })

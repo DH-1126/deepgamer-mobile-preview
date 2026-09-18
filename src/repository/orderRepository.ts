@@ -132,11 +132,12 @@ export function createOrderRepository({ storage, now = Date.now, eventTarget }: 
         return commit(next) ? count : 0
       } catch { return 0 }
     },
-    cancel(id: string) {
+    cancel(id: string, reason?: string) {
       return mutateOne(id, (order) => {
         if (order.status === 'cancelled') return order
         if (order.status !== 'pending') return null
-        return transitionOrder(order, 'cancelled', now())
+        const next = transitionOrder(order, 'cancelled', now())
+        return { ...next, cancelReason: reason?.trim().slice(0, 100) || order.cancelReason }
       })
     },
     pay(id: string, paymentMethod: OrderPaymentMethod) {

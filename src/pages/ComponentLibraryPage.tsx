@@ -17,11 +17,13 @@ import { AssetInventory } from '../components/product-detail/AssetInventory'
 import { VerificationSeal } from '../components/product-detail/VerificationSeal'
 import { ConversationRow } from '../components/ConversationRow'
 import { RecycleConversationRow } from '../components/RecycleConversationRow'
+import { OrderListCard } from '../components/OrderListCard'
 import type { SortKey } from '../types/catalog'
 import { products } from '../data/fixtures'
 import { recyclerFixtures } from '../data/sellFixtures'
 import { catalogProductDetails } from '../data/productDetailFixtures'
 import { createRecycleConsultationSeed } from '../data/recycleFixtures'
+import { createOrderListSeed } from '../data/orderListFixtures'
 import type { Conversation } from '../types/message'
 import type { OrderRecord, OrderStatus } from '../types/order'
 import {
@@ -84,6 +86,7 @@ function Preview({ id, notify }: { id: string; notify: (message: string) => void
   const messageDemoNow = useRef(Date.now()).current
   const messageStatusDemos = createMessageStatusDemos(messageDemoNow)
   const recycleSeed = createRecycleConsultationSeed(messageDemoNow, recyclerFixtures).orders
+  const orderListDemos = createOrderListSeed(messageDemoNow).orders
   const recycleMessageDemos = [recycleSeed.find(item => item.stage === 'consulting'), recycleSeed.find(item => item.stage === 'formal')].filter((item): item is NonNullable<typeof item> => Boolean(item))
   useEffect(() => () => clearTimeout(timer.current), [])
   const loadingDemo = () => {
@@ -154,6 +157,7 @@ function Preview({ id, notify }: { id: string; notify: (message: string) => void
     case 'ProductActionBar': return <ProductActionBar favorite={enabled} onFavorite={() => setEnabled(value => !value)} onConsult={() => notify('咨询入口演示')} onPurchase={() => notify('购买入口演示')} purchaseLabel="立即购买" />
     case 'ProductCard': return <div className="cl-product-preview catalog-d3"><ProductCard product={products[0]} variant="catalogV2" /></div>
     case 'RecyclerCard': return <div className="cl-stack">{[recyclerFixtures[0], recyclerFixtures[3]].map(recycler => <RecyclerCard key={recycler.id} recycler={recycler} onConsult={item => notify(`咨询${item.name}（组件演示，不创建会话）`)} />)}</div>
+    case 'OrderListCard': return <div className="cl-stack" onClickCapture={event => { const action = (event.target as Element).closest('a'); if (action) { event.preventDefault(); notify(`${action.textContent ?? '订单操作'}（组件演示，不离开组件库）`) } }}><p className="cl-caption">十种独立订单状态：黄色进行中、绿色完成、灰色关闭；仅待付款展示倒计时。</p>{orderListDemos.map(order => <OrderListCard key={order.id} order={order} now={messageDemoNow} onShowPayout={payoutOrder => notify(`查看 ${payoutOrder.id} 的打款明细（组件演示）`)} />)}</div>
     case 'SellerSummary': return <div className="cl-stack"><SellerSummary text="主玩打野，晚上在线，资料可以随时补充。" onOpen={() => notify('查看卖家说明（演示）')} /><SellerSummary maxLines={2} text="这是一段较长的卖家说明，用于展示最多两行内容；点击只会触发本页提示。" onOpen={() => notify('查看卖家说明（演示）')} /></div>
     case 'AssetInventory': return detailFixture ? <div className="cl-stack"><AssetInventory detail={detailFixture} onRowCountChange={setAssetRowCount} /><p className="cl-caption">{assetRowCount == null ? '正在计算资产行数…' : `当前展示 ${assetRowCount} 行资产（仅本页状态）`}</p></div> : null
     case 'VerificationSeal': return <div className="cl-wrap"><VerificationSeal /><VerificationSeal watermark /><p className="cl-caption">普通与水印模式；状态由业务核验结果决定，印章不拦截点击。</p></div>

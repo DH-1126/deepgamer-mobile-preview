@@ -127,7 +127,7 @@ export function AfterSaleApplyPage() {
     setConfirmOpen(true)
   }
   return <main className="aftersales-v2-page aftersales-apply-page"><AfterSaleTopBar title="申请客服介入" /><div className="aftersales-v2-detail-scroll">
-    <section className="aftersales-apply-alert"><span><b>异常</b><em>当前问题</em></span><Heading as="h2" variant="result">{order.status === 'binding' ? '卖家已超时未换绑' : '订单履约遇到问题'}</Heading><p>请描述实际情况并提交相关材料，平台客服将基于订单和材料进行核查。</p><div><ShieldCheck size={14} aria-hidden="true" />你的 {formatOrderMoney(order.totalAmountCents)} 仍在平台托管，不会自动放款。</div></section>
+    <section className="aftersales-apply-alert"><span><b>异常</b><em>当前问题</em></span><Heading as="h2" variant="result">{order.status === 'completed' ? '已完成订单申请售后' : order.status === 'binding' ? '卖家已超时未换绑' : '订单履约遇到问题'}</Heading><p>请描述实际情况并提交相关材料，平台客服将基于订单和材料进行核查。</p><div><ShieldCheck size={14} aria-hidden="true" />{order.status === 'completed' ? '订单已完成，售后处理结果以平台核查为准。' : <>你的 {formatOrderMoney(order.totalAmountCents)} 仍在平台托管，不会自动放款。</>}</div></section>
     <ApplyOrderCard order={order} />
     {active && <section className="aftersales-active-note" role="status"><b>该订单已有进行中的售后申请</b><p>请进入现有售后详情补充材料或查看审核进度。</p><Link to={`/aftersales/${active.id}`}>查看售后详情</Link></section>}
     <fieldset className="aftersales-kind-field" disabled={Boolean(active)}><legend>售后类型 <em>*</em></legend>{AFTERSALE_KINDS.map((item) => <label className={kind === item.value ? 'selected' : ''} key={item.value}><input type="radio" name="aftersale-kind" value={item.value} checked={kind === item.value} onChange={() => setKind(item.value)} /><i>{kind === item.value && <span />}</i><span><b>{item.title}</b><small>{item.detail}</small></span></label>)}</fieldset>

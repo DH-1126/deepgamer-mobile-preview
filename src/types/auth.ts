@@ -16,7 +16,13 @@ export type AuthSession = {
 
 export type AuthResult =
   | { ok: true; session: AuthSession }
-  | { ok: false; error: string }
+  | {
+    ok: false
+    error: string
+    reason?: 'unregistered' | 'incorrect_password' | 'password_reset_required'
+    field?: 'password' | 'confirmation' | 'code'
+    attemptsRemaining?: number
+  }
 
 export type CodeRequestResult =
   | { ok: true; cooldownUntil: number; expiresAt: number }

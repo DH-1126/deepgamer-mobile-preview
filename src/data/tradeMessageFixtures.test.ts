@@ -18,7 +18,7 @@ describe('additional transaction message examples', () => {
     expect(samples.orders).toHaveLength(6)
     expect(samples.conversations).toHaveLength(6)
     expect(samples.messages).toHaveLength(30)
-    expect(messages.conversations.filter(item => item.kind === 'trade_group')).toHaveLength(14)
+    expect(messages.conversations.filter(item => item.kind === 'trade_group')).toHaveLength(24)
     expect(new Set(messages.conversations.map(item => item.id)).size).toBe(messages.conversations.length)
     expect(new Set(messages.messages.map(item => item.id)).size).toBe(messages.messages.length)
     expect(new Set(orders.map(item => item.id)).size).toBe(orders.length)
