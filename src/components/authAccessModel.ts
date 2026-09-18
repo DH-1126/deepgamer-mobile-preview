@@ -13,6 +13,8 @@ export function isGuestAccessiblePath(value: string) {
     || pathname === '/buy/list'
     || pathname === '/game'
     || pathname === '/game/select'
+    || pathname === '/forgot-password'
+    || pathname === '/sms-help'
     || pathname === '/feedback'
     || pathname === '/profile'
     || pathname === '/support'

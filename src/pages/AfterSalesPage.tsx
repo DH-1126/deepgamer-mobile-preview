@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { ArrowLeft, ChevronRight, Image as ImageIcon, ShieldCheck } from 'lucide-react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { AFTERSALE_TABS, countAfterSales, filterAfterSales, getAfterSaleStatusLabel, isAfterSaleTab, type AfterSaleTab } from '../components/afterSalesModel'
+import { AfterSaleMaterialPicker as MaterialPicker } from '../components/AfterSaleMaterialPicker'
 import { assetPath } from '../components/assetPath'
 import { formatOrderMoney } from '../components/orderModel'
 import { Button, Dialog, Heading, PageHeader, SearchField, StatusBadge, StatusBar, Tabs, TextAreaField, Toast } from '../components/ui'
@@ -83,16 +84,6 @@ export function AfterSalesPage() {
   </main>
 }
 
-function validateFiles(files: File[]) {
-  if (files.some((file) => !['image/jpeg', 'image/png'].includes(file.type))) return '仅支持 JPG、PNG 图片'
-  if (files.some((file) => file.size > 10 * 1024 * 1024)) return '单张图片不能超过 10MB'
-  return ''
-}
-
-function MaterialPicker({ names, onChange, error }: { names: string[]; onChange: (names: string[], error: string) => void; error?: string }) {
-  return <section className="aftersales-material-picker"><header><Heading as="h2" variant="section">上传相关材料</Heading><small>最多 6 张</small></header><p>建议上传聊天记录、账号异常截图与问题直接相关的材料</p><div>{names.map((name) => <span key={name}><ImageIcon size={18} aria-hidden="true" /><small>{name}</small></span>)}{names.length < 6 && <label><b>＋</b><small>上传</small><input type="file" accept="image/jpeg,image/png" multiple onChange={(event) => { const files = [...(event.target.files ?? [])].slice(0, 6 - names.length); const message = validateFiles(files); onChange(message ? names : [...names, ...files.map((file) => file.name)], message); event.currentTarget.value = '' }} /></label>}</div><small>单张不超过 10MB</small>{error && <em role="alert">{error}</em>}</section>
-}
-
 function ApplyOrderCard({ order }: { order: OrderRecord }) {
   return <section className="aftersales-apply-order"><small>关联订单</small><Link to={`/orders/${order.id}`}><img src={order.thumbnail} alt={order.gameName} /><span><b>{order.productTitle}</b><small>订单号 {order.id}</small></span><strong>{formatOrderMoney(order.goodsAmountCents)}</strong><ChevronRight size={16} /></Link></section>
 }
@@ -106,6 +97,7 @@ export function AfterSaleApplyPage() {
   const [description, setDescription] = useState('')
   const [materialNames, setMaterialNames] = useState<string[]>([])
   const [fileError, setFileError] = useState('')
+  const [materialsBlocked, setMaterialsBlocked] = useState(false)
   const [formError, setFormError] = useState('')
   const [confirmOpen, setConfirmOpen] = useState(false)
   const closeConfirm = useCallback(() => setConfirmOpen(false), [])
@@ -120,6 +112,7 @@ export function AfterSaleApplyPage() {
     navigate(`/aftersales/${created.id}`, { replace: true })
   }
   const review = () => {
+    if (materialsBlocked) { setFormError('请等待材料上传完成，或重试失败的材料。'); return }
     if (active) { navigate(`/aftersales/${active.id}`); return }
     if (description.trim().length < 10) { setFormError('请至少输入 10 个字的问题描述。'); return }
     if (materialNames.length === 0) { setFormError('请上传至少 1 张与问题相关的材料。'); return }
@@ -132,9 +125,9 @@ export function AfterSaleApplyPage() {
     {active && <section className="aftersales-active-note" role="status"><b>该订单已有进行中的售后申请</b><p>请进入现有售后详情补充材料或查看审核进度。</p><Link to={`/aftersales/${active.id}`}>查看售后详情</Link></section>}
     <fieldset className="aftersales-kind-field" disabled={Boolean(active)}><legend>售后类型 <em>*</em></legend>{AFTERSALE_KINDS.map((item) => <label className={kind === item.value ? 'selected' : ''} key={item.value}><input type="radio" name="aftersale-kind" value={item.value} checked={kind === item.value} onChange={() => setKind(item.value)} /><i>{kind === item.value && <span />}</i><span><b>{item.title}</b><small>{item.detail}</small></span></label>)}</fieldset>
     <TextAreaField className="aftersales-description-field" label="问题描述 *" disabled={Boolean(active)} value={description} maxLength={500} showCount hint="如实描述有助于平台更快核查" onChange={(event) => setDescription(event.target.value)} placeholder="请描述问题发生时间、具体情况，以及希望平台协助处理的内容" />
-    <MaterialPicker names={materialNames} onChange={(names, error) => { setMaterialNames(names); setFileError(error) }} error={fileError} />
+    <MaterialPicker disabled={Boolean(active)} onStatusChange={setMaterialsBlocked} names={materialNames} onChange={(names, error) => { setMaterialNames(names); setFileError(error) }} error={fileError} />
     {formError && <p className="aftersales-form-error" role="alert">{formError}</p>}
-  </div><footer className="aftersales-apply-footer"><small>{active ? '已有进行中的售后申请' : '提交后平台将开始核查，可在「售后」查看处理进度'}</small><Button type="button" onClick={review}>{active ? '查看现有申请' : '提交申请'}</Button></footer>
+  </div><footer className="aftersales-apply-footer"><small>{active ? '已有进行中的售后申请' : '提交后平台将开始核查，可在「售后」查看处理进度'}</small><Button type="button" disabled={!active && materialsBlocked} onClick={review}>{active ? '查看现有申请' : '提交申请'}</Button></footer>
     <Dialog open={confirmOpen} title="确认提交售后申请？" onClose={closeConfirm} showClose={false} className="aftersales-confirm-dialog" actions={<><Button variant="outline" onClick={closeConfirm}>再看看</Button><Button onClick={submit}>确认提交</Button></>}><div className="aftersales-confirm-copy"><p>请确认问题描述和材料无误，提交后平台客服将开始审核。</p><dl><div><dt>售后类型</dt><dd>{AFTERSALE_KINDS.find((item) => item.value === kind)?.title}</dd></div><div><dt>已上传材料</dt><dd>{materialNames.length}张</dd></div><div><dt>关联订单</dt><dd>{order.id.replace(/^OD/, '')}</dd></div></dl></div></Dialog>
   </main>
 }
@@ -164,14 +157,16 @@ function AfterSaleDetailsBody({ record }: { record: AfterSaleRecord }) {
 }
 
 function SupplementForm({ record, onSubmitted }: { record: AfterSaleRecord; onSubmitted: () => void }) {
+  const [params] = useSearchParams()
+  const [materialsBlocked, setMaterialsBlocked] = useState(params.get('scenario') === 'upload-failed')
   const [note, setNote] = useState('')
   const [names, setNames] = useState<string[]>([])
   const [error, setError] = useState('')
   const [confirmOpen, setConfirmOpen] = useState(false)
   const close = useCallback(() => setConfirmOpen(false), [])
-  const valid = note.trim().length >= 5 && names.length > 0
-  const submit = () => { if (!afterSaleRepository.supplement(record.id, note, names)) { setError('保存失败或售后状态已变化，请重试。'); setConfirmOpen(false); return }; setConfirmOpen(false); onSubmitted() }
-  return <><section className="aftersales-result-card supplement"><Heading as="h2" variant="section">当前处理结果 <em>处理方案 · 要求补证</em></Heading><div className="aftersales-result-callout"><b>请补充协商与超时证明</b><p>{record.statusMessage}</p></div><small>客服处理时间 <time>{record.updatedAt.slice(5)}</time></small></section><section className="aftersales-update-materials"><Heading as="h2" variant="section">更新售后材料</Heading><TextAreaField label="补充说明 *" value={note} maxLength={500} showCount onChange={(event) => setNote(event.target.value)} placeholder="根据平台要求补充相关情况…" /><MaterialPicker names={names} onChange={(next, message) => { setNames(next); setError(message) }} error={error} /></section><section className="aftersales-current-materials muted"><Heading as="h2" variant="section">当前售后材料 <small>已提交</small></Heading><p>{record.description}</p><div>{(record.materialNames ?? []).map((name) => <span key={name}><ImageIcon size={17} /><small>{name}</small></span>)}</div></section><section className="aftersales-related-order"><small>关联订单</small><Link to={`/orders/${record.orderId}`}><AfterSaleProduct record={record} /></Link></section><footer className="aftersales-detail-footer"><Button type="button" disabled={!valid} onClick={() => setConfirmOpen(true)}>提交材料</Button></footer><Dialog open={confirmOpen} title="确认提交补充材料？" onClose={close} showClose={false} className="aftersales-confirm-dialog" actions={<><Button variant="outline" onClick={close}>再看看</Button><Button onClick={submit}>确认提交</Button></>}><div className="aftersales-confirm-copy"><p>请确认补充内容无误，提交后平台将继续审核。</p><dl><div><dt>补充说明</dt><dd>已填写</dd></div><div><dt>补充材料</dt><dd>{names.length}张</dd></div></dl></div></Dialog></>
+  const valid = note.trim().length >= 5 && names.length > 0 && !materialsBlocked
+  const submit = () => { if (!valid) return; if (!afterSaleRepository.supplement(record.id, note, names)) { setError('保存失败或售后状态已变化，请重试。'); setConfirmOpen(false); return }; setConfirmOpen(false); onSubmitted() }
+  return <><section className="aftersales-result-card supplement"><Heading as="h2" variant="section">当前处理结果 <em>处理方案 · 要求补证</em></Heading><div className="aftersales-result-callout"><b>请补充协商与超时证明</b><p>{record.statusMessage}</p></div><small>客服处理时间 <time>{record.updatedAt.slice(5)}</time></small></section><section className="aftersales-update-materials"><Heading as="h2" variant="section">更新售后材料</Heading><TextAreaField label="补充说明 *" value={note} maxLength={500} showCount onChange={(event) => setNote(event.target.value)} placeholder="根据平台要求补充相关情况…" /><MaterialPicker failurePreview={params.get('scenario') === 'upload-failed'} onStatusChange={setMaterialsBlocked} names={names} onChange={(next, message) => { setNames(next); setError(message) }} error={error} /></section><section className="aftersales-current-materials muted"><Heading as="h2" variant="section">当前售后材料 <small>已提交</small></Heading><p>{record.description}</p><div>{(record.materialNames ?? []).map((name) => <span key={name}><ImageIcon size={17} /><small>{name}</small></span>)}</div></section><section className="aftersales-related-order"><small>关联订单</small><Link to={`/orders/${record.orderId}`}><AfterSaleProduct record={record} /></Link></section><footer className="aftersales-detail-footer"><Button type="button" disabled={!valid} onClick={() => setConfirmOpen(true)}>提交材料</Button></footer><Dialog open={confirmOpen} title="确认提交补充材料？" onClose={close} showClose={false} className="aftersales-confirm-dialog" actions={<><Button variant="outline" onClick={close}>再看看</Button><Button onClick={submit}>确认提交</Button></>}><div className="aftersales-confirm-copy"><p>请确认补充内容无误，提交后平台将继续审核。</p><dl><div><dt>补充说明</dt><dd>已填写</dd></div><div><dt>补充材料</dt><dd>{names.length}张</dd></div></dl></div></Dialog></>
 }
 
 export function AfterSaleDetailPage() {

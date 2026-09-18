@@ -33,7 +33,7 @@ describe('orderRepository', () => {
   })
 
   it('只在 key 缺失时 seed，持久空数组不会被重新填充', () => {
-    expect(createOrderRepository({ storage: fakeStorage(), now: () => now }).list()).toHaveLength(23)
+    expect(createOrderRepository({ storage: fakeStorage(), now: () => now }).list()).toHaveLength(26)
     const empty = fakeStorage({ [ORDERS_STORAGE_KEY]: '[]' })
     expect(createOrderRepository({ storage: empty, now: () => now }).list()).toEqual([])
   })
@@ -66,7 +66,8 @@ describe('orderRepository', () => {
     const repository = createOrderRepository({ storage: fakeStorage(), now: () => now })
     expect(repository.pay('OD20260821000000001', 'alipay')).toBe(true)
     expect(repository.pay('OD20260821000000001', 'alipay')).toBe(true)
-    expect(repository.get('OD20260821000000001')).toMatchObject({ status: 'paid', paymentMethod: 'alipay', totalAmountCents: 153_600 })
+    expect(repository.get('OD20260821000000001')).toMatchObject({ status: 'paid', paymentMethod: 'alipay', totalAmountCents: 153_600, paidAt: now })
+    expect(repository.get('OD20260821000000001')?.paymentReference).toMatch(/^PAY\d+$/)
   })
 
   it('保存真实取消原因，重复取消不覆盖第一次选择', () => {
@@ -84,6 +85,27 @@ describe('orderRepository', () => {
     expect(repository.confirmReceipt('OD20260821000000001')).toBe(false)
     expect(repository.confirmReceipt('OD20260821000000003')).toBe(true)
     expect(repository.get('OD20260821000000003')?.status).toBe('completed')
+  })
+
+  it('签署后按包赔条件进入投保，投保成功前禁止放款', () => {
+    const repository = createOrderRepository({ storage: fakeStorage(), now: () => now })
+    const insuredId = 'OD3015035674505896511'
+    expect(repository.continueAfterSignature(insuredId)).toBe(true)
+    expect(repository.get(insuredId)?.status).toBe('insuring')
+    expect(repository.advance(insuredId, 'bind_success')).toBe(false)
+    expect(repository.confirmReceipt(insuredId)).toBe(false)
+    expect(repository.completeInsurance(insuredId)).toBe(true)
+    expect(repository.get(insuredId)?.status).toBe('insured')
+    expect(repository.confirmReceipt(insuredId)).toBe(false)
+    expect(repository.prepareRelease(insuredId)).toBe(true)
+    expect(repository.get(insuredId)?.status).toBe('bind_success')
+    expect(repository.confirmReceipt(insuredId)).toBe(true)
+
+    const uninsuredId = 'OD20260821000000002'
+    expect(repository.completeBinding(uninsuredId)).toBe(true)
+    expect(repository.get(uninsuredId)?.status).toBe('signed')
+    expect(repository.continueAfterSignature(uninsuredId)).toBe(true)
+    expect(repository.get(uninsuredId)?.status).toBe('bind_success')
   })
 
   it('异常暂停以订单为粒度并拦截详情页直接放款', () => {

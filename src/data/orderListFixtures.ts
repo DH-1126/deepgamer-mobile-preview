@@ -14,6 +14,7 @@ type ListOrderSample = {
   title?: string
   goodsAmountCents?: number
   totalAmountCents?: number
+  insuranceAmountCents?: number
   expiresAt?: (now: number) => number
   actionExpiresAt?: (now: number) => number
   afterSaleEndsAt?: (now: number) => number
@@ -32,6 +33,9 @@ const samples: ListOrderSample[] = [
   { id: 'OD3015035674505896508', role: 'buyer', status: 'pay_expired', phase: 'closed' },
   { id: 'OD3015035674505896509', role: 'buyer', status: 'cancelled', phase: 'closed', cancelReason: '找到更合适的号' },
   { id: 'OD3015035674505896510', role: 'seller', status: 'completed', phase: 'completed', title: `回收商品 ·${productTitle}`, goodsAmountCents: 1_288_000, totalAmountCents: 1_288_000 },
+  { id: 'OD3015035674505896511', role: 'buyer', status: 'signed', phase: 'signed', insuranceAmountCents: 164_428 },
+  { id: 'OD3015035674505896512', role: 'buyer', status: 'insuring', phase: 'insuring', insuranceAmountCents: 164_428 },
+  { id: 'OD3015035674505896513', role: 'buyer', status: 'insured', phase: 'insured', insuranceAmountCents: 164_428 },
 ]
 
 function conversationState(sample: ListOrderSample): Pick<Conversation, 'stage' | 'tradeState'> {
@@ -46,6 +50,9 @@ function progressLabel(sample: ListOrderSample): string {
     materials: '步骤 1 / 4 · 等待资料确认',
     inspection: '步骤 2 / 4 · 核对账号资料',
     binding: '步骤 3 / 4 · 账号换绑中',
+    signed: '步骤 4 / 7 · 签署完成',
+    insuring: '步骤 5 / 7 · 投保中',
+    insured: '步骤 6 / 7 · 投保成功',
     release: '步骤 4 / 4 · 待确认收货',
     completed: '交易完成',
     closed: sample.status === 'cancelled' ? '订单已取消' : sample.status === 'pay_expired' ? '付款已超时' : '交易已关闭',
@@ -75,7 +82,7 @@ export function createOrderListSeed(now: number): { orders: OrderRecord[]; conve
       listTags: productTags,
       goodsAmountCents,
       serviceAmountCents: 0,
-      insuranceAmountCents: 0,
+      insuranceAmountCents: sample.insuranceAmountCents ?? 0,
       totalAmountCents,
       createdAt: updatedAt - (index + 1) * 60_000,
       updatedAt,

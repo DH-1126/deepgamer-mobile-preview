@@ -7,7 +7,7 @@ import { useAuthPrompt, useAuthStatus } from '../components/AuthAccess'
 import { GuestLoginFloatingBar } from '../components/LoginFloatingBar'
 import { assetPath } from '../components/assetPath'
 import { useDetailTitle } from '../components/titlePresentation'
-import { SUPPORT_CONVERSATION_ROUTE } from '../data/messageFixtures'
+import { buildProductConsultationRoute } from '../components/supportConsultationModel'
 import { productDetailRepository } from '../repository/productDetailRepository'
 import { favoriteRepository } from '../repository/favoriteRepository'
 import type { ProductDetail, PurchasePackage } from '../types/productDetail'
@@ -120,7 +120,8 @@ export function ProductDetailPage() {
     setPackageType('PREMIUM'); setStandardConfirmed(false); setPurchaseOpen(true)
   }
   const openSupport = () => {
-    if (requireAuth({ title: '登录后联系客服', description: '登录后可查看客服回复并继续咨询该商品。', returnTo: SUPPORT_CONVERSATION_ROUTE })) navigate(SUPPORT_CONVERSATION_ROUTE)
+    const destination = buildProductConsultationRoute(detail.id, detail.gameCode)
+    if (requireAuth({ title: '登录后联系客服', description: '登录后可查看客服回复并继续咨询该商品。', returnTo: destination })) navigate(destination)
   }
   const confirmPurchase = () => {
     if (!canPurchase(detail)) return

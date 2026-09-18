@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createRecycleOrder } from '../data/recycleFixtures'
 import { recyclerFixtures } from '../data/sellFixtures'
-import { createRecycleConversation, createRecyclePaidOrderRecord, filterRecycleConsultations, getRecyclePayableCents, getRecycleStatusLabel, validateRecycleOrderDraft } from './recycleModel'
+import { createRecycleConversation, createRecyclePaidOrderRecord, filterRecycleConsultations, getRecycleDraftSummary, getRecyclePayableCents, getRecycleStatusLabel, validateRecycleOrderDraft } from './recycleModel'
 
 describe('recycleModel', () => {
   const base = createRecycleOrder(recyclerFixtures[0], 2_000_000_000_000)
@@ -13,9 +13,12 @@ describe('recycleModel', () => {
   })
 
   it('校验回收商发单信息且拦截敏感内容', () => {
-    expect(validateRecycleOrderDraft({ quoteCents: 2200, server: 'QQ区', rank: '高段位', accountSummary: '皮肤较多，可二次实名' })).toEqual({})
-    expect(validateRecycleOrderDraft({ quoteCents: 0, server: '', rank: '', accountSummary: '密码是 123456' })).toMatchObject({ quoteCents: expect.any(String), accountSummary: expect.any(String) })
-    expect(validateRecycleOrderDraft({ quoteCents: 2200, server: 'QQ区', rank: '高段位', accountSummary: '联系 13800138000' }).accountSummary).toContain('个人信息')
+    const valid = { loginAccount: 'player_2026', realnameStatus: '包人脸' as const, nobleLevel: 'V8' as const, antiAddiction: '有防沉迷' as const, quoteCents: 2200, screenshots: [], note: '皮肤较多，高段位' }
+    expect(validateRecycleOrderDraft(valid)).toEqual({})
+    expect(getRecycleDraftSummary(valid)).toBe('包人脸 · V8 · 有防沉迷')
+    expect(validateRecycleOrderDraft({ ...valid, quoteCents: 0, loginAccount: '', realnameStatus: '', nobleLevel: '', antiAddiction: '', note: '密码是 123456' })).toMatchObject({ quoteCents: expect.any(String), loginAccount: expect.any(String), realnameStatus: expect.any(String), nobleLevel: expect.any(String), antiAddiction: expect.any(String), note: expect.any(String) })
+    expect(validateRecycleOrderDraft({ ...valid, note: '联系 13800138000' }).note).toContain('个人信息')
+    expect(validateRecycleOrderDraft({ ...valid, screenshots: [{ id: 'bad', name: 'bad.gif', mimeType: 'image/gif' as 'image/jpeg', size: 100 }] }).screenshots).toContain('JPG')
   })
 
   it('计算回收商应付金额并筛选咨询', () => {

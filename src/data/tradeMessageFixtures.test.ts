@@ -18,7 +18,7 @@ describe('additional transaction message examples', () => {
     expect(samples.orders).toHaveLength(6)
     expect(samples.conversations).toHaveLength(6)
     expect(samples.messages).toHaveLength(30)
-    expect(messages.conversations.filter(item => item.kind === 'trade_group')).toHaveLength(24)
+    expect(messages.conversations.filter(item => item.kind === 'trade_group')).toHaveLength(27)
     expect(new Set(messages.conversations.map(item => item.id)).size).toBe(messages.conversations.length)
     expect(new Set(messages.messages.map(item => item.id)).size).toBe(messages.messages.length)
     expect(new Set(orders.map(item => item.id)).size).toBe(orders.length)
@@ -26,11 +26,11 @@ describe('additional transaction message examples', () => {
     expect(orders.find(item => item.id === 'OD20260821000000003')?.conversationId).toBe('trade-wzry-od03')
   })
 
-  it('covers all seven badges and the four shared visual tones with actual linked orders', () => {
+  it('covers all ten badges and the four shared visual tones with actual linked orders', () => {
     const orders = createOrderSeed(now)
     const states = createMessageSeed(now).conversations.filter(item => item.kind === 'trade_group')
       .map(item => getTradeConversationStatus(item, orders.find(order => order.id === item.orderId)))
-    expect(new Set(states.map(item => item.label))).toEqual(new Set(['待付款', '资料同步', '验号', '换绑', '确认放款', '完成', '关闭']))
+    expect(new Set(states.map(item => item.label))).toEqual(new Set(['待付款', '资料同步', '验号', '换绑', '签署完成', '投保中', '投保成功', '确认放款', '完成', '关闭']))
     expect(new Set(states.map(item => item.tone))).toEqual(new Set(['warning', 'info', 'success', 'neutral']))
   })
 

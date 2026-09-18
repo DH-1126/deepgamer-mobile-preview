@@ -24,11 +24,22 @@ export function getRecyclePayableCents(order: Pick<RecycleOrder, 'quoteCents' | 
 export function validateRecycleOrderDraft(draft: RecycleOrderDraft) {
   const errors: Partial<Record<keyof RecycleOrderDraft, string>> = {}
   if (!Number.isSafeInteger(draft.quoteCents) || draft.quoteCents < 100 || draft.quoteCents > 10_000_000) errors.quoteCents = '请输入 1 至 100000 元的回收价'
-  if (draft.server.trim().length < 2 || draft.server.trim().length > 24) errors.server = '请填写 2 至 24 字的区服'
-  if (draft.rank.trim().length < 2 || draft.rank.trim().length > 40) errors.rank = '请填写 2 至 40 字的段位或账号概况'
-  if (draft.accountSummary.trim().length < 2 || draft.accountSummary.trim().length > 80) errors.accountSummary = '请填写 2 至 80 字的报价依据'
-  if (/(密码|验证码|身份证|手机号|银行卡|(?:^|\D)1[3-9]\d{9}(?:\D|$))/i.test(draft.accountSummary)) errors.accountSummary = '报价依据中不能包含密码、验证码或个人信息'
+  const loginAccount = draft.loginAccount.trim()
+  if (loginAccount.length < 2 || loginAccount.length > 40) errors.loginAccount = '请填写 2 至 40 个字符的登录账号'
+  if (/\s/.test(loginAccount)) errors.loginAccount = '登录账号不能包含空格'
+  if (!draft.realnameStatus) errors.realnameStatus = '请选择实名情况'
+  if (!draft.nobleLevel || !/^V(?:[0-9]|10)$/.test(draft.nobleLevel)) errors.nobleLevel = '请选择 V0 至 V10 的贵族等级'
+  if (!draft.antiAddiction) errors.antiAddiction = '请选择有无防沉迷'
+  if (draft.screenshots.length > 15) errors.screenshots = '补充截图合计最多 15 张'
+  if (draft.screenshots.some((file) => !['image/jpeg', 'image/png', 'image/webp'].includes(file.mimeType) || file.size <= 0 || file.size > 5 * 1024 * 1024)) errors.screenshots = '仅支持单张不超过 5MB 的 JPG、PNG 或 WEBP 图片'
+  if (draft.note.length > 200) errors.note = '补充说明最多 200 字'
+  if (/(密码|验证码|身份证|银行卡|(?:^|\D)1[3-9]\d{9}(?:\D|$))/i.test(draft.note)) errors.note = '补充说明中不能包含密码、验证码或敏感个人信息'
   return errors
+}
+
+export function getRecycleDraftSummary(draft?: RecycleOrderDraft) {
+  if (!draft) return null
+  return `${draft.realnameStatus} · ${draft.nobleLevel} · ${draft.antiAddiction}`
 }
 
 export function matchesRecycleConsultationTab(order: RecycleOrder, tab: RecycleConsultationTab) {

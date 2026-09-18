@@ -4,7 +4,6 @@ import { BottomNav } from '../components/BottomNav'
 import { ConversationRow } from '../components/ConversationRow'
 import { filterConversations, groupTradeConversations } from '../components/messageModel'
 import { messageRepository } from '../repository/messageRepository'
-import { SUPPORT_RECOMMENDATION_ROUTE } from '../data/messageFixtures'
 import { orderRepository } from '../repository/orderRepository'
 import { recycleRepository } from '../repository/recycleRepository'
 import { RecycleConversationRow } from '../components/RecycleConversationRow'
@@ -12,7 +11,9 @@ import { getRecycleConversationName, getRecycleConversationStatus } from '../com
 import type { RecycleOrder } from '../types/recycle'
 import type { Conversation } from '../types/message'
 import type { OrderRecord } from '../types/order'
-import { Heading, SearchField, StatusBar, Tabs, Toast } from '../components/ui'
+import { BottomSheet, Heading, SearchField, StatusBar, Tabs, Toast } from '../components/ui'
+import { buildSupportEntryRoute, type SupportEntry } from '../components/supportConsultationModel'
+import { ChevronRight, HelpCircle, Search, ShoppingBag } from 'lucide-react'
 import '../styles/messages-v2.css'
 import '../styles/messages-draft3.css'
 
@@ -30,6 +31,7 @@ export function MessagePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [toast, setToast] = useState('')
+  const [supportEntryOpen, setSupportEntryOpen] = useState(false)
   const [recycleOrders, setRecycleOrders] = useState(() => recycleRepository.list())
   const [orders, setOrders] = useState(() => orderRepository.list())
   const ordersById = useMemo(() => new Map(orders.map(order => [order.id, order])), [orders])
@@ -63,8 +65,14 @@ export function MessagePage() {
     navigate(`/appraisal/detail?id=${encodeURIComponent(item.id)}`)
   }
   const openConversation = async (conversation: Conversation) => {
+    if (conversation.kind === 'support') { setSupportEntryOpen(true); return }
     await messageRepository.markRead(conversation.id)
-    navigate(conversation.kind === 'support' ? SUPPORT_RECOMMENDATION_ROUTE : conversation.kind === 'notification' ? '/notifications' : `/im/${conversation.id}`)
+    navigate(conversation.kind === 'notification' ? '/notifications' : `/im/${conversation.id}`)
+  }
+  const openSupportEntry = async (entry: SupportEntry) => {
+    if (supportConversation) await messageRepository.markRead(supportConversation.id)
+    setSupportEntryOpen(false)
+    navigate(buildSupportEntryRoute(entry))
   }
   const selectCategory = (next: MessageTab | 'notifications') => {
     if (next === 'notifications') { navigate('/notifications'); return }
@@ -87,6 +95,13 @@ export function MessagePage() {
     </section>
     <BottomNav placement="flow" showGuestPrompt={false} />
     <Toast message={toast} onDismiss={() => setToast('')} />
+    <BottomSheet open={supportEntryOpen} onClose={() => setSupportEntryOpen(false)} title="你想咨询哪方面" className="message-support-entry-sheet" showClose>
+      <div className="message-support-entry-list">
+        <button type="button" className="featured" onClick={() => void openSupportEntry('faq')}><span className="message-support-entry-icon"><HelpCircle size={19} aria-hidden="true" /></span><span><b>FAQ 问答 · 萌萌</b><small>交易规则、换绑、退款、售后流程</small></span><ChevronRight size={18} aria-hidden="true" /></button>
+        <button type="button" onClick={() => void openSupportEntry('account')}><span className="message-support-entry-icon"><Search size={19} aria-hidden="true" /></span><span><b>王者荣耀账号咨询 · 萌萌</b><small>段位、皮肤、区服、估价与验号</small></span><ChevronRight size={18} aria-hidden="true" /></button>
+        <button type="button" onClick={() => void openSupportEntry('product')}><span className="message-support-entry-icon"><ShoppingBag size={19} aria-hidden="true" /></span><span><b>商品咨询 · 萌萌</b><small>在售账号详情、价格、能否砍价</small></span><ChevronRight size={18} aria-hidden="true" /></button>
+      </div>
+    </BottomSheet>
   </main>
 }
 

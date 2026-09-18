@@ -35,4 +35,11 @@ describe('catalog support floating button', () => {
     expect(html).not.toContain('找皮肤')
     expect(html).not.toContain('catalog-d3-find-skin')
   })
+
+  it('removes the inline game picker in favor of the shared game list', () => {
+    const html = renderToStaticMarkup(<StaticRouter location="/game?gameCode=wzry"><GameZonePage /></StaticRouter>)
+    expect(html).toContain('aria-label="切换游戏，当前王者荣耀"')
+    expect(html).not.toContain('catalog-d3-game-layer')
+    expect(html).not.toContain('catalog-d3-game-panel')
+  })
 })

@@ -10,25 +10,25 @@ const order = createOrderSeed(now)[0]
 describe('trade conversation list status', () => {
   it.each([
     ['pending', '待付款', 'warning'], ['paid', '资料同步', 'info'], ['verifying', '验号', 'info'],
-    ['binding', '换绑', 'info'], ['bind_success', '确认放款', 'info'], ['completed', '完成', 'success'],
+    ['binding', '换绑', 'info'], ['signed', '签署完成', 'info'], ['insuring', '投保中', 'info'], ['insured', '投保成功', 'success'], ['bind_success', '确认放款', 'info'], ['completed', '完成', 'success'],
     ['closed', '关闭', 'neutral'], ['cancelled', '关闭', 'neutral'], ['pay_expired', '关闭', 'neutral'],
   ] as const)('maps the associated %s order to %s, regardless of stale conversation labels', (status, label, tone) => {
     expect(getTradeConversationStatus({ ...base, progressLabel: '换绑超时', workflowPhase: 'materials' }, { ...order, status })).toMatchObject({ label, tone })
   })
 
-  it('uses exactly four visual treatments across the seven stages', () => {
-    expect(Object.values(tradeConversationStatuses).map(item => item.label)).toEqual(['待付款', '资料同步', '验号', '换绑', '确认放款', '完成', '关闭'])
+  it('uses exactly four visual treatments across all stages', () => {
+    expect(Object.values(tradeConversationStatuses).map(item => item.label)).toEqual(['待付款', '资料同步', '验号', '换绑', '签署完成', '投保中', '投保成功', '确认放款', '完成', '关闭'])
     expect(new Set(Object.values(tradeConversationStatuses).map(item => item.tone)).size).toBe(4)
   })
 
   it.each([
-    ['materials', '资料同步'], ['inspection', '验号'], ['binding', '换绑'], ['release', '确认放款'], ['completed', '完成'], ['closed', '关闭'],
+    ['materials', '资料同步'], ['inspection', '验号'], ['binding', '换绑'], ['signed', '签署完成'], ['insuring', '投保中'], ['insured', '投保成功'], ['release', '确认放款'], ['completed', '完成'], ['closed', '关闭'],
   ] as const)('falls back to the conversation phase %s when no associated order exists', (workflowPhase, label) => {
     expect(getTradeConversationStatus({ ...base, workflowPhase }).label).toBe(label)
   })
 
-  it.each(['materials', 'inspection', 'binding', 'release'] as const)('keeps the original %s phase for paused conversations without inventing another list status', pausedPhase => {
-    expect(getTradeConversationStatus({ ...base, workflowPhase: 'paused', pausedPhase })).toMatchObject({ status: pausedPhase, tone: 'info' })
+  it.each(['materials', 'inspection', 'binding', 'signed', 'insuring', 'insured', 'release'] as const)('keeps the original %s phase for paused conversations without inventing another list status', pausedPhase => {
+    expect(getTradeConversationStatus({ ...base, workflowPhase: 'paused', pausedPhase })).toMatchObject({ status: pausedPhase, tone: tradeConversationStatuses[pausedPhase].tone })
   })
 
   it('does not copy the payment state of a different order or conversation', () => {

@@ -17,7 +17,6 @@ describe('explicit search submission', () => {
       renderAt('/search', <SearchPage />),
       renderAt('/favorites', <FavoritesPage />),
       renderAt('/footprints', <FootprintPage />),
-      renderAt('/game/select', <GameSelectPage />),
     ]
 
     for (const html of pages) {
@@ -25,6 +24,17 @@ describe('explicit search submission', () => {
       expect(html).toMatch(/dg-search-control__submit[^>]*>搜索<\/button>/)
       expect(html).not.toContain('>取消</button>')
     }
+  })
+
+  it('uses the new game directory inline search and category navigation', () => {
+    const html = renderAt('/game/select?scene=sell', <GameSelectPage />)
+    expect(html).toContain('placeholder="请输入游戏名称"')
+    expect(html).not.toContain('dg-search-control__submit')
+    expect(html).toContain('data-scene="sell"')
+    expect(html).toContain('最近浏览')
+    expect(html).toContain('热门推荐')
+    expect(html).toContain('aria-label="游戏首字母索引"')
+    expect(html).toContain('aria-label="游戏类型"')
   })
 
   it('keeps manually applied filters while replacing old search-intent filters', () => {

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { resolveTitle, TitleBlocks, type TitleProduct } from '@deepgamer/product-presentation'
-import { AlertTriangle, ArrowLeft, Check, ChevronRight, Copy, Headphones, Home, ShieldCheck } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Check, ChevronRight, Copy, Headphones, ShieldCheck, X } from 'lucide-react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { formatOrderCountdown, formatOrderMoney, getOrderPrimaryMessage, getOrderStatusLabel, getOrderTimeline, getOrderWorkflowPhase, getOrderWorkflowStep, isOrderRole } from '../components/orderModel'
+import { formatOrderCountdown, formatOrderMoney, getOrderPrimaryMessage, getOrderStatusLabel, getOrderTimeline, getOrderWorkflowPhase, getOrderWorkflowProgress, isOrderReleaseReady, isOrderRole } from '../components/orderModel'
 import { BUYER_ORDER_TABS, countTradeOrders, filterTradeOrders, getActionableTradeOrders, isTradeOrderTab, SELLER_ORDER_TABS, type TradeOrderTab } from '../components/orderHubModel'
 import { SUPPORT_CONVERSATION_ROUTE } from '../data/messageFixtures'
 import { orderRepository } from '../repository/orderRepository'
@@ -48,7 +48,9 @@ function OrderDomainTabs({ active, buyerCount, sellerCount }: { active: 'buyer' 
 }
 
 function orderTradeRoute(order: OrderRecord) {
-  return `/im/${encodeURIComponent(order.conversationId ?? `trade-order-${order.id}`)}?orderId=${encodeURIComponent(order.id)}&role=${order.role}`
+  return order.conversationId
+    ? `/im/${encodeURIComponent(order.conversationId)}?orderId=${encodeURIComponent(order.id)}&role=${order.role}`
+    : SUPPORT_CONVERSATION_ROUTE
 }
 
 async function syncOrderConversation(order: OrderRecord) {
@@ -138,6 +140,38 @@ function PaymentMethods({ value, onChange }: { value: OrderPaymentMethod; onChan
   return <section className="payment-methods" aria-label="选择支付方式"><button type="button" aria-pressed={value === 'alipay'} onClick={() => onChange('alipay')}><i className="alipay">支</i><span>支付宝</span><b>{value === 'alipay' && <Check size={12} aria-hidden="true" />}</b></button><button type="button" aria-pressed={value === 'wechat'} onClick={() => onChange('wechat')}><i className="wechat">微</i><span>微信</span><b>{value === 'wechat' && <Check size={12} aria-hidden="true" />}</b></button></section>
 }
 
+type PaymentResult = 'success' | 'expired'
+
+function PaymentResultOverlay({ order, result, onComplete }: { order: OrderRecord; result: PaymentResult; onComplete: () => void }) {
+  useEffect(() => {
+    if (result !== 'success') return
+    const timer = window.setTimeout(onComplete, 1000)
+    return () => window.clearTimeout(timer)
+  }, [onComplete, result])
+  const success = result === 'success'
+  const paidAt = order.paidAt ?? order.updatedAt
+  return <div className="payment-result-overlay" role="presentation">
+    <section role="dialog" aria-modal="true" aria-labelledby="payment-result-title" className={`payment-result-dialog ${success ? 'success' : 'expired'}`}>
+      <i className="payment-result-icon" aria-hidden="true">{success ? <Check size={42} strokeWidth={3} /> : <X size={46} strokeWidth={3} />}</i>
+      <Heading id="payment-result-title" as="h2" variant="hero">{success ? '支付成功' : '支付失败'}</Heading>
+      {success ? <>
+        <p>您的订单已完成支付，平台将继续保障交易履约。</p>
+        <em>交易资金已加密确认</em>
+        <dl>
+          <div><dt>支付金额</dt><dd>{formatOrderMoney(order.totalAmountCents)}</dd></div>
+          <div><dt>订单号</dt><dd>{order.paymentReference ?? `PAY${order.id.replace(/\D/g, '')}`}</dd></div>
+          <div><dt>支付时间</dt><dd>{new Date(paidAt).toLocaleString('zh-CN', { hour12: false })}</dd></div>
+        </dl>
+        <button type="button" onClick={onComplete}>完成（1s后自动跳转）</button>
+      </> : <>
+        <p>订单已过期</p>
+        <em>请检查支付状态后再试</em>
+        <button type="button" onClick={onComplete}>知道了</button>
+      </>}
+    </section>
+  </div>
+}
+
 export function OrderCheckoutPage() {
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
@@ -147,6 +181,7 @@ export function OrderCheckoutPage() {
   const [method, setMethod] = useState<OrderPaymentMethod>('alipay')
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [error, setError] = useState('')
+  const resultParam = params.get('result')
   const closeConfirm = useCallback(() => setConfirmOpen(false), [])
   if (!order) return <main className="order-v2-page"><OrderTopBar title="订单确认" /><OrderEmpty title="订单不存在" /></main>
   const openCashier = () => {
@@ -163,9 +198,16 @@ export function OrderCheckoutPage() {
   }
   const confirmPayment = () => {
     const ok = orderRepository.pay(order.id, method); refresh(); setConfirmOpen(false)
-    if (ok) navigate(`/payment/success?id=${encodeURIComponent(order.id)}`, { replace: true })
-    else setError('订单已过期或状态已变化，请返回订单列表确认。')
+    const next = new URLSearchParams(params)
+    next.set('id', order.id); next.set('stage', 'payment')
+    if (ok) { next.set('result', 'success'); setParams(next, { replace: true }) }
+    else if (orderRepository.get(order.id)?.status === 'pay_expired') { next.set('result', 'expired'); setParams(next, { replace: true }) }
+    else setError('订单状态已变化，请返回订单列表确认。')
   }
+  const result: PaymentResult | null = resultParam === 'success' && !['pending', 'pay_expired', 'cancelled'].includes(order.status)
+    ? 'success'
+    : resultParam === 'expired' && order.status === 'pay_expired' ? 'expired' : null
+  const finishResult = () => navigate(`/orders/${encodeURIComponent(order.id)}`, { replace: true })
   if (paymentStage) return <main className="order-v2-page checkout-page cashier-page">
     <header><OrderTopBar title="确认支付" /></header>
     <div className="checkout-scroll cashier-scroll">
@@ -175,6 +217,7 @@ export function OrderCheckoutPage() {
       {error && <p className="order-inline-error" role="alert">{error}</p>}
     </div>
     <footer className="cashier-footer"><button type="button" onClick={returnToConfirmation}>返回</button><button type="button" className="primary" disabled={order.status !== 'pending'} onClick={confirmPayment}>确认支付 {formatOrderMoney(order.totalAmountCents)}</button></footer>
+    {result && <PaymentResultOverlay order={order} result={result} onComplete={finishResult} />}
   </main>
   return <main className="order-v2-page checkout-page">
     <header><OrderTopBar title="订单确认" /></header>
@@ -215,10 +258,12 @@ export function PaymentSuccessPage() {
   const [params] = useSearchParams()
   const { orders } = useOrderData()
   const order = orders.find((item) => item.id === params.get('id'))
-  const successful = order && ['paid', 'verifying', 'binding', 'bind_success', 'completed'].includes(order.status)
+  const navigate = useNavigate()
+  const successful = order && ['paid', 'verifying', 'binding', 'signed', 'insuring', 'insured', 'bind_success', 'completed'].includes(order.status)
   if (!order) return <main className="order-v2-page"><OrderTopBar title="支付结果" /><OrderEmpty title="订单不存在" /></main>
-  if (!successful) return <main className="order-v2-page"><OrderTopBar title="支付结果" /><section className="payment-result-state error"><i>!</i><Heading as="h2" variant="result">支付未完成</Heading><p>当前订单状态：{getOrderStatusLabel(order.status, order.role)}</p><Link to={`/orders/checkout?id=${encodeURIComponent(order.id)}`}>返回订单</Link></section></main>
-  return <main className="order-v2-page payment-success-page"><OrderTopBar title="支付结果" side={<Link to="/"><Home size={19} aria-hidden="true" /></Link>} /><div className="payment-result-scroll"><section className="payment-success-hero"><i><Check size={28} strokeWidth={2.8} /></i><Heading as="h2" variant="hero">支付成功</Heading><strong>{formatOrderMoney(order.totalAmountCents)}</strong><p>资金已由平台托管，验号换绑后放款给卖家</p></section><section className="payment-next"><Heading as="h3" variant="subsection"><i />接下来该做什么</Heading><p>请尽快进入交易群，客服会在群内协助你和卖家完成验号与换绑。全程不要在群外私下交易。</p><Link to={orderTradeRoute(order)}>进入交易群</Link></section><section className="payment-order-info"><dl><div><dt>商品</dt><dd>{order.gameName} {order.server}</dd></div><div><dt>订单编号</dt><dd>{order.id}</dd></div><div><dt>支付方式</dt><dd>{order.paymentMethod === 'wechat' ? '微信' : '支付宝'}</dd></div></dl></section><div className="payment-result-links"><Link to="/">回到首页</Link><Link to={`/orders/${order.id}`}>查看订单详情</Link></div></div></main>
+  if (!successful && order.status !== 'pay_expired') return <main className="order-v2-page"><OrderTopBar title="支付结果" /><section className="payment-result-state error"><i>!</i><Heading as="h2" variant="result">支付未完成</Heading><p>当前订单状态：{getOrderStatusLabel(order.status, order.role)}</p><Link to={`/orders/${encodeURIComponent(order.id)}`}>查看订单</Link></section></main>
+  const finish = () => navigate(`/orders/${encodeURIComponent(order.id)}`, { replace: true })
+  return <main className="order-v2-page checkout-page cashier-page"><header><OrderTopBar title="确认支付" /></header><div className="checkout-scroll cashier-scroll"><section className="cashier-order-card"><p>交易订单支付</p><strong>{formatOrderMoney(order.totalAmountCents)}</strong><small>订单号　{order.id}</small></section></div><PaymentResultOverlay order={order} result={successful ? 'success' : 'expired'} onComplete={finish} /></main>
 }
 
 export function OrderDetailPage() {
@@ -229,13 +274,14 @@ export function OrderDetailPage() {
   if (!order) return <main className="order-v2-page"><OrderTopBar title="订单详情" /><OrderEmpty title="订单不存在" /></main>
   const hero = getOrderPrimaryMessage(order)
   const timeline = getOrderTimeline(order, now)
+  const progress = getOrderWorkflowProgress(order)
   const terminal = ['pay_expired', 'cancelled', 'closed'].includes(order.status)
   const copy = async () => { try { await navigator.clipboard.writeText(order.id); setToast('订单号已复制') } catch { setToast('复制失败，请手动复制') } }
-  const confirmReceipt = async () => { const success = orderRepository.confirmReceipt(order.id); if (success) await syncOrderConversation(order); setToast(success ? '已确认收货，平台将按规则放款' : '订单状态已变化或交易已暂停'); refresh() }
-  const completeBinding = async () => { const success = orderRepository.advance(order.id, 'bind_success'); if (success) await syncOrderConversation(order); setToast(success ? '已标记换绑完成' : '订单状态已变化或交易已暂停'); refresh() }
+  const confirmReceipt = async () => { const success = orderRepository.confirmReceipt(order.id); if (success) await syncOrderConversation(order); setToast(success ? '已确认放款，平台将按规则结算' : '尚未进入待放款或交易已暂停'); refresh() }
+  const completeBinding = async () => { const success = orderRepository.completeBinding(order.id); if (success) await syncOrderConversation(order); setToast(success ? '换绑完成，已进入协议签署完成阶段' : '订单状态已变化或交易已暂停'); refresh() }
   return <main className={`order-v2-page order-detail-page state-${order.status}`}><header><OrderTopBar title="订单详情" side={<small>{order.role === 'seller' ? '卖家视角' : '买家视角'}</small>} /></header><div className="order-detail-scroll">
-    <section className={`order-detail-hero ${terminal ? 'terminal' : ''}`}>{terminal ? <><i className="order-terminal-icon" aria-hidden="true">{order.status === 'pay_expired' ? '⌛' : '×'}</i><Heading as="h2" variant="hero">{order.status === 'pay_expired' ? '支付超时，订单已关闭' : hero.title}</Heading><p>{order.status === 'pay_expired' ? '未产生费用，商品已重新开放购买' : hero.detail}</p><div><Link to={`/game?gameCode=${encodeURIComponent(order.gameCode)}`}>看看相似商品</Link><Link className="primary" to={`/game?gameCode=${encodeURIComponent(order.gameCode)}`}>重新购买</Link></div></> : <><span><b>步骤 {getOrderWorkflowStep(order.status)} / 4</b><em>{['pending', 'verifying', 'bind_success'].includes(order.status) && order.role === 'buyer' || order.status === 'binding' && order.role === 'seller' ? '该你了' : '等对方'}</em></span><Heading as="h2" variant="hero">{hero.title}</Heading><p>{hero.detail}</p>{order.status === 'pending' && <time>还剩 <b>{formatOrderCountdown(order.expiresAt, now)}</b></time>}{order.status === 'binding' && order.role === 'seller' && <time>换绑资料剩 <b>{formatOrderCountdown(order.actionExpiresAt, now)}</b></time>}<div>{order.status === 'pending' ? <><Link to={`/payment/cancel?id=${encodeURIComponent(order.id)}`}>取消订单</Link><Link className="primary" to={`/orders/checkout?id=${encodeURIComponent(order.id)}`}>继续支付</Link></> : order.status === 'bind_success' && order.role === 'buyer' ? <><Link className="danger" to={`/aftersales/apply?orderId=${encodeURIComponent(order.id)}`}>验号不符</Link><button type="button" className="primary" onClick={confirmReceipt}>确认收货</button></> : order.status === 'binding' && order.role === 'seller' ? <><Link to={orderTradeRoute(order)}>进交易群</Link><button type="button" className="primary" onClick={completeBinding}>完成换绑</button></> : ['paid', 'verifying', 'binding', 'bind_success'].includes(order.status) ? <><Link to={`/aftersales/apply?orderId=${encodeURIComponent(order.id)}`}>申请客服介入</Link><Link className="dark" to={orderTradeRoute(order)}>进交易群</Link></> : <Link className="primary single" to="/orders">返回订单列表</Link>}</div></>}</section>
-    {['paid', 'verifying', 'binding', 'bind_success'].includes(order.status) && <section className="order-escrow"><ShieldCheck size={15} /><span><b>{formatOrderMoney(order.totalAmountCents)}</b> 仍在平台托管，未支付给卖家。</span></section>}
+    <section className={`order-detail-hero ${terminal ? 'terminal' : ''}`}>{terminal ? <><i className="order-terminal-icon" aria-hidden="true">{order.status === 'pay_expired' ? '⌛' : '×'}</i><Heading as="h2" variant="hero">{order.status === 'pay_expired' ? '支付超时，订单已关闭' : hero.title}</Heading><p>{order.status === 'pay_expired' ? '未产生费用，商品已重新开放购买' : hero.detail}</p><div><Link to={`/game?gameCode=${encodeURIComponent(order.gameCode)}`}>看看相似商品</Link><Link className="primary" to={`/game?gameCode=${encodeURIComponent(order.gameCode)}`}>重新购买</Link></div></> : <><span><b>步骤 {progress.current} / {progress.total}</b><em>{(['pending', 'verifying', 'bind_success'].includes(order.status) && order.role === 'buyer') || (order.status === 'binding' && order.role === 'seller') ? '该你了' : '等平台'}</em></span><Heading as="h2" variant="hero">{hero.title}</Heading><p>{hero.detail}</p>{order.status === 'pending' && <time>还剩 <b>{formatOrderCountdown(order.expiresAt, now)}</b></time>}{order.status === 'binding' && order.role === 'seller' && <time>换绑资料剩 <b>{formatOrderCountdown(order.actionExpiresAt, now)}</b></time>}{order.status === 'bind_success' && <time>未确认将自动放款 <b>{formatOrderCountdown(order.actionExpiresAt, now)}</b></time>}<div>{order.status === 'pending' ? <><Link to={`/payment/cancel?id=${encodeURIComponent(order.id)}`}>取消订单</Link><Link className="primary" to={`/orders/checkout?id=${encodeURIComponent(order.id)}`}>继续支付</Link></> : isOrderReleaseReady(order) && order.role === 'buyer' ? <><Link className="danger" to={`/aftersales/apply?orderId=${encodeURIComponent(order.id)}`}>验号不符</Link><button type="button" className="primary" onClick={confirmReceipt}>确认放款</button></> : order.status === 'binding' && order.role === 'seller' ? <><Link to={orderTradeRoute(order)}>进交易群</Link><button type="button" className="primary" onClick={completeBinding}>完成换绑</button></> : ['paid', 'verifying', 'binding', 'signed', 'insuring', 'insured', 'bind_success'].includes(order.status) ? <><Link to={`/aftersales/apply?orderId=${encodeURIComponent(order.id)}`}>申请客服介入</Link><Link className="dark" to={orderTradeRoute(order)}>进交易群</Link></> : <Link className="primary single" to="/orders">返回订单列表</Link>}</div></>}</section>
+    {['paid', 'verifying', 'binding', 'signed', 'insuring', 'insured', 'bind_success'].includes(order.status) && <section className="order-escrow"><ShieldCheck size={15} /><span><b>{formatOrderMoney(order.totalAmountCents)}</b> 仍在平台托管，未支付给卖家。</span></section>}
     {!terminal && <section className="order-progress"><Heading as="h2" variant="section">交易进度</Heading><ol>{timeline.map((item) => <li key={item.key} className={item.state}><i /> <span><b>{item.title}</b>{item.detail && <small>{item.detail}</small>}</span></li>)}</ol></section>}
     <section className="order-detail-product"><ProductRow order={order} /><dl><div><dt>商品价</dt><dd>{formatOrderMoney(order.goodsAmountCents)}</dd></div><div><dt>包赔服务</dt><dd>{order.insuranceAmountCents ? formatOrderMoney(order.insuranceAmountCents) : '未购买'}</dd></div><div><dt>实付</dt><dd className="order-paid-amount">{formatOrderMoney(order.totalAmountCents)}</dd></div></dl><footer><span>订单号 <b>{order.id}</b></span><button type="button" onClick={copy}><Copy size={13} />复制</button></footer></section>
     <Link className="order-help" to={SUPPORT_CONVERSATION_ROUTE}><span><b>遇到问题？</b><small>卖家迟迟不换绑 · 收到的号与描述不符 · 其他</small></span><ChevronRight size={15} /></Link>

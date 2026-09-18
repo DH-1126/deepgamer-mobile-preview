@@ -31,8 +31,8 @@ export function matchesTradeOrderTab(order: OrderRecord, role: OrderRole, tab: T
   if (order.role !== role) return false
   if (tab === 'all') return true
   if (tab === 'trading') return role === 'buyer'
-    ? ['paid', 'verifying', 'binding'].includes(order.status)
-    : ['paid', 'verifying'].includes(order.status)
+    ? ['paid', 'verifying', 'binding', 'signed', 'insuring', 'insured'].includes(order.status)
+    : ['paid', 'verifying', 'signed', 'insuring', 'insured'].includes(order.status)
   if (tab === 'ended') return ['pay_expired', 'cancelled', 'closed'].includes(order.status)
   return order.status === tab
 }

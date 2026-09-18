@@ -60,3 +60,22 @@
 
 /* Shared Heading variants own type scale for migrated titles. */
 .aftersales-v2-topbar .dg-heading--page,.aftersales-v2-title .dg-heading--page{}.aftersales-v2-empty .dg-heading--result{}.aftersales-material-picker .dg-heading--section,.aftersales-result-card .dg-heading--section,.aftersales-current-materials .dg-heading--section,.aftersales-update-materials .dg-heading--section{}.aftersales-status-hero .dg-heading--hero{}
+
+/* Material upload states shared by application and supplement forms. */
+.aftersales-material-picker--states .aftersales-material-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; overflow:visible; }
+.aftersales-material-picker--states header h2 { font-size:13px; }
+.aftersales-material-picker--states header h2 em { color:var(--dg-color-danger,#e24b49); }
+.aftersales-material-picker--states header small { font-size:10px; }
+.aftersales-material-picker--states .aftersales-material-tile, .aftersales-material-picker--states .aftersales-material-add { position:relative; min-width:0; width:100%; height:76px; border-radius:10px; padding:0; display:flex; align-items:center; justify-content:center; background:#f2f2ef; color:#b3b3b1; }
+.aftersales-material-tile > img { width:100%; height:100%; object-fit:cover; border-radius:inherit; }
+.aftersales-material-picker--states .aftersales-material-add { flex-direction:column; border:1px dashed #e6cc6a; background:#fffdf2; color:#a78919; }
+.aftersales-material-picker--states .status-failed { background:#fffafa; border:1px solid #ffaaa4; }
+.aftersales-material-retry { display:flex; flex-direction:column; gap:4px; align-items:center; justify-content:center; border:0; background:transparent; color:#ed4c45; width:100%; height:100%; padding:4px; }
+.aftersales-material-retry span { font-size:10px; }
+.aftersales-material-retry small { font-size:9px; }
+.aftersales-material-picker--states .aftersales-material-remove { position:absolute; right:-5px; top:-5px; width:20px; height:20px; display:grid; place-items:center; padding:0; border:1px solid #fff; border-radius:50%; background:#777; color:#fff; }
+.aftersales-material-progress { position:absolute; inset:0; border-radius:inherit; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; background:#ffffffd9; font-size:10px; color:#777; }
+.aftersales-material-progress svg { animation:material-spin 1s linear infinite; }
+.aftersales-material-picker--states .aftersales-material-hint { font-size:11px; line-height:1.5; color:#d44840; margin:10px 0 0; }
+@keyframes material-spin { to { transform:rotate(360deg); } }
+@media(prefers-reduced-motion:reduce) { .aftersales-material-progress svg { animation:none; } }

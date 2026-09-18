@@ -13,7 +13,7 @@ describe('getOrderListPresentation', () => {
     expect(getOrderListPresentation({ ...base, status: 'cancelled' }, now).description).toBe('你取消了订单')
     expect(getOrderListPresentation({ ...base, status: 'closed' }, now).description).not.toContain('已原路退回')
   })
-  it.each<[OrderStatus, string]>([['pending', '待付款'], ['paid', '待资料同步'], ['verifying', '验号中'], ['binding', '换绑中'], ['bind_success', '待放款'], ['completed', '已完成'], ['closed', '已关闭'], ['pay_expired', '已过期'], ['cancelled', '已关闭']])('covers %s', (status, label) => {
+  it.each<[OrderStatus, string]>([['pending', '待付款'], ['paid', '待资料同步'], ['verifying', '验号中'], ['binding', '换绑中'], ['signed', '签署完成'], ['insuring', '投保中'], ['insured', '投保成功'], ['bind_success', '待放款'], ['completed', '已完成'], ['closed', '已关闭'], ['pay_expired', '已过期'], ['cancelled', '已关闭']])('covers %s', (status, label) => {
     const view = getOrderListPresentation({ ...base, status }, now)
     expect(view.statusLabel).toBe(label)
     expect(view.amountCents).toBe(1644280)
@@ -24,7 +24,7 @@ describe('getOrderListPresentation', () => {
     expect(pending.countdown).toBe('27:52')
     expect(pending.actions.map(action => action.to)).toEqual(['/payment/cancel?id=OD-1', '/orders/checkout?id=OD-1'])
     const paid = getOrderListPresentation({ ...base, status: 'paid', conversationId: undefined }, now)
-    expect(paid.actions[1]).toMatchObject({ label: '进交易群', to: '/orders/OD-1' })
+    expect(paid.actions[1]).toMatchObject({ label: '查看进度', to: '/orders/OD-1' })
   })
 
   it('keeps optional post-sale, refund and recycle details without overriding money', () => {

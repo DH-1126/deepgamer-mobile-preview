@@ -1,19 +1,26 @@
 import { describe, expect, it } from 'vitest'
 import { createMessageSeed } from '../data/messageFixtures'
 import { createOrderSeed } from '../data/orderFixtures'
-import { getConversationPhase, getTradeStep, isOrderConversationMatch, isTradePreviewMode, nextTradePhase, validateTradeIssue } from './tradeFlowModel'
+import { getConversationPhase, getTradeProgress, getTradeStep, isOrderConversationMatch, isTradePreviewMode, nextTradePhase, validateTradeIssue } from './tradeFlowModel'
 
 describe('四步交易履约', () => {
   it('只有当前责任人可以推进流程', () => {
     expect(nextTradePhase('materials', 'buyer', 'submit_materials')).toBeNull()
     expect(nextTradePhase('materials', 'seller', 'submit_materials')).toBe('inspection')
     expect(nextTradePhase('inspection', 'buyer', 'finish_inspection')).toBe('binding')
-    expect(nextTradePhase('binding', 'seller', 'finish_binding')).toBe('release')
+    expect(nextTradePhase('binding', 'seller', 'finish_binding')).toBe('signed')
     expect(nextTradePhase('release', 'buyer', 'release_funds')).toBe('completed')
+  })
+  it('签署和投保阶段不允许交易双方绕过平台直接放款', () => {
+    for (const phase of ['signed', 'insuring', 'insured'] as const) expect(nextTradePhase(phase, 'buyer', 'release_funds')).toBeNull()
+    expect(getTradeProgress('insured', true)).toEqual({ current: 6, total: 7 })
+    expect(getTradeProgress('signed', false)).toEqual({ current: 4, total: 5 })
   })
   it('异常暂停保留原步骤，且禁止继续放款', () => {
     expect(nextTradePhase('release', 'buyer', 'report_issue')).toBe('paused')
-    expect(getTradeStep('paused', 'release')).toBe(4)
+    expect(getTradeStep('materials')).toBe(1)
+    expect(getTradeStep('paused', 'release')).toBe(7)
+    expect(getTradeStep('paused', 'paused')).toBe(2)
     expect(nextTradePhase('paused', 'buyer', 'release_funds')).toBeNull()
     expect(nextTradePhase('completed', 'seller', 'report_issue')).toBeNull()
   })

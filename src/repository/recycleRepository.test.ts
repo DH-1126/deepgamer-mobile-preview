@@ -38,8 +38,11 @@ describe('recycleRepository', () => {
     let now = 2_100_000_000_000
     const repository = createRecycleRepository({ storage: storage(), now: () => ++now })
     const order = repository.begin('fun', 'delta')!
-    expect(repository.createFormalOrder(order.id, { quoteCents: 2200, server: '烽火地带', rank: '高段位账号', accountSummary: '依据账号资产概况报价' })).toBe(true)
-    expect(repository.get(order.id)?.stage).toBe('formal')
+    const draft = { loginAccount: 'delta_player', realnameStatus: '包人脸' as const, nobleLevel: 'V6' as const, antiAddiction: '无防沉迷' as const, quoteCents: 2200, screenshots: [{ id: 'shot-1', name: 'account.png', mimeType: 'image/png' as const, size: 120_000 }], note: '高段位账号，稀有道具较多' }
+    expect(repository.createFormalOrder(order.id, draft)).toBe(true)
+    expect(repository.get(order.id)).toMatchObject({ stage: 'formal', formalDraft: draft })
+    expect(repository.createFormalOrder(order.id, { ...draft, quoteCents: 2600, nobleLevel: 'V7', note: '补充稀有皮肤情况' })).toBe(true)
+    expect(repository.get(order.id)).toMatchObject({ quoteCents: 2600, formalDraft: { loginAccount: 'delta_player', nobleLevel: 'V7', note: '补充稀有皮肤情况' } })
     expect(repository.confirmOrder(order.id)).toBe(true)
     expect(repository.get(order.id)?.stage).toBe('submitted')
     const completed = repository.completePayment(order.id)!

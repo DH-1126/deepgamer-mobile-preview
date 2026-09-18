@@ -1,6 +1,6 @@
 import type { OrderFilterStatus, OrderQuery, OrderRecord, OrderRole, OrderStatus, OrderTimelineItem, OrderWorkflowPhase } from '../types/order'
 
-export const ORDER_STATUSES: readonly OrderStatus[] = ['pending', 'pay_expired', 'cancelled', 'paid', 'verifying', 'binding', 'bind_success', 'completed', 'closed']
+export const ORDER_STATUSES: readonly OrderStatus[] = ['pending', 'pay_expired', 'cancelled', 'paid', 'verifying', 'binding', 'signed', 'insuring', 'insured', 'bind_success', 'completed', 'closed']
 export const ORDER_ROLES: readonly OrderRole[] = ['buyer', 'seller']
 
 const transitions: Record<OrderStatus, readonly OrderStatus[]> = {
@@ -9,7 +9,10 @@ const transitions: Record<OrderStatus, readonly OrderStatus[]> = {
   cancelled: [],
   paid: ['verifying', 'binding', 'closed'],
   verifying: ['binding', 'closed'],
-  binding: ['bind_success', 'closed'],
+  binding: ['signed', 'closed'],
+  signed: ['insuring', 'bind_success', 'closed'],
+  insuring: ['insured', 'closed'],
+  insured: ['bind_success', 'closed'],
   bind_success: ['completed', 'closed'],
   completed: [],
   closed: [],
@@ -17,7 +20,7 @@ const transitions: Record<OrderStatus, readonly OrderStatus[]> = {
 
 const labels: Record<OrderStatus, string> = {
   pending: '待付款', pay_expired: '支付超时', cancelled: '已取消', paid: '待资料同步', verifying: '待买家验号',
-  binding: '换绑中', bind_success: '待确认收货', completed: '已完成', closed: '已关闭',
+  binding: '换绑中', signed: '签署完成', insuring: '投保中', insured: '投保成功', bind_success: '待放款', completed: '已完成', closed: '已关闭',
 }
 
 export function isOrderStatus(value: string | null): value is OrderStatus {
@@ -34,7 +37,7 @@ export function isOrderFilterStatus(value: string | null): value is OrderFilterS
 
 export function getOrderStatusLabel(status: OrderStatus, role: OrderRole = 'buyer') {
   if (status === 'binding') return role === 'seller' ? '待你换绑' : '等卖家换绑'
-  if (status === 'bind_success') return role === 'seller' ? '等买家确认' : '待确认收货'
+  if (status === 'bind_success') return role === 'seller' ? '等买家确认放款' : '待确认放款'
   return labels[status]
 }
 
@@ -45,6 +48,9 @@ export function canTransitionOrder(from: OrderStatus, to: OrderStatus) {
 export function getOrderWorkflowPhase(status: OrderStatus): OrderWorkflowPhase {
   if (status === 'verifying') return 'inspection'
   if (status === 'binding') return 'binding'
+  if (status === 'signed') return 'signed'
+  if (status === 'insuring') return 'insuring'
+  if (status === 'insured') return 'insured'
   if (status === 'bind_success') return 'release'
   if (status === 'completed') return 'completed'
   if (status === 'pay_expired' || status === 'cancelled' || status === 'closed') return 'closed'
@@ -55,8 +61,25 @@ export function getOrderWorkflowStep(status: OrderStatus) {
   const phase = getOrderWorkflowPhase(status)
   if (phase === 'inspection') return 2
   if (phase === 'binding') return 3
-  if (phase === 'release' || phase === 'completed') return 4
+  if (phase === 'signed') return 4
+  if (phase === 'insuring') return 5
+  if (phase === 'insured') return 6
+  if (phase === 'release' || phase === 'completed') return 7
   return 1
+}
+
+export function isOrderReleaseReady(order: OrderRecord) {
+  return order.status === 'bind_success' && !order.pausedPhase
+}
+
+export function getOrderWorkflowProgress(order: OrderRecord) {
+  const insuredFlow = order.insuranceAmountCents > 0
+  const phase = getOrderWorkflowPhase(order.status)
+  const phases: OrderWorkflowPhase[] = insuredFlow
+    ? ['materials', 'inspection', 'binding', 'signed', 'insuring', 'insured', 'release']
+    : ['materials', 'inspection', 'binding', 'signed', 'release']
+  const index = phases.indexOf(phase)
+  return { current: phase === 'completed' ? phases.length : Math.max(1, index + 1), total: phases.length }
 }
 
 export function transitionOrder(order: OrderRecord, status: OrderStatus, now: number): OrderRecord {
@@ -77,7 +100,7 @@ export function expirePendingOrders(orders: readonly OrderRecord[], now: number)
 
 export function matchesOrderStatus(status: OrderStatus, filter: OrderFilterStatus) {
   if (filter === 'all') return true
-  if (filter === 'trading') return ['paid', 'verifying', 'binding', 'bind_success'].includes(status)
+  if (filter === 'trading') return ['paid', 'verifying', 'binding', 'signed', 'insuring', 'insured', 'bind_success'].includes(status)
   if (filter === 'ended') return ['pay_expired', 'cancelled', 'closed'].includes(status)
   return status === filter
 }
@@ -114,22 +137,30 @@ export function formatOrderCountdown(deadline: number | undefined, now: number) 
 
 export function getOrderTimeline(order: OrderRecord, now = Date.now()): OrderTimelineItem[] {
   const phase = getOrderWorkflowPhase(order.status)
-  const phaseIndex = ({ materials: 0, inspection: 1, binding: 2, release: 3, completed: 4, closed: -1 } as const)[phase]
+  const phases: OrderWorkflowPhase[] = order.insuranceAmountCents > 0
+    ? ['materials', 'inspection', 'binding', 'signed', 'insuring', 'insured', 'release']
+    : ['materials', 'inspection', 'binding', 'signed', 'release']
+  const phaseIndex = phase === 'completed' ? phases.length : phases.indexOf(phase)
   const terminalError = ['closed', 'cancelled', 'pay_expired'].includes(order.status)
   const created = new Date(order.createdAt).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })
   if (order.status === 'pending') return [
     { key: 'materials', title: '已下单 · 等待付款', detail: `${created} · 剩 ${formatOrderCountdown(order.expiresAt, now)}`, state: 'current' },
     { key: 'inspection', title: '买家验号', state: 'upcoming' },
     { key: 'binding', title: '账号换绑', state: 'upcoming' },
-    { key: 'release', title: '确认收货 · 平台放款', state: 'upcoming' },
+    { key: 'signed', title: '签署完成', state: 'upcoming' },
+    ...(order.insuranceAmountCents > 0 ? [
+      { key: 'insuring', title: '投保中', state: 'upcoming' as const },
+      { key: 'insured', title: '投保成功', state: 'upcoming' as const },
+    ] : []),
+    { key: 'release', title: '确认放款', state: 'upcoming' },
   ]
   if (terminalError) return [{ key: order.status, title: getOrderStatusLabel(order.status, order.role), detail: created, state: 'error' }]
-  const titles = order.role === 'seller'
-    ? ['资料同步 · 资金托管中', '等待买家验号', '完成账号换绑', '等待买家确认 · 平台放款']
-    : ['卖家同步资料', '核对账号资料', '等待账号换绑', '确认收货 · 放款给卖家']
-  return titles.map((title, index) => ({
-    key: ['materials', 'inspection', 'binding', 'release'][index],
-    title,
+  const titles: Record<OrderWorkflowPhase, string> = order.role === 'seller'
+    ? { materials: '资料同步 · 资金托管中', inspection: '等待买家验号', binding: '完成账号换绑', signed: '协议签署完成', insuring: '平台投保中', insured: '投保成功 · 保障已生效', release: '等待买家确认 · 平台放款', completed: '交易完成', closed: '交易已关闭' }
+    : { materials: '卖家同步资料', inspection: '核对账号资料', binding: '等待账号换绑', signed: '协议签署完成', insuring: '平台投保中', insured: '投保成功 · 保障已生效', release: '确认放款给卖家', completed: '交易完成', closed: '交易已关闭' }
+  return phases.map((key, index) => ({
+    key,
+    title: titles[key],
     state: phase === 'completed' || index < phaseIndex ? 'complete' : index === phaseIndex ? 'current' : 'upcoming',
     ...(index === phaseIndex && order.actionExpiresAt ? { detail: `剩 ${formatOrderCountdown(order.actionExpiresAt, now)}` } : {}),
   } as OrderTimelineItem))
@@ -144,7 +175,10 @@ export function getOrderPrimaryMessage(order: OrderRecord) {
     paid: role === 'seller' ? { title: '待资料同步', detail: '买家已付款，资金由平台托管，请按交易群提示同步账号资料。' } : { title: '待资料同步', detail: '卖家已收到通知，正在同步账号资料，资料到达后可开始验号。' },
     verifying: role === 'seller' ? { title: '等待买家验号', detail: '买家正在核对账号资料，请留意交易群消息。' } : { title: '请核对账号资料', detail: '卖家资料已同步，请在交易群内按指引完成验号。' },
     binding: role === 'seller' ? { title: '该你换绑', detail: '买家已付款，资金由平台托管，请按交易群步骤提供资料。' } : { title: '等卖家换绑', detail: '卖家已收到通知，超时可申请平台客服介入。' },
-    bind_success: role === 'seller' ? { title: '等买家确认', detail: '换绑已完成，买家确认后平台将按规则结算。' } : { title: '待你确认收货', detail: '请核对账号资料；确认后平台将按规则结算给卖家。' },
+    signed: { title: '签署完成', detail: order.insuranceAmountCents > 0 ? '交易协议已签署，平台将根据订单保障方案发起投保。' : '交易协议已签署，本订单不含包赔服务，平台核对后进入待放款。' },
+    insuring: { title: '投保中', detail: '平台正在提交保单，投保完成前不会向卖家放款。' },
+    insured: { title: '投保成功', detail: '包赔保障已经生效，平台核对完成后进入待放款。' },
+    bind_success: role === 'seller' ? { title: '等买家确认放款', detail: '换绑和保障流程均已完成，买家确认后平台将按规则结算。' } : { title: '待你确认放款', detail: '换绑和保障流程均已完成，请确认账号无误后放款给卖家。' },
     completed: { title: '交易完成', detail: '平台交易流程已完成。' },
     closed: { title: '交易已关闭', detail: '该订单已终止，资金按平台规则处理。' },
   }

@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { StaticRouter } from 'react-router-dom/server'
 import { describe, expect, it } from 'vitest'
-import { LoginPage } from './AuthPage'
+import { ForgotPasswordPage, LoginPage, SmsHelpPage, validateRecoveryForm } from './AuthPage'
 
 // Load the stylesheet in the Node test runner without adding Node types to the browser app.
 const nodeFsModule = 'node:fs'
@@ -52,5 +52,49 @@ describe('LoginPage shared controls', () => {
     expect(html.match(/data-ui="TextField"/g)).toHaveLength(2)
     expect(html).toContain('显示密码')
     expect(html).toContain('忘记密码？')
+  })
+})
+
+describe('password recovery pages', () => {
+  it('renders the Figma recovery form as an independent route with a carried phone', () => {
+    const html = renderToStaticMarkup(<StaticRouter location={{ pathname: '/forgot-password', state: { loginPhone: '18788660033', trigger: 'manual' } }}><ForgotPasswordPage /></StaticRouter>)
+
+    expect(html).toContain('找回登录密码')
+    expect(html).toContain('设置新密码')
+    expect(html).toContain('187 8866 0033')
+    expect(html.match(/data-ui="TextField"/g)).toHaveLength(3)
+    expect(html).toContain('8-18 个字符')
+    expect(html).toContain('同时包含字母和数字')
+    expect(html).toContain('两次输入保持一致')
+    expect(html).toContain('检查短信拦截')
+    expect(html).toContain('修改成功后，当前账号需重新登录')
+    expect(html).not.toContain('密码仅用于')
+  })
+
+  it('does not expose an unscoped reset form without a valid phone', () => {
+    const html = renderToStaticMarkup(<StaticRouter location="/forgot-password"><ForgotPasswordPage /></StaticRouter>)
+
+    expect(html).toContain('请先确认登录手机号')
+    expect(html).toContain('返回填写手机号')
+    expect(html).not.toContain('aria-label="新密码"')
+  })
+
+  it('validates composition, confirmation, and six-digit verification codes', () => {
+    expect(validateRecoveryForm('short', 'different', '12')).toEqual({
+      password: '密码需为 8-18 位，并同时包含字母和数字',
+      confirmation: '两次输入的密码不一致',
+      code: '请输入 6 位验证码',
+    })
+    expect(validateRecoveryForm('newPass2026', 'newPass2026', '246810')).toEqual({})
+  })
+
+  it('renders the standalone SMS troubleshooting content from the design', () => {
+    const html = renderToStaticMarkup(<StaticRouter location="/sms-help"><SmsHelpPage /></StaticRouter>)
+
+    expect(html).toContain('无法接收短信的原因')
+    expect(html).toContain('手机号是否填错')
+    expect(html).toContain('网络信号')
+    expect(html).toContain('垃圾短信')
+    expect(html).toContain('手机号是否欠费')
   })
 })

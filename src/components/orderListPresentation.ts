@@ -20,7 +20,7 @@ export type OrderListPresentation = {
   isRecycle: boolean
 }
 
-const activeStatuses: readonly OrderStatus[] = ['pending', 'paid', 'verifying', 'binding', 'bind_success']
+const activeStatuses: readonly OrderStatus[] = ['pending', 'paid', 'verifying', 'binding', 'signed', 'insuring', 'insured', 'bind_success']
 const closedStatuses: readonly OrderStatus[] = ['closed', 'pay_expired', 'cancelled']
 
 export function formatOrderListMoney(cents: number) {
@@ -47,7 +47,7 @@ function afterSaleDeadline(deadline: number | undefined) {
 }
 
 function statusLabel(status: OrderStatus) {
-  return ({ pending: '待付款', paid: '待资料同步', verifying: '验号中', binding: '换绑中', bind_success: '待放款', completed: '已完成', closed: '已关闭', pay_expired: '已过期', cancelled: '已关闭' } as const)[status]
+  return ({ pending: '待付款', paid: '待资料同步', verifying: '验号中', binding: '换绑中', signed: '签署完成', insuring: '投保中', insured: '投保成功', bind_success: '待放款', completed: '已完成', closed: '已关闭', pay_expired: '已过期', cancelled: '已关闭' } as const)[status]
 }
 
 function description(order: OrderRecord, recycle: boolean) {
@@ -56,6 +56,9 @@ function description(order: OrderRecord, recycle: boolean) {
   if (order.status === 'paid') return '货款已托管，卖家正在同步账号资料。'
   if (order.status === 'verifying') return '卖家资料已同步，请在交易群核对账号'
   if (order.status === 'binding') return '超 24 小时未换绑可申请客服介入。'
+  if (order.status === 'signed') return order.insuranceAmountCents > 0 ? '协议已签署，平台即将发起包赔投保。' : '协议已签署，平台核对后进入待放款。'
+  if (order.status === 'insuring') return '平台正在提交保单，投保完成前不会放款。'
+  if (order.status === 'insured') return '包赔保障已生效，正在进入待放款。'
   if (order.status === 'bind_success') return '换绑已完成，72 小时后系统自动放款。'
   if (order.status === 'completed') {
     const end = afterSaleDeadline(order.afterSaleEndsAt)
@@ -82,7 +85,7 @@ export function getOrderListPresentation(order: OrderRecord, now: number): Order
     : order.status === 'pending'
       ? [{ label: '取消订单', to: `/payment/cancel?id=${encodeURIComponent(order.id)}`, variant: 'outline' }, { label: '去支付', to: `/orders/checkout?id=${encodeURIComponent(order.id)}`, variant: 'primary' }]
       : activeStatuses.includes(order.status)
-        ? [{ label: '联系客服', to: support, variant: 'outline' }, { label: '进交易群', to: group, variant: 'primary' }]
+        ? [{ label: '联系客服', to: support, variant: 'outline' }, { label: order.conversationId ? '进交易群' : '查看进度', to: group, variant: 'primary' }]
         : order.status === 'completed'
           ? [{ label: '申请售后', to: `/aftersales/apply?orderId=${encodeURIComponent(order.id)}`, variant: 'outline' }, { label: '联系客服', to: support, variant: 'outline' }]
           : [{ label: '联系客服', to: support, variant: 'outline' }]

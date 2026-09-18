@@ -21,6 +21,8 @@ describe('authAccessModel', () => {
   })
 
   it('allows login assistance without opening private conversations to guests', () => {
+    expect(isGuestAccessiblePath('/forgot-password')).toBe(true)
+    expect(isGuestAccessiblePath('/sms-help')).toBe(true)
     expect(isGuestAccessiblePath('/support')).toBe(true)
     expect(isGuestAccessiblePath('/im/support-mengmeng')).toBe(true)
     expect(isGuestAccessiblePath('/message/groups/support-mengmeng')).toBe(true)

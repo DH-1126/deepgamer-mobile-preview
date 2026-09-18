@@ -10,7 +10,7 @@ describe('orderHubModel', () => {
 
   it('买入和卖出使用各自状态分组', () => {
     expect(countTradeOrders(orders, 'buyer', 'pending')).toBe(2)
-    expect(countTradeOrders(orders, 'buyer', 'trading')).toBe(6)
+    expect(countTradeOrders(orders, 'buyer', 'trading')).toBe(9)
     expect(countTradeOrders(orders, 'buyer', 'bind_success')).toBe(2)
     expect(countTradeOrders(orders, 'seller', 'binding')).toBe(2)
     expect(countTradeOrders(orders, 'seller', 'trading')).toBe(2)

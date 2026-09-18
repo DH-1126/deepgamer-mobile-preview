@@ -149,9 +149,11 @@ describe('authRepository', () => {
     expect(await repository.resetPasswordWithCode(other, 'newPassword8', 'newPassword8', '246810', true)).toMatchObject({ ok: false, error: '验证码已过期，请重新获取', field: 'code' })
   })
 
-  it('resets a registered password, logs in, clears attempts, and invalidates the old password', async () => {
+  it('resets a registered password, signs out, clears attempts, and requires a fresh password login', async () => {
     const repository = createAuthRepository({ storage: fakeStorage(), persistSession: false })
     const phone = '18788660033'
+    expect((await repository.loginWithPassword(phone, 'demo2026', true)).ok).toBe(true)
+    expect(repository.isAuthenticated()).toBe(true)
     await repository.loginWithPassword(phone, 'wrong', true)
     expect((await repository.requestPasswordCode(phone, 'reset')).ok).toBe(true)
     expect(await repository.resetPasswordWithCode(phone, 'nextDemo8', 'nextDemo8', '246810', false)).toMatchObject({ ok: false })
@@ -159,6 +161,7 @@ describe('authRepository', () => {
     expect(await repository.resetPasswordWithCode(phone, 'short', 'short', '246810', true)).toMatchObject({ ok: false, field: 'password' })
     expect(await repository.resetPasswordWithCode(phone, 'nextDemo8', 'nextDemo8', '000000', true)).toMatchObject({ ok: false, field: 'code' })
     expect(await repository.resetPasswordWithCode(phone, 'nextDemo8', 'nextDemo8', '246810', true)).toMatchObject({ ok: true })
+    expect(repository.isAuthenticated()).toBe(false)
     expect(await repository.loginWithPassword(phone, 'demo2026', true)).toMatchObject({ ok: false, reason: 'incorrect_password', attemptsRemaining: 2 })
     expect((await repository.loginWithPassword(phone, 'nextDemo8', true)).ok).toBe(true)
   })

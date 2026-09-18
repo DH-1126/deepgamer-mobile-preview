@@ -42,7 +42,7 @@ describe('messageRepository', () => {
   it('仅在key缺失时seed，持久空不重灌', async () => {
     const storage = fakeStorage()
     const repository = createMessageRepository({ storage, now: () => 2_000_000_000_000 })
-    expect(await repository.list()).toHaveLength(26)
+    expect(await repository.list()).toHaveLength(29)
     const empty = fakeStorage({ [MESSAGES_STORAGE_KEY]: JSON.stringify({ conversations: [], messages: [] }) })
     expect(await createMessageRepository({ storage: empty }).list()).toEqual([])
   })
@@ -56,7 +56,7 @@ describe('messageRepository', () => {
       messages: seed.messages.map(item => ['m1', 'm2', 'm3', 'm4'].includes(item.id) ? { ...item, conversationId: 'trade-wzry' } : item),
     }
     const repository = createMessageRepository({ storage: fakeStorage({ [MESSAGES_STORAGE_KEY]: JSON.stringify(legacy) }), now: () => 2_000_000_000_000 })
-    expect(await repository.list()).toHaveLength(26)
+    expect(await repository.list()).toHaveLength(29)
     expect(await repository.get('trade-wzry')).toMatchObject({ orderId: 'OD20260821000000001', workflowPhase: 'materials' })
     expect(await repository.get('trade-wzry-od03')).toMatchObject({ orderId: 'OD20260821000000003', workflowPhase: 'release' })
     expect((await repository.listMessages('trade-wzry-od03')).filter(item => ['m1', 'm2', 'm3', 'm4'].includes(item.id))).toHaveLength(4)

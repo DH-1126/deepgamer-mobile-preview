@@ -10,7 +10,7 @@ export type RecycleStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
 type RecycleRepositoryOptions = { storage: RecycleStorage; now?: () => number; seed?: RecycleStore }
 const EVENT = 'deepgamer:recycle-change'
 
-function cloneOrder(order: RecycleOrder): RecycleOrder { return { ...order, materials: order.materials.map((item) => ({ ...item })), messages: order.messages.map((item) => ({ ...item })), submission: order.submission ? { ...order.submission } : undefined } }
+function cloneOrder(order: RecycleOrder): RecycleOrder { return { ...order, materials: order.materials.map((item) => ({ ...item })), messages: order.messages.map((item) => ({ ...item })), submission: order.submission ? { ...order.submission } : undefined, formalDraft: order.formalDraft ? { ...order.formalDraft, screenshots: Array.isArray(order.formalDraft.screenshots) ? order.formalDraft.screenshots.map((item) => ({ ...item })) : [] } : undefined } }
 function cloneStore(store: RecycleStore): RecycleStore { return { activeOrderId: store.activeOrderId, orders: store.orders.map(cloneOrder) } }
 function parseStore(raw: string | null, seed: RecycleStore): RecycleStore {
   if (!raw) return cloneStore(seed)
@@ -63,8 +63,10 @@ export function createRecycleRepository({ storage, now = Date.now, seed = { acti
     createFormalOrder(id: string, draft?: RecycleOrderDraft) {
       const order = read().orders.find((item) => item.id === id)
       if (draft) {
-        if (!order || order.stage !== 'consulting' || Object.keys(validateRecycleOrderDraft(draft)).length) return false
-        return update(id, (item) => ({ ...item, quoteCents: draft.quoteCents, protectionFeeCents: Math.round(draft.quoteCents * 0.1), server: draft.server.trim(), rank: draft.rank.trim(), stage: 'formal', expiresAt: now() + 30 * 60_000, updatedAt: now(), messages: [...item.messages, { id: `formal-${now()}`, sender: 'recycler', content: `已根据“${draft.accountSummary.trim()}”发送正式回收单。`, createdAt: now() }] }))
+        if (!order || !['consulting', 'formal'].includes(order.stage) || Object.keys(validateRecycleOrderDraft(draft)).length) return false
+        const updated = order.stage === 'formal'
+        const savedDraft: RecycleOrderDraft = { ...draft, loginAccount: draft.loginAccount.trim(), note: draft.note.trim(), screenshots: draft.screenshots.map((item) => ({ ...item })) }
+        return update(id, (item) => ({ ...item, formalDraft: savedDraft, quoteCents: savedDraft.quoteCents, protectionFeeCents: Math.round(savedDraft.quoteCents * 0.1), stage: 'formal', expiresAt: updated ? item.expiresAt : now() + 30 * 60_000, updatedAt: now(), messages: [...item.messages, { id: `formal-${now()}`, sender: 'recycler', content: updated ? '已更新正式回收单，请重新核对账号信息与报价。' : '正式回收单已发送，请核对账号信息与报价。', createdAt: now() }] }))
       }
       if (!order || order.materials.some((item) => !item.completed)) return false
       return move(id, 'materials', 'formal')

@@ -1,17 +1,18 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { StaticRouter } from 'react-router-dom/server'
 import { describe, expect, it } from 'vitest'
-import { AppraisalPage, SellPage } from './SellPages'
+import { AppraisalPage, DraftSheet, SellPage } from './SellPages'
 
 describe('account recycling game selection', () => {
-  it('keeps search and recent/popular games below the recycling hero', () => {
+  it('keeps the game-list search entry and recent/popular games below the recycling hero', () => {
     const html = renderToStaticMarkup(<StaticRouter location="/sell"><SellPage /></StaticRouter>)
     expect(html).toContain('</header><section class="sell-v2-game-scroll" aria-label="选择回收游戏"><div class="sell-v2-search-layout" role="search">')
-    expect(html).toContain('data-ui="SearchField"')
-    expect(html).toContain('>搜索</button>')
+    expect(html).toContain('type="button" class="sell-v2-search-entry dg-ui-focus"')
+    expect(html).toContain('<span>搜索游戏名称</span></button>')
     expect(html).toContain('class="sell-v2-game-grid recent"')
     expect(html).toContain('class="sell-v2-game-grid"')
-    expect(html).toContain('申请接入')
+    expect(html).toContain('查看列表')
+    expect(html).not.toContain('申请接入')
     expect(html).not.toContain('data-ui="Dialog"')
   })
   it('shows the requested brand message and five-step recycling flow below the games', () => {
@@ -57,7 +58,7 @@ describe('game recycler list', () => {
     expect(html.match(/>接单中<\/span>/g)).toHaveLength(3)
     expect(html.match(/disabled=""/g)).toHaveLength(1)
     expect(html).toContain('4 家回收商 · 3 家接单中')
-    expect(html).toContain('href="/sell"')
+    expect(html).toContain('href="/game/select?scene=sell&amp;current=wzry"')
   })
 
   it('keeps game-specific merchant filtering', () => {
@@ -75,10 +76,22 @@ describe('game recycler list', () => {
     expect(html).toContain('data-ui="EmptyStateView"')
     expect(html).toContain('>切换游戏</button>')
     expect(html).toContain('0 家回收商 · 0 家接单中')
-    expect(html).toContain('href="/sell"')
+    expect(html).toContain('>切换游戏</button>')
     expect(html).toContain('未成年人禁止售卖账号')
     expect(html.indexOf('aria-label="交易风险提醒"')).toBeGreaterThan(html.indexOf('>切换游戏</button>'))
     expect(html).not.toContain('data-ui="InlineNotice"')
     expect(html).not.toContain('data-ui="RecyclerCard"')
+  })
+})
+
+describe('recycle order draft', () => {
+  it('renders the complete business form and echoes the supplied draft instead of samples', () => {
+    const draft = { loginAccount: 'player_actual', realnameStatus: '不包人脸' as const, nobleLevel: 'V9' as const, antiAddiction: '无防沉迷' as const, quoteCents: 26800, screenshots: [{ id: 'shot-a', name: 'assets.webp', mimeType: 'image/webp' as const, size: 2048 }], note: '荣耀典藏皮肤较多' }
+    const html = renderToStaticMarkup(<DraftSheet draft={draft} errors={{}} onChange={() => undefined} onClose={() => undefined} onSubmit={() => undefined} submitLabel="确认修改" />)
+    for (const text of ['登录账号', '实名情况', '贵族等级', '有无防沉迷', '回收报价', '补充截图', '合计最多 15 张', '补充说明', '确认修改']) expect(html).toContain(text)
+    for (const value of ['player_actual', '不包人脸', 'V9', '无防沉迷', '268', 'assets.webp', '荣耀典藏皮肤较多']) expect(html).toContain(value)
+    expect(html).toContain('accept="image/jpeg,image/png,image/webp"')
+    expect(html).toContain('multiple=""')
+    expect(html).not.toContain('value="22"')
   })
 })

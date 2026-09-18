@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { BottomNav } from '../components/BottomNav'
 import { CatalogQuickFilters, type CatalogQuickFilterPanel } from '../components/CatalogQuickFilters'
+import { buildGameSelectRoute } from '../components/gameSelectionModel'
 import { useAuthStatus } from '../components/AuthAccess'
 import { assetPath } from '../components/assetPath'
 import { getActiveFilterChips, getActiveFilterCount, initialCatalogFilters, removeActiveFilter } from '../components/catalogFilterModel'
@@ -16,12 +17,10 @@ import { LinkedSearchFilterDrawer } from '../linked/LinkedSearchFilterDrawer'
 import { buildLinkedSearchRequest } from '../linked/linkedSearchModel'
 import { useLinkedSearch } from '../linked/useLinkedSearch'
 import { isLinkedDataMode } from '../runtime/dataMode'
-import { emptyFilters, type Game, type ProductFilters, type SortKey } from '../types/catalog'
+import { emptyFilters, type ProductFilters, type SortKey } from '../types/catalog'
 import '../styles/catalog-draft3.css'
 
 const asset = (name: string) => assetPath(`assets/catalog-v2/${name}`)
-const switchGameOrder = ['wzry', 'luoke', 'hpjy', 'sjzxd', 'valorant']
-
 function filtersFromParams(params: URLSearchParams): ProductFilters {
   const list = (key: string) => params.get(key)?.split(',').map((item) => item.trim()).filter(Boolean) ?? []
   return {
@@ -52,8 +51,6 @@ export function GameZonePage() {
     : filtersFromParams(params))
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [drawerSection, setDrawerSection] = useState<FilterSectionKey>('skinCount')
-  const [gamePickerOpen, setGamePickerOpen] = useState(false)
-  const [gameOptions, setGameOptions] = useState<Game[]>([])
   const [quickPanel, setQuickPanel] = useState<CatalogQuickFilterPanel | null>(null)
   const [toolbarSelection, setToolbarSelection] = useState<CatalogQuickFilterPanel>('sort')
   const [showTop, setShowTop] = useState(false)
@@ -63,14 +60,13 @@ export function GameZonePage() {
   const toolbarRef = useRef<HTMLElement>(null)
   const quickReturnFocusRef = useRef<HTMLElement | null>(null)
   const products = useMemo(() => linkedSearch.queryBlocked ? [] : catalogRepository.queryProducts(query, sort, filters, gameCode, linkedSearch.request), [catalogRevision, filters, gameCode, linkedSearch.queryBlocked, linkedSearch.request, query, sort])
-  const switchGames = useMemo(() => isLinkedDataMode ? gameOptions : switchGameOrder.map((code) => gameOptions.find((option) => option.code === code)).filter((option): option is Game => Boolean(option)), [gameOptions])
   const activeChips = useMemo(() => isLinkedDataMode ? [] : getActiveFilterChips(filters), [filters])
   const filterCount = isLinkedDataMode ? linkedSearch.chips.length : getActiveFilterCount(filters)
   const displayedFilterCount = filterCount + Math.max(0, filters.platforms.length - 1) + Math.max(0, filters.ranks.length - 1) + Math.max(0, filters.eliteLevels.length - 1) + Math.max(0, filters.realNames.length - 1)
   const obscuredContentProps = quickPanel ? { inert: '', 'aria-hidden': true } : {}
 
   useEffect(() => {
-    const sync = () => { setCatalogRevision((value) => value + 1); void catalogRepository.getGames().then(setGameOptions) }
+    const sync = () => { setCatalogRevision((value) => value + 1) }
     sync()
     return catalogRepository.subscribe(sync)
   }, [])
@@ -116,7 +112,7 @@ export function GameZonePage() {
     <main className="catalog-page catalog-d3">
       <header className="catalog-top">
         <div className="catalog-status" aria-hidden="true"><time>9:41</time><span><img src={asset('status-signal.svg')} alt="" /><img src={asset('status-wifi.svg')} alt="" /><img src={asset('status-battery.svg')} alt="" /></span></div>
-        <form className="catalog-search" role="search" onSubmit={(event) => event.preventDefault()}><button type="button" aria-label={`切换游戏，当前${game.name}`} onClick={() => { setQuickPanel(null); setToolbarSelection('sort'); setDrawerOpen(false); setGamePickerOpen(true) }}><img src={game.image || asset('game-switch.png')} alt="" /><span>切换</span></button><SearchField className="catalog-search-field" aria-label={`搜索${game.name}商品`} value={input} onChange={(event) => setInput(event.target.value)} onClear={() => setInput('')} onSearch={submitSearch} clearLabel="清空搜索" placeholder={isLinkedDataMode ? `搜${game.name}商品标题…` : game.code === 'wzry' ? '王者 倪克斯 镜 1500以内' : `搜${game.name}…`} /></form>
+        <form className="catalog-search" role="search" onSubmit={(event) => event.preventDefault()}><button type="button" aria-label={`切换游戏，当前${game.name}`} onClick={() => { setQuickPanel(null); setToolbarSelection('sort'); setDrawerOpen(false); navigate(buildGameSelectRoute({ scene: 'buy', current: game.code })) }}><img src={game.image || asset('game-switch.png')} alt="" /><span>切换</span></button><SearchField className="catalog-search-field" aria-label={`搜索${game.name}商品`} value={input} onChange={(event) => setInput(event.target.value)} onClear={() => setInput('')} onSearch={submitSearch} clearLabel="清空搜索" placeholder={isLinkedDataMode ? `搜${game.name}商品标题…` : game.code === 'wzry' ? '王者 倪克斯 镜 1500以内' : `搜${game.name}…`} /></form>
       </header>
 
       {!isLinkedDataMode && <section className="catalog-recommendations" aria-label="推荐筛选条件" {...obscuredContentProps}><div>{game.code === 'wzry' ? <>
@@ -143,7 +139,7 @@ export function GameZonePage() {
 
       <section ref={productsRef} className="catalog-products" aria-label="商品列表" {...obscuredContentProps} onScroll={(event) => setShowTop(event.currentTarget.scrollTop > 500)}>{products.length ? products.map((product) => <ProductCard key={product.id} product={product} variant="catalogV2" to={`/goods/${product.id}`} />) : <EmptyState onReset={() => { setFilters(emptyFilters); if (isLinkedDataMode) linkedSearch.setValues({}); setQuery(''); setInput('') }} />}</section>
       {showTop && !quickPanel && <button className="catalog-back-top" type="button" onClick={() => productsRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}>顶部</button>}
-      {authenticated && !showTop && !quickPanel && !drawerOpen && !gamePickerOpen && <button className="catalog-d3-support" type="button" aria-label="联系客服" onClick={() => navigate(SUPPORT_RECOMMENDATION_ROUTE)}><img src={assetPath('assets/home-v2/customer-service.svg')} alt="" /></button>}
+      {authenticated && !showTop && !quickPanel && !drawerOpen && <button className="catalog-d3-support" type="button" aria-label="联系客服" onClick={() => navigate(SUPPORT_RECOMMENDATION_ROUTE)}><img src={assetPath('assets/home-v2/customer-service.svg')} alt="" /></button>}
 
       {quickPanel && <CatalogQuickFilters key={quickPanel} panel={quickPanel} anchorRef={toolbarRef} sort={sort} platforms={filters.platforms} minPrice={filters.minPrice} maxPrice={filters.maxPrice} linkedMode={isLinkedDataMode} onClose={closeQuickPanel} onApplySort={(next) => { setSort(next); closeQuickPanel() }} onApplyServer={(next) => { setFilters((current) => ({ ...current, platforms: next })); closeQuickPanel() }} onApplyPrice={(min, max) => { setFilters((current) => ({ ...current, minPrice: min, maxPrice: max })); closeQuickPanel() }} />}
       {isLinkedDataMode ? <LinkedSearchFilterDrawer open={drawerOpen} gameName={game.name} projection={linkedSearch.projection} currentProjection={linkedSearch.currentProjection} values={linkedSearch.values} conflict={linkedSearch.conflict} requestIssues={() => linkedSearch.issues} resultCounter={(draft) => {
@@ -151,7 +147,6 @@ export function GameZonePage() {
         return built.issues.length ? 0 : catalogRepository.queryProducts(query, sort, filters, gameCode, built.request).length
       }} onClose={() => setDrawerOpen(false)} onApply={(next) => { linkedSearch.setValues(next); setDrawerOpen(false) }} onApplyLatest={linkedSearch.applyLatest} />
         : <FilterDrawer variant="catalogV2" open={drawerOpen} filters={filters} initialSection={drawerSection} gameName={game.name} resultCounter={(draft: ProductFilters) => catalogRepository.queryProducts(query, sort, draft, gameCode).length} onClose={() => setDrawerOpen(false)} onApply={(next) => { setFilters(next); setDrawerOpen(false) }} />}
-      {gamePickerOpen && <div className="catalog-d3-game-layer" role="dialog" aria-modal="true" aria-labelledby="catalog-game-title"><button className="catalog-d3-game-mask" type="button" aria-label="关闭切换游戏" onClick={() => setGamePickerOpen(false)} /><section className="catalog-d3-game-panel"><header><Heading id="catalog-game-title" as="h2" variant="dialog">切换游戏</Heading></header><Heading as="h3" variant="subsection">游戏列表</Heading><div>{(isLinkedDataMode ? switchGames : switchGames.concat(switchGames)).map((option, index) => <button type="button" key={`${option.code}-${index}`} className={option.code === game.code ? 'selected' : ''} aria-pressed={option.code === game.code} onClick={() => { setGamePickerOpen(false); navigate(`/game?gameCode=${option.code}`) }}><img src={option.image} alt="" /><span>{option.name}</span></button>)}</div></section></div>}
       <div {...obscuredContentProps}><BottomNav variant="catalog" gameCode={game.code} gameName={game.name} /></div>
     </main>
   )

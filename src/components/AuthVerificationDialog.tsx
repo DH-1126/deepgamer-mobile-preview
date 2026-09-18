@@ -5,7 +5,6 @@ import { Button, Dialog, IconButton, TextField } from './ui'
 import { getCountdown, maskPhone, normalizeCode } from './authModel'
 import { passwordRequirements } from './accountSettingsModel'
 import { authRepository } from '../repository/authRepository'
-import { SUPPORT_CONVERSATION_ROUTE } from '../data/messageFixtures'
 import '../styles/auth-verification.css'
 
 export type AuthVerificationIntent =
@@ -127,6 +126,6 @@ export function AuthVerificationDialog({ intent, onClose, onSuccess }: Props) {
       {error && <p className="auth-verification__error" role="alert">{error}</p>}
       <Button className="auth-verification__submit" type="submit" fullWidth size="xl" loading={submitting} disabled={sending}>{resetting ? '确认重置' : '注册并登录'}</Button>
     </form>
-    <p className="auth-verification__support">收不到验证码？ <Link to={SUPPORT_CONVERSATION_ROUTE}>联系客服</Link></p>
+    <p className="auth-verification__support"><Link to="/sms-help" state={{ backTo: '/login/password', loginPhone: intent.phone }}>收不到验证码？</Link></p>
   </Dialog>
 }

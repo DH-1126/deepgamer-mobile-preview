@@ -2,10 +2,10 @@ import type { Conversation } from '../types/message'
 import type { OrderRecord } from '../types/order'
 
 export type TradeRole = 'buyer' | 'seller'
-export type TradePhase = 'materials' | 'inspection' | 'binding' | 'release' | 'completed' | 'paused' | 'closed'
+export type TradePhase = 'materials' | 'inspection' | 'binding' | 'signed' | 'insuring' | 'insured' | 'release' | 'completed' | 'paused' | 'closed'
 export type TradeAction = 'submit_materials' | 'finish_inspection' | 'finish_binding' | 'release_funds' | 'report_issue'
 
-export const tradePhases: TradePhase[] = ['materials', 'inspection', 'binding', 'release', 'completed', 'paused', 'closed']
+export const tradePhases: TradePhase[] = ['materials', 'inspection', 'binding', 'signed', 'insuring', 'insured', 'release', 'completed', 'paused', 'closed']
 export function isTradePhase(value: unknown): value is TradePhase { return tradePhases.includes(value as TradePhase) }
 
 export function getConversationPhase(conversation: Conversation): TradePhase {
@@ -25,13 +25,23 @@ export function isTradePreviewMode(scenario: string | null, phase: string | null
   return scenario === 'preview' || isTradePhase(phase)
 }
 
-export function getTradeStep(phase: TradePhase, previous: TradePhase = 'inspection') {
-  return ({ materials: 1, inspection: 2, binding: 3, release: 4, completed: 4, paused: previous === 'materials' ? 1 : previous === 'binding' ? 3 : previous === 'release' ? 4 : 2, closed: 4 })[phase]
+export function getTradeStep(phase: TradePhase, previous: TradePhase = 'inspection'): number {
+  if (phase === 'paused') return previous === 'paused' ? 2 : getTradeStep(previous)
+  return ({ materials: 1, inspection: 2, binding: 3, signed: 4, insuring: 5, insured: 6, release: 7, completed: 7, closed: 7 })[phase]
+}
+
+export function getTradeProgress(phase: TradePhase, insuredFlow: boolean, previous: TradePhase = 'inspection') {
+  const phases: TradePhase[] = insuredFlow
+    ? ['materials', 'inspection', 'binding', 'signed', 'insuring', 'insured', 'release']
+    : ['materials', 'inspection', 'binding', 'signed', 'release']
+  const resolved = phase === 'paused' ? previous : phase
+  const index = phases.indexOf(resolved)
+  return { current: phase === 'completed' || phase === 'closed' ? phases.length : Math.max(1, index + 1), total: phases.length }
 }
 
 export function getTradePhaseTitle(phase: TradePhase, role: TradeRole) {
   const seller = role === 'seller'
-  return ({ materials: seller ? '你来同步资料' : '等卖家同步资料', inspection: seller ? '等买家验号' : '你来验号', binding: seller ? '你来换绑' : '等卖家换绑', release: seller ? '等买家确认放款' : '你来确认放款', completed: '交易完成', paused: '验号异常', closed: '交易已关闭' })[phase]
+  return ({ materials: seller ? '你来同步资料' : '等卖家同步资料', inspection: seller ? '等买家验号' : '你来验号', binding: seller ? '你来换绑' : '等卖家换绑', signed: '协议签署完成', insuring: '平台投保中', insured: '投保成功', release: seller ? '等买家确认放款' : '你来确认放款', completed: '交易完成', paused: '验号异常', closed: '交易已关闭' })[phase]
 }
 
 export function nextTradePhase(phase: TradePhase, role: TradeRole, action: TradeAction): TradePhase | null {
@@ -39,7 +49,7 @@ export function nextTradePhase(phase: TradePhase, role: TradeRole, action: Trade
   if (action === 'report_issue') return 'paused'
   if (phase === 'materials' && role === 'seller' && action === 'submit_materials') return 'inspection'
   if (phase === 'inspection' && role === 'buyer' && action === 'finish_inspection') return 'binding'
-  if (phase === 'binding' && role === 'seller' && action === 'finish_binding') return 'release'
+  if (phase === 'binding' && role === 'seller' && action === 'finish_binding') return 'signed'
   if (phase === 'release' && role === 'buyer' && action === 'release_funds') return 'completed'
   return null
 }

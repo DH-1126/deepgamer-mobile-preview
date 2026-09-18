@@ -11,6 +11,8 @@ const mixedIds = [
   'trade-list-OD3015035674505896501', 'trade-list-OD3015035674505896502',
   'trade-list-OD3015035674505896503', 'trade-list-OD3015035674505896504',
   'trade-list-OD3015035674505896505',
+  'trade-list-OD3015035674505896511', 'trade-list-OD3015035674505896512',
+  'trade-list-OD3015035674505896513',
   'RC-D3-61004', 'trade-hpjy', 'trade-sample-inspection', 'trade-wzry-od03',
   'RC-D3-61005', 'trade-sample-materials-buyer', 'RC-D3-33210', 'trade-wzry-od05',
   'trade-wzry', 'trade-delta', 'RC-D3-61002', 'trade-sample-binding',
@@ -39,7 +41,7 @@ describe('mixed message timeline fixtures', () => {
 
   it('supplies distinct times today and examples of yesterday, older dates and last year', () => {
     const labels = mixedTimeline(now).map(item => formatConversationTime(item.updatedAt, now))
-    expect(labels.slice(0, 14)).toEqual(['12:30', '12:29', '12:29', '12:29', '12:29', '12:26', '12:19', '12:09', '11:51', '11:42', '11:27', '10:55', '10:13', '09:37'])
+    expect(labels.slice(0, 17)).toEqual(['12:30', '12:29', '12:29', '12:29', '12:29', '12:29', '12:29', '12:29', '12:26', '12:19', '12:09', '11:51', '11:42', '11:27', '10:55', '10:13', '09:37'])
     expect(labels).toEqual(expect.arrayContaining(['昨天', '09-12', '09-11', '09-09', '09-07', '09-05', '2025']))
   })
 

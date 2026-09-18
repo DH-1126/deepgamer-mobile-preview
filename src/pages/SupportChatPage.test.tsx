@@ -36,4 +36,28 @@ describe('customer support entry destinations', () => {
   it('keeps the existing settings entry available', () => {
     expect(render(`${SUPPORT_CONVERSATION_ROUTE}?scenario=settings`)).toContain('role="dialog"')
   })
+
+  it('shows real game recommendations and a visible recycle entry for product consultation', () => {
+    const html = render(`${SUPPORT_CONVERSATION_ROUTE}?scenario=recommend&gameCode=wzry`)
+    expect(html).toContain('找号结果')
+    expect(html).toContain('王者50')
+    expect(html).toContain('href="/goods/1"')
+    expect(html).toContain('卖号/回收入口')
+    expect(html).toContain('href="/sell"')
+  })
+
+  it('keeps the exact product in a dismissible pending-send card', () => {
+    const html = render(`${SUPPORT_CONVERSATION_ROUTE}?scenario=product&productId=2114872829163482747&gameCode=sjzxd`)
+    expect(html).toContain('SJ11DG001')
+    expect(html).toContain('¥3,308')
+    expect(html).toContain('发送商品')
+    expect(html).toContain('aria-label="关闭待发送商品"')
+    expect(html).not.toContain('未发送到真实客服后台')
+  })
+
+  it('does not substitute another product when an unknown id is requested', () => {
+    const html = render(`${SUPPORT_CONVERSATION_ROUTE}?scenario=product&productId=missing&gameCode=wzry`)
+    expect(html).toContain('商品信息已失效')
+    expect(html).not.toContain('发送商品')
+  })
 })

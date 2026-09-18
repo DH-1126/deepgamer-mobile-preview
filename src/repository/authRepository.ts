@@ -15,6 +15,7 @@ export type AuthRepositoryOptions = {
   policy?: Partial<AuthPolicy>
 }
 type PasswordChallenge = { code: string; cooldownUntil: number; expiresAt: number }
+export type PasswordResetResult = { ok: true } | Extract<AuthResult, { ok: false }>
 
 export const AUTH_SESSION_KEY = 'deepgamer.auth.session.v1'
 export const AUTH_AGREEMENT_KEY = 'deepgamer.auth.agreement.v1'
@@ -55,6 +56,10 @@ export function createAuthRepository({ storage, now = Date.now, eventTarget, per
     if (!persistSession) { documentSession = session; emit(); return { ok: true, session } }
     return set(AUTH_SESSION_KEY, session) ? { ok: true, session } : { ok: false, error: '登录状态保存失败，请重试' }
   }
+  const clearSession = () => {
+    if (!persistSession) { documentSession = undefined; emit(); return true }
+    try { storage.removeItem(AUTH_SESSION_KEY); emit(); return true } catch { return false }
+  }
   const agreementError = (): AuthResult => ({ ok: false, error: '请先阅读并同意用户服务协议和隐私政策' })
   const invalidPhone = (): AuthResult => ({ ok: false, error: '请输入正确的手机号' })
   const passwordChallengeKey = (phone: string, purpose: PasswordCodePurpose) => `${purpose}:${phone}`
@@ -67,7 +72,7 @@ export function createAuthRepository({ storage, now = Date.now, eventTarget, per
     }
     return challenge
   }
-  const validatePasswordCode = (phone: string, purpose: PasswordCodePurpose, code: string): AuthResult | undefined => {
+  const validatePasswordCode = (phone: string, purpose: PasswordCodePurpose, code: string): Extract<AuthResult, { ok: false }> | undefined => {
     const key = passwordChallengeKey(phone, purpose)
     const challenge = passwordChallenges.get(key)
     if (!challenge) return { ok: false, error: '请先获取验证码', field: 'code' }
@@ -153,7 +158,7 @@ export function createAuthRepository({ storage, now = Date.now, eventTarget, per
       passwordChallenges.delete(passwordChallengeKey(normalizedPhone, 'register'))
       return result
     },
-    async resetPasswordWithCode(phone: string, password: string, confirmation: string, code: string, agreed: boolean): Promise<AuthResult> {
+    async resetPasswordWithCode(phone: string, password: string, confirmation: string, code: string, agreed: boolean): Promise<PasswordResetResult> {
       if (!agreed) return agreementError()
       const normalizedPhone = normalizePhone(phone)
       if (!isValidMainlandPhone(normalizedPhone)) return invalidPhone()
@@ -163,16 +168,16 @@ export function createAuthRepository({ storage, now = Date.now, eventTarget, per
       if (!requirements.matches) return { ok: false, error: '两次输入的密码不一致', field: 'confirmation' }
       const codeError = validatePasswordCode(normalizedPhone, 'reset', code)
       if (codeError) return codeError
-      const result = createSession('password')
-      if (!result.ok) return result
+      // Resetting a credential invalidates the current session. The user must
+      // prove the new password in a fresh password-login flow.
+      if (!clearSession()) return { ok: false, error: '登录状态更新失败，请重试' }
       passwords.set(normalizedPhone, password)
       passwordAttempts.delete(normalizedPhone)
       passwordChallenges.delete(passwordChallengeKey(normalizedPhone, 'reset'))
-      return result
+      return { ok: true }
     },
     logout() {
-      if (!persistSession) { documentSession = undefined; emit(); return true }
-      try { storage.removeItem(AUTH_SESSION_KEY); emit(); return true } catch { return false }
+      return clearSession()
     },
     hasAcceptedInitialAgreement() { return safeParse<AgreementRecord>(storage.getItem(AUTH_AGREEMENT_KEY))?.accepted === true },
     acceptInitialAgreement() { return set(AUTH_AGREEMENT_KEY, { accepted: true, acceptedAt: now() } satisfies AgreementRecord) },

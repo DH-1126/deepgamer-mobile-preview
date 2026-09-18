@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createOrderSeed } from '../data/orderFixtures'
-import { canTransitionOrder, countOrdersByStatus, expirePendingOrders, filterOrders, formatOrderCountdown, formatOrderMoney, getOrderStatusLabel, getOrderTimeline, getOrderWorkflowPhase, getOrderWorkflowStep, transitionOrder } from './orderModel'
+import { canTransitionOrder, countOrdersByStatus, expirePendingOrders, filterOrders, formatOrderCountdown, formatOrderMoney, getOrderStatusLabel, getOrderTimeline, getOrderWorkflowPhase, getOrderWorkflowProgress, getOrderWorkflowStep, isOrderReleaseReady, transitionOrder } from './orderModel'
 
 describe('orderModel', () => {
   const now = 2_000_000_000_000
@@ -33,7 +33,7 @@ describe('orderModel', () => {
   })
 
   it('买卖角色、状态组和关键词筛选均源自同一状态字段', () => {
-    expect(filterOrders(orders, { role: 'buyer', status: 'trading' })).toHaveLength(8)
+    expect(filterOrders(orders, { role: 'buyer', status: 'trading' })).toHaveLength(11)
     expect(countOrdersByStatus(orders, 'seller', 'trading')).toBe(4)
     expect(filterOrders(orders, { query: 'OD20260821000000001' })[0]?.status).toBe('pending')
     expect(filterOrders(orders, { query: '三角洲' })[0]?.role).toBe('seller')
@@ -44,9 +44,23 @@ describe('orderModel', () => {
     expect(getOrderWorkflowPhase('paid')).toBe('materials')
     expect(getOrderWorkflowPhase('verifying')).toBe('inspection')
     expect(getOrderWorkflowPhase('binding')).toBe('binding')
+    expect(getOrderWorkflowPhase('signed')).toBe('signed')
+    expect(getOrderWorkflowPhase('insuring')).toBe('insuring')
+    expect(getOrderWorkflowPhase('insured')).toBe('insured')
     expect(getOrderWorkflowPhase('bind_success')).toBe('release')
-    expect(getOrderWorkflowStep('completed')).toBe(4)
+    expect(getOrderWorkflowStep('completed')).toBe(7)
     const buyerInspection = { ...orders[0], status: 'verifying' as const }
     expect(getOrderTimeline(buyerInspection, now).map((item) => item.title)).toContain('核对账号资料')
+  })
+
+  it('包赔订单包含签署、投保和放款节点，无包赔订单跳过投保', () => {
+    const insured = orders.find((order) => order.status === 'insuring')!
+    expect(getOrderWorkflowProgress(insured)).toEqual({ current: 5, total: 7 })
+    expect(getOrderTimeline(insured, now).map(item => item.key)).toEqual(['materials', 'inspection', 'binding', 'signed', 'insuring', 'insured', 'release'])
+    const uninsured = { ...insured, status: 'signed' as const, insuranceAmountCents: 0 }
+    expect(getOrderWorkflowProgress(uninsured)).toEqual({ current: 4, total: 5 })
+    expect(getOrderTimeline(uninsured, now).map(item => item.key)).toEqual(['materials', 'inspection', 'binding', 'signed', 'release'])
+    expect(isOrderReleaseReady(insured)).toBe(false)
+    expect(isOrderReleaseReady({ ...insured, status: 'bind_success' })).toBe(true)
   })
 })

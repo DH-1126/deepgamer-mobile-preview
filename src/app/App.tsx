@@ -9,7 +9,7 @@ import { ProfilePage } from '../pages/ProfilePage'
 import { FavoritesPage } from '../pages/FavoritesPage'
 import { MessagePage } from '../pages/MessagePage'
 import { GroupChatPage } from '../pages/GroupChatPage'
-import { LoginPage, PrivacyPolicyPage, PushPermissionPage, UserAgreementPage, WelcomePage } from '../pages/AuthPage'
+import { ForgotPasswordPage, LoginPage, PrivacyPolicyPage, PushPermissionPage, SmsHelpPage, UserAgreementPage, WelcomePage } from '../pages/AuthPage'
 import { AuthPromptProvider, RequireAuth } from '../components/AuthAccess'
 import { OrderCheckoutPage, OrderDetailPage, OrderListPage, PaymentCancelPage, PaymentSuccessPage } from '../pages/OrderPages'
 import { RecycleOrderListPage } from '../pages/RecycleOrderListPage'
@@ -109,6 +109,8 @@ export function App() {
           <Route path="/login" element={<LoginEntry method="one_tap" />} />
           <Route path="/login/code" element={<LoginEntry method="code" />} />
           <Route path="/login/password" element={<LoginEntry method="password" />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/sms-help" element={<SmsHelpPage />} />
           <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
           <Route path="/user-agreement" element={<UserAgreementPage />} />
           <Route element={<LaunchedApp />}>

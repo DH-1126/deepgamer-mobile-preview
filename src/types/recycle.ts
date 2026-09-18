@@ -67,6 +67,8 @@ export type RecycleOrder = {
   updatedAt: number
   materials: RecycleMaterial[]
   messages: RecycleMessage[]
+  /** 正式回收单中由回收商填写的账号概况；旧数据可以没有此字段。 */
+  formalDraft?: RecycleOrderDraft
   submission?: RecycleSubmission
   /** Created only after the recycler completes the local payment demo. */
   conversationId?: string
@@ -76,10 +78,20 @@ export type RecycleOrder = {
 }
 
 export type RecycleOrderDraft = {
+  loginAccount: string
+  realnameStatus: '' | '包人脸' | '不包人脸' | '未实名'
+  nobleLevel: '' | `V${number}`
+  antiAddiction: '' | '有防沉迷' | '无防沉迷'
   quoteCents: number
-  server: string
-  rank: string
-  accountSummary: string
+  screenshots: RecycleDraftScreenshot[]
+  note: string
+}
+
+export type RecycleDraftScreenshot = {
+  id: string
+  name: string
+  mimeType: 'image/jpeg' | 'image/png' | 'image/webp'
+  size: number
 }
 
 export type RecycleStore = {

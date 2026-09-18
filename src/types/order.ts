@@ -7,13 +7,16 @@ export type OrderStatus =
   | 'paid'
   | 'verifying'
   | 'binding'
+  | 'signed'
+  | 'insuring'
+  | 'insured'
   | 'bind_success'
   | 'completed'
   | 'closed'
 
 export type OrderPaymentMethod = 'alipay' | 'wechat'
 export type OrderFilterStatus = 'all' | 'trading' | 'ended' | OrderStatus
-export type OrderWorkflowPhase = 'materials' | 'inspection' | 'binding' | 'release' | 'completed' | 'closed'
+export type OrderWorkflowPhase = 'materials' | 'inspection' | 'binding' | 'signed' | 'insuring' | 'insured' | 'release' | 'completed' | 'closed'
 
 export type OrderRecord = {
   id: string
@@ -34,6 +37,8 @@ export type OrderRecord = {
   expiresAt?: number
   actionExpiresAt?: number
   paymentMethod?: OrderPaymentMethod
+  paymentReference?: string
+  paidAt?: number
   conversationId?: string
   /** 订单列表展示元数据；兼容历史订单。 */
   orderKind?: 'account' | 'recycle'

@@ -1,5 +1,6 @@
-import { expirePendingOrders, filterOrders, getOrderWorkflowPhase, isOrderRole, isOrderStatus, transitionOrder } from '../components/orderModel'
+import { expirePendingOrders, filterOrders, getOrderWorkflowPhase, isOrderReleaseReady, isOrderRole, isOrderStatus, transitionOrder } from '../components/orderModel'
 import { createOrderSeed, ORDERS_STORAGE_KEY } from '../data/orderFixtures'
+import { createOrderListSeed } from '../data/orderListFixtures'
 import { ARCHIVED_TRADE_ID, createArchivedTradeSeed } from '../data/archivedTradeFixtures'
 import type { OrderPaymentMethod, OrderQuery, OrderRecord, OrderStatus, OrderWorkflowPhase } from '../types/order'
 import { getRuntimeStorage, isLinkedDataMode } from '../runtime/dataMode'
@@ -50,6 +51,16 @@ function migrateLegacyConversations(orders: OrderRecord[], at: number) {
     && next.some(order => order.id === 'OD20260821000000001')) {
     const archivedOrder = createArchivedTradeSeed(at).order
     if (!next.some(order => order.id === archivedOrder.id)) { next.push(archivedOrder); changed = true }
+  }
+  const insuranceScenarioIds = orders.length > 0
+    ? new Set(['OD3015035674505896511', 'OD3015035674505896512', 'OD3015035674505896513'])
+    : new Set<string>()
+  const existingIds = new Set(next.map(order => order.id))
+  for (const scenario of createOrderListSeed(at).orders) {
+    if (!insuranceScenarioIds.has(scenario.id) || existingIds.has(scenario.id)) continue
+    next.push({ ...scenario, conversationId: undefined })
+    existingIds.add(scenario.id)
+    changed = true
   }
   return changed ? next : orders
 }
@@ -155,19 +166,41 @@ export function createOrderRepository({ storage, now = Date.now, eventTarget }: 
           commit(next)
           return false
         }
-        next[index] = { ...transitionOrder(order, 'paid', at), paymentMethod }
+        const paymentReference = `PAY${String(at)}${order.id.replace(/\D/g, '').slice(-7)}`
+        next[index] = { ...transitionOrder(order, 'paid', at), paymentMethod, paymentReference, paidAt: at }
         return commit(next)
       } catch { return false }
     },
     advance(id: string, status: OrderStatus) {
       return mutateOne(id, (order) => {
         if (order.pausedPhase && order.status !== status) return null
+        if (order.status === 'signed' && status === 'bind_success' && order.insuranceAmountCents > 0) return null
         const next = transitionOrder(order, status, now())
         return next === order && order.status !== status ? null : next
       })
     },
+    completeBinding(id: string) {
+      return mutateOne(id, (order) => !order.pausedPhase && order.status === 'binding' ? transitionOrder(order, 'signed', now()) : null)
+    },
+    continueAfterSignature(id: string) {
+      return mutateOne(id, (order) => {
+        if (order.pausedPhase || order.status !== 'signed') return null
+        return transitionOrder(order, order.insuranceAmountCents > 0 ? 'insuring' : 'bind_success', now())
+      })
+    },
+    completeInsurance(id: string) {
+      return mutateOne(id, (order) => !order.pausedPhase && order.status === 'insuring' ? transitionOrder(order, 'insured', now()) : null)
+    },
+    prepareRelease(id: string) {
+      return mutateOne(id, (order) => {
+        if (order.pausedPhase) return null
+        if (order.status === 'insured') return transitionOrder(order, 'bind_success', now())
+        if (order.status === 'signed' && order.insuranceAmountCents <= 0) return transitionOrder(order, 'bind_success', now())
+        return null
+      })
+    },
     confirmReceipt(id: string) {
-      return mutateOne(id, (order) => !order.pausedPhase && order.status === 'bind_success' ? transitionOrder(order, 'completed', now()) : null)
+      return mutateOne(id, (order) => isOrderReleaseReady(order) ? transitionOrder(order, 'completed', now()) : null)
     },
     pause(id: string, phase: Exclude<OrderWorkflowPhase, 'completed' | 'closed'>) {
       return mutateOne(id, (order) => {
