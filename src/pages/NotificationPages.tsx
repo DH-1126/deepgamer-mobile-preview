@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, Bell, CheckCircle2, Clock3, Gem, Info, Settings, ShieldCheck, WalletCards, type LucideIcon } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { DesignPromptTrigger } from '../components/DesignPromptTrigger'
 import { assetPath } from '../components/assetPath'
 import { Button, Heading, IconButton, PageHeader, StatusBar, Tabs, ToggleSwitch } from '../components/ui'
 import { messageRepository } from '../repository/messageRepository'
@@ -21,7 +22,7 @@ const noticeFilters: Array<{ key: 'all' | NoticeKind; label: string }> = [
   { key: 'system', label: '系统' },
 ]
 
-function NotificationStatusBar() { return <StatusBar className="notification-status" /> }
+function NotificationStatusBar({ nodeId }: { nodeId: string }) { return <DesignPromptTrigger nodeId={nodeId} className="notification-status" /> }
 
 export function NotificationCenterPage() {
   const navigate = useNavigate()
@@ -43,7 +44,7 @@ export function NotificationCenterPage() {
 
   return <main className="notification-page">
     <header className="notification-main-header">
-      <NotificationStatusBar />
+      <NotificationStatusBar nodeId="notifications:center" />
       <PageHeader className="notification-page-header" bordered={false} sideSize="wide" title="消息" right={<><Button size="xs" variant="ghost" onClick={() => void markAllRead()}>全部已读</Button><IconButton label="通知设置" onClick={() => navigate('/notifications/settings')}><Settings size={18} aria-hidden="true" /></IconButton></>} />
       <nav className="notification-root-tabs" aria-label="消息分类"><button type="button" className="dg-underline-tab" onClick={() => navigate('/message')}>全部</button><button type="button" className="dg-underline-tab" onClick={() => navigate('/message?tab=groups')}>交易群</button><button type="button" className="dg-underline-tab active" aria-current="page">通知</button></nav>
       <Tabs className="notification-filter-tabs" label="通知类型" panelId="notification-filter-panel" value={filter} onValueChange={(value) => setFilter(value as 'all' | NoticeKind)} items={noticeFilters.map((item) => ({ value: item.key, label: item.label, count: item.key === 'all' ? undefined : notices.filter((notice) => notice.kind === item.key).length }))} />
@@ -80,7 +81,7 @@ export function NotificationSettingsPage() {
   const toggle = (key: NotificationSettingKey) => setSettings((current) => ({ ...current, [key]: !current[key] }))
 
   return <main className="notification-page notification-settings-page">
-    <NotificationStatusBar />
+    <NotificationStatusBar nodeId="notifications:settings" />
     <PageHeader className="notification-settings-header" title="通知设置" left={<IconButton label="返回" onClick={() => navigate(-1)}><ArrowLeft size={21} aria-hidden="true" /></IconButton>} />
     <section className="notification-settings-scroll"><Heading as="h2" variant="group">接收哪些通知</Heading><div className="notification-settings-card">{settingDefinitions.map((item) => <div className="notification-setting-row" key={item.key}><span><b>{item.title}</b><small>{item.detail}</small></span><ToggleSwitch checked={settings[item.key]} disabled={item.locked} label={`${item.title}${item.locked ? '（始终开启）' : ''}`} onCheckedChange={() => toggle(item.key)} /></div>)}</div><p>交易与售后通知涉及订单进度，无法关闭。系统 Push 权限由手机设置控制。</p></section>
     <BottomNav placement="flow" showGuestPrompt={false} />

@@ -3,11 +3,11 @@ import { assetPath } from '../assetPath'
 import { Heading, type HeadingTag } from './Heading'
 import './layoutPrimitives.css'
 
-export type StatusBarProps = HTMLAttributes<HTMLDivElement> & { tone?: 'default' | 'inverse'; time?: string }
+export type StatusBarProps = HTMLAttributes<HTMLDivElement> & { tone?: 'default' | 'inverse'; time?: string; timeControl?: ReactNode; batteryControl?: ReactNode }
 /** Decorative device chrome for the mobile prototype; never reports real device state. */
-export function StatusBar({ tone = 'default', time = '9:41', className = '', ...props }: StatusBarProps) {
-  return <div {...props} data-ui="StatusBar" aria-hidden="true" className={`dg-status-bar dg-status-bar--${tone} ${className}`}>
-    <time>{time}</time><span className="dg-status-bar__icons">{['signal', 'wifi', 'battery'].map(name => <img key={name} src={assetPath(`assets/home-v2/status-${name}.svg`)} alt="" />)}</span>
+export function StatusBar({ tone = 'default', time = '9:41', className = '', timeControl, batteryControl, ...props }: StatusBarProps) {
+  return <div {...props} data-ui="StatusBar" aria-hidden={timeControl || batteryControl ? undefined : true} className={`dg-status-bar dg-status-bar--${tone} ${className}`}>
+    {timeControl ?? <time>{time}</time>}<span className="dg-status-bar__icons">{['signal', 'wifi'].map(name => <img key={name} src={assetPath(`assets/home-v2/status-${name}.svg`)} alt="" />)}{batteryControl ?? <img src={assetPath('assets/home-v2/status-battery.svg')} alt="" />}</span>
   </div>
 }
 

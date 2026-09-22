@@ -26,15 +26,40 @@ export type LoginRouteMethod = 'one_tap' | 'code' | 'password'
 export type WelcomePhase = 'splash' | 'agreement' | 'exit' | 'loading' | 'error'
 
 export function getWelcomeFigmaNodeId(phase: WelcomePhase) {
-  if (phase === 'agreement') return '3681:25465'
-  if (phase === 'exit') return '3681:25569'
-  return '3681:25436'
+  if (phase === 'exit') return '7115:947'
+  if (phase === 'agreement') return '7114:921'
+  // Unmapped startup states use local review IDs, never another screen's Figma link.
+  return `startup:${phase}`
 }
 
-export function getLoginFigmaNodeId(method: LoginRouteMethod) {
-  if (method === 'code') return '3681:36411'
-  if (method === 'password') return '3681:36326'
-  return '3681:24987'
+export type LoginFigmaState = {
+  agreed?: boolean
+  protocolPrompt?: boolean
+  codeSent?: boolean
+}
+
+export function getLoginFigmaNodeId(method: LoginRouteMethod, state: LoginFigmaState = {}) {
+  if (state.protocolPrompt) return '7081:385'
+  if (method === 'code' && state.codeSent) return '7081:485'
+  if (method === 'code' && state.agreed === false) return '7081:303'
+  if (method === 'code') return '7080:202'
+  if (method === 'password') return '7080:274'
+  return '7080:144'
+}
+
+export type RecoveryFigmaState = {
+  password?: string
+  confirmation?: string
+  code?: string
+  sent?: boolean
+  pageError?: string
+  errors?: Record<string, string | undefined>
+}
+
+export function getRecoveryFigmaNodeId(state: RecoveryFigmaState) {
+  if (state.pageError || Object.values(state.errors ?? {}).some(Boolean)) return '7087:831'
+  if (state.password || state.confirmation || state.code || state.sent) return '7087:716'
+  return '7087:620'
 }
 
 export function formatLoginPhone(value: string) {

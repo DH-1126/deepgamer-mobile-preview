@@ -1,9 +1,10 @@
 import { ArrowLeft, Check } from 'lucide-react'
 import { FormEvent, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { DesignPromptTrigger } from '../components/DesignPromptTrigger'
 import { fulfillmentRepository } from '../repository/fulfillmentRepository'
 import { getContractSubmitIssue } from '../components/fulfillmentModel'
-import { ActionBar, Button, Checkbox, Heading, PageHeader, StatusBar, TextField } from '../components/ui'
+import { ActionBar, Button, Checkbox, Heading, PageHeader, TextField } from '../components/ui'
 import type { FulfillmentContract } from '../types/fulfillment'
 import '../styles/fulfillment-v2.css'
 import '../styles/fulfillment-components.css'
@@ -28,7 +29,7 @@ export function FulfillmentContractPage() {
   const signed = contract.status === 'signed'
   const submitIssue = getContractSubmitIssue(signature, agreed)
   return <main className="fulfillment-contract-page">
-    <header><StatusBar className="contract-status" /><PageHeader className="contract-title" bordered={false} title={signed ? '合同已签署' : '签署回收合同'} left={<button type="button" aria-label="返回" onClick={() => navigate(-1)}><ArrowLeft size={20} /></button>} /></header>
+    <header><DesignPromptTrigger nodeId="fulfillment:contract" className="contract-status" /><PageHeader className="contract-title" bordered={false} title={signed ? '合同已签署' : '签署回收合同'} left={<button type="button" aria-label="返回" onClick={() => navigate(-1)}><ArrowLeft size={20} /></button>} /></header>
     <form onSubmit={submit}>
       <div className="contract-scroll">
         <section className="contract-summary"><div><Check size={13} /><b>{signed ? '合同已签署 · 本地演示' : '资料已提交 · 待签署'}</b><small>#{contract.orderNo}</small></div><article><strong><i>¥</i>{amount}</strong><span>预计到手<b>¥{amount}</b></span></article><footer><span>{contract.gameName} {contract.serverName} · {contract.recyclerName}</span><em>{signed ? '已完成' : '剩 26:03'}</em></footer></section>

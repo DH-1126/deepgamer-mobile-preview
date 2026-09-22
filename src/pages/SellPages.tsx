@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'reac
 import { ArrowLeft, ArrowLeftRight, ArrowRight, Check, ChevronRight, Eye, FileCheck2, FileImage, FileText, MessagesSquare, MoreVertical, Plus, RefreshCw, Search, ShieldAlert, ShieldCheck, Trash2, Upload, X, Zap } from 'lucide-react'
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { assetPath } from '../components/assetPath'
-import { Button, EmptyStateView, Heading, IconButton, PageHeader, SelectField, StatusBar, TextAreaField, TextField, Toast } from '../components/ui'
+import { Button, EmptyStateView, Heading, IconButton, PageHeader, SelectField, TextAreaField, TextField, Toast } from '../components/ui'
+import { DesignPromptTrigger } from '../components/DesignPromptTrigger'
+import { resolveRecycleChatNodeId } from '../data/recyclePageSpecs'
 import { RecyclerCard } from '../components/RecyclerCard'
 import { buildGameSelectRoute } from '../components/gameSelectionModel'
 import { getRecycleConversationName, getRecycleUnreadCount } from '../components/recycleConversationModel'
@@ -18,7 +20,7 @@ import type { RecycleDraftScreenshot, RecycleOrder, RecycleOrderDraft } from '..
 import type { Recycler, SellGame, SellGameCode } from '../types/sell'
 import '../styles/sell-v2.css'
 
-function BackTitle({ title, subtitle, fallback = '/profile', menu = false }: { title: string; subtitle?: string; fallback?: string; menu?: boolean }) { const navigate = useNavigate(); return <><StatusBar className="sell-v2-status" /><PageHeader className="sell-page-header" bordered={false} title={title} left={<IconButton label="返回" onClick={() => window.history.length > 1 ? navigate(-1) : navigate(fallback)}><ArrowLeft size={20} /></IconButton>} right={menu ? <IconButton label="更多操作"><MoreVertical size={20} /></IconButton> : undefined}>{subtitle}</PageHeader></> }
+function BackTitle({ title, subtitle, fallback = '/profile', menu = false, nodeId }: { title: string; subtitle?: string; fallback?: string; menu?: boolean; nodeId: string }) { const navigate = useNavigate(); return <><DesignPromptTrigger nodeId={nodeId} className="sell-v2-status" /><PageHeader className="sell-page-header" bordered={false} title={title} left={<IconButton label="返回" onClick={() => window.history.length > 1 ? navigate(-1) : navigate(fallback)}><ArrowLeft size={20} /></IconButton>} right={menu ? <IconButton label="更多操作"><MoreVertical size={20} /></IconButton> : undefined}>{subtitle}</PageHeader></> }
 function GameButton({ game, onChoose }: { game: SellGame; onChoose: (game: SellGame) => void }) { return <button type="button" className={`dg-ui-focus${!game.consultationCount ? ' unavailable' : ''}`} onClick={() => onChoose(game)}><i style={{ background: game.color }}>{game.image ? <img src={assetPath(game.image)} alt="" /> : game.mark}</i><b>{game.name}</b><small>{game.consultationCount ? <><em>{game.consultationCount}</em> 家可咨询</> : '暂无回收商'}</small></button> }
 
 export function SellPage() {
@@ -26,7 +28,7 @@ export function SellPage() {
   const choose = (game: SellGame) => { if (!game.consultationCount) return setToast('该游戏暂无回收商'); if (!sellRepository.selectGame(game.code)) return setToast('选择保存失败，请重试'); navigate(`/appraisal?game=${game.code}`) }
   return <main className="sell-v2-page sell-v2-games-page">
     <header className="sell-v2-recycle-hero">
-      <StatusBar />
+      <DesignPromptTrigger nodeId="recycle:home" />
       <div className="sell-v2-recycle-nav"><IconButton label="返回" onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/profile')}><ArrowLeft size={20} aria-hidden="true" /></IconButton></div>
       <div className="sell-v2-recycle-brand">
         <div className="sell-v2-recycle-copy"><Heading as="h1" variant="hero">账号回收 <span>· 秒拿钱</span></Heading><p className="sell-v2-recycle-benefits" aria-label="高价回收，安全换绑，极速到账，0手续费"><span>高价回收</span><span>安全换绑</span><span>极速到账</span><span>0手续费</span></p></div>
@@ -54,7 +56,7 @@ export function AppraisalPage() {
   const consult = (recycler: Recycler) => { if (recycler.availability === 'offline') return; if (!sellRepository.selectGame(game.code) || !sellRepository.selectRecycler(recycler.id)) return setError('选择保存失败，请重试'); const order = recycleRepository.begin(recycler.id, game.code); if (!order) return setError('咨询创建失败，请重试'); navigate(`/appraisal/detail?id=${encodeURIComponent(order.id)}&role=seller`) }
   return <main className="sell-v2-page sell-v2-recyclers-page">
     <header className="sell-v2-studio-header sell-v2-recycle-hero">
-      <StatusBar />
+      <DesignPromptTrigger nodeId="recycle:recyclers" />
       <nav className="sell-v2-recycle-nav" aria-label="回收工作室导航"><IconButton label="返回" onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/sell')}><ArrowLeft size={20} aria-hidden="true" /></IconButton></nav>
       <div className="sell-v2-studio-brand sell-v2-recycle-brand">
         <div className="sell-v2-studio-identity sell-v2-recycle-copy">
@@ -83,7 +85,7 @@ export function AppraisalDetailPage() {
   useEffect(() => {
     if (order && getRecycleUnreadCount(order) > 0 && !recycleRepository.markRead(order.id)) setToast('未读状态保存失败，请稍后重试')
   }, [order?.id, order?.unreadCount])
-  if (!order) return <main className="sell-v2-page"><BackTitle title="回收咨询" fallback="/sell" /><Empty title="还没有咨询" text="先选择游戏和回收商。" link="/sell" /></main>
+  if (!order) return <main className="sell-v2-page"><BackTitle title="回收咨询" fallback="/sell" nodeId="recycle:chat-consulting" /><Empty title="还没有咨询" text="先选择游戏和回收商。" link="/sell" /></main>
   const send = () => { const issue = validateConsultationText(text); setError(issue); if (issue) return; if (!recycleRepository.sendMessage(order.id, text)) return setError('发送失败，请重试'); setText('') }
   const issueFormal = () => { const issues = validateRecycleOrderDraft(draft); setDraftErrors(issues); if (Object.keys(issues).length) return; const editing = order.stage === 'formal'; if (!recycleRepository.createFormalOrder(order.id, draft)) return setToast(editing ? '修改失败，请检查内容' : '发送失败，请检查内容'); setDraftOpen(false); setToast(editing ? '回收单已更新' : '正式回收单已发送') }
   const pay = async () => { setPaying(true); const at = Date.now(); const thumbnail = sellGames.find((game) => game.code === order.gameCode)?.image ?? ''; if (!orderRepository.ensure(createRecyclePaidOrderRecord(order, at, thumbnail))) { setPaying(false); return setToast('订单创建失败，未完成付款') } const completed = recycleRepository.completePayment(order.id); if (!completed) { setPaying(false); return setToast('付款状态更新失败，可安全重试') } const conversation = createRecycleConversation(completed, at); const ok = conversation ? await messageRepository.ensureConversation(conversation) : false; setPaying(false); if (!ok) return setToast('已完成付款，交易群创建失败，可稍后重试'); const next = new URLSearchParams(params); next.delete('checkout'); setParams(next, { replace: true }); setToast('模拟付款完成，已创建交易群') }
@@ -95,7 +97,7 @@ export function AppraisalDetailPage() {
 
 function ChatHeader({ order, role, menuOpen, onBack, onRefresh, onToggleMenu, onSwitchRole }: { order: RecycleOrder; role: RecycleViewerRole; menuOpen: boolean; onBack: () => void; onRefresh: () => void; onToggleMenu: () => void; onSwitchRole: () => void }) {
   const game = sellGames.find((item) => item.code === order.gameCode)
-  return <><StatusBar /><div className="sell-v2-chat-header"><button type="button" aria-label="返回" onClick={onBack}><ArrowLeft size={20} /></button><i style={{ background: game?.color }}>{game?.image ? <img src={assetPath(game.image)} alt="" /> : order.gameName.slice(0, 1)}</i><span><Heading as="h1" variant="page">{order.gameName} · 回收咨询</Heading><small>{getRecycleConversationName(order)}<b />{getRecycleStatusLabel(order, role)}</small></span><button type="button" aria-label="刷新咨询" onClick={onRefresh}><RefreshCw size={18} /></button><button type="button" aria-label="更多" aria-expanded={menuOpen} onClick={onToggleMenu}><MoreVertical size={18} /></button>{menuOpen && <div className="sell-v2-more-menu"><small>角色预览</small><button type="button" onClick={onSwitchRole}>切换为{role === 'seller' ? '回收商' : '卖家'}视角</button></div>}</div></>
+  return <><DesignPromptTrigger nodeId={resolveRecycleChatNodeId(order.stage, role)} /><div className="sell-v2-chat-header"><button type="button" aria-label="返回" onClick={onBack}><ArrowLeft size={20} /></button><i style={{ background: game?.color }}>{game?.image ? <img src={assetPath(game.image)} alt="" /> : order.gameName.slice(0, 1)}</i><span><Heading as="h1" variant="page">{order.gameName} · 回收咨询</Heading><small>{getRecycleConversationName(order)}<b />{getRecycleStatusLabel(order, role)}</small></span><button type="button" aria-label="刷新咨询" onClick={onRefresh}><RefreshCw size={18} /></button><button type="button" aria-label="更多" aria-expanded={menuOpen} onClick={onToggleMenu}><MoreVertical size={18} /></button>{menuOpen && <div className="sell-v2-more-menu"><small>角色预览</small><button type="button" onClick={onSwitchRole}>切换为{role === 'seller' ? '回收商' : '卖家'}视角</button></div>}</div></>
 }
 
 function FlowCard({ order, role, now, onDraft, onReject, onConfirm, onCheckout, onEnterGroup }: { order: RecycleOrder; role: RecycleViewerRole; now: number; onDraft: () => void; onReject: () => void; onConfirm: () => void; onCheckout: () => void; onEnterGroup: () => void }) {
@@ -192,7 +194,7 @@ export function DraftSheet({ draft, errors, onChange, onClose, onSubmit, submitL
   </div>
 }
 
-function Checkout({ order, paying, onBack, onPay }: { order: RecycleOrder; paying: boolean; onBack: () => void; onPay: () => void }) { const total = getRecyclePayableCents(order); const fee = total - order.quoteCents; return <main className="sell-v2-page sell-v2-checkout"><header><StatusBar className="sell-v2-status" /><div className="sell-v2-checkout-title"><button type="button" onClick={onBack}><ArrowLeft size={20} /></button><Heading as="h1" variant="page">确认支付</Heading><small>剩余 {formatRecycleCountdown(order.expiresAt, Date.now())}</small></div></header><section className="sell-v2-pay-total"><small>回收订单支付</small><strong>¥{(total / 100).toFixed(2)}</strong><p>{order.id}</p></section><section className="sell-v2-pay-detail"><p><span>回收价</span><b>¥{(order.quoteCents / 100).toFixed(2)}</b></p><p><span>包赔费（10%）</span><b>¥{(fee / 100).toFixed(2)}</b></p><p className="total"><span>应付</span><b>¥{(total / 100).toFixed(2)}</b></p></section><Heading as="h2" variant="section" className="sell-v2-pay-heading">支付方式</Heading><section className="sell-v2-pay-method"><label><span className="alipay">支</span><b>支付宝</b><input type="radio" checked readOnly /></label><label><span className="wechat">微</span><b>微信</b><input type="radio" readOnly /></label></section><aside>点击确认支付后将锁定订单并发起支付。当前为本地演示，不会发生真实扣款；完成后请返回订单查看后续履约状态。</aside><footer><Button variant="outline" onClick={onBack}>返回</Button><Button loading={paying} onClick={onPay}>确认支付 ¥{(total / 100).toFixed(2)}</Button></footer></main> }
+function Checkout({ order, paying, onBack, onPay }: { order: RecycleOrder; paying: boolean; onBack: () => void; onPay: () => void }) { const total = getRecyclePayableCents(order); const fee = total - order.quoteCents; return <main className="sell-v2-page sell-v2-checkout"><header><DesignPromptTrigger nodeId="recycle:checkout" className="sell-v2-status" /><div className="sell-v2-checkout-title"><button type="button" onClick={onBack}><ArrowLeft size={20} /></button><Heading as="h1" variant="page">确认支付</Heading><small>剩余 {formatRecycleCountdown(order.expiresAt, Date.now())}</small></div></header><section className="sell-v2-pay-total"><small>回收订单支付</small><strong>¥{(total / 100).toFixed(2)}</strong><p>{order.id}</p></section><section className="sell-v2-pay-detail"><p><span>回收价</span><b>¥{(order.quoteCents / 100).toFixed(2)}</b></p><p><span>包赔费（10%）</span><b>¥{(fee / 100).toFixed(2)}</b></p><p className="total"><span>应付</span><b>¥{(total / 100).toFixed(2)}</b></p></section><Heading as="h2" variant="section" className="sell-v2-pay-heading">支付方式</Heading><section className="sell-v2-pay-method"><label><span className="alipay">支</span><b>支付宝</b><input type="radio" checked readOnly /></label><label><span className="wechat">微</span><b>微信</b><input type="radio" readOnly /></label></section><aside>点击确认支付后将锁定订单并发起支付。当前为本地演示，不会发生真实扣款；完成后请返回订单查看后续履约状态。</aside><footer><Button variant="outline" onClick={onBack}>返回</Button><Button loading={paying} onClick={onPay}>确认支付 ¥{(total / 100).toFixed(2)}</Button></footer></main> }
 function Empty({ title, text, link }: { title: string; text: string; link?: string }) { return <div className="sell-v2-empty"><Heading as="h2" variant="section">{title}</Heading><p>{text}</p>{link && <Link to={link}>去看看</Link>}</div> }
 
 export function AppraisalFillPage() { const [params] = useSearchParams(); return <Navigate to={`/appraisal/detail?${params.toString()}`} replace /> }

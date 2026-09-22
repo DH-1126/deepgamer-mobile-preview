@@ -1,7 +1,8 @@
 import { ArrowLeft, Check, Clock3, FileText, ShieldCheck } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button, Heading, IconButton, PageHeader, StatusBar } from '../components/ui'
+import { Button, Heading, IconButton, PageHeader } from '../components/ui'
+import { DesignPromptTrigger } from '../components/DesignPromptTrigger'
 import '../styles/reminder-draft3.css'
 
 type ReminderKind = 'payment' | 'favorite' | 'recycle' | 'agreement'
@@ -44,7 +45,7 @@ export function ReminderPage() {
 
   return <main className="reminder-d3-page">
     <header className="reminder-d3-header">
-      <StatusBar />
+      <DesignPromptTrigger nodeId="reminders:main" />
       <PageHeader className="reminder-d3-topbar" title="提醒" left={<IconButton label="返回" onClick={() => navigate(-1)}><ArrowLeft size={20} aria-hidden="true" /></IconButton>} right={<Button variant="ghost" size="sm" disabled={!hasUnread} onClick={() => setItems((current) => current.map((item) => ({ ...item, unread: false })))}>全部已读</Button>} />
     </header>
     <div className="reminder-d3-scroll">

@@ -1,9 +1,11 @@
 import { Share2 } from 'lucide-react'
 import { assetPath } from '../assetPath'
-import { IconButton, StatusBar } from '../ui'
+import { IconButton } from '../ui'
+import { DesignPromptTrigger } from '../DesignPromptTrigger'
 import { SellerSummary } from './SellerSummary'
 
 type Props = {
+  reviewNodeId?: string
   compact: boolean
   price: number
   gameName: string
@@ -14,9 +16,9 @@ type Props = {
 }
 
 /** Keep navigation unchanged; the pinned summary occupies its own row below it. */
-export function ProductDetailHeader({ compact, price, gameName, sellerSummary, onBack, onShare, onOpenSeller }: Props) {
+export function ProductDetailHeader({ reviewNodeId = '3681:22777', compact, price, gameName, sellerSummary, onBack, onShare, onOpenSeller }: Props) {
   return <><header className="detail-header">
-    <StatusBar className="detail-status" />
+    <DesignPromptTrigger nodeId={reviewNodeId} className="detail-status" />
     <div className="detail-titlebar">
       <IconButton label="返回" onClick={onBack}><img src={assetPath('assets/product-detail-draft5/back.svg')} alt="" width={20} height={20} /></IconButton>
       <div aria-hidden="true" />

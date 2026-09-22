@@ -15,9 +15,10 @@ import {
   XCircle,
 } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { DesignPromptTrigger } from '../components/DesignPromptTrigger'
 import { hasPasswordErrors, parsePasswordScenario, passwordRequirements, validatePasswordForm, type PasswordMode, type PasswordScenario, type PasswordValidation } from '../components/accountSettingsModel'
 import { assetPath } from '../components/assetPath'
-import { Button, Cell, Checkbox, Dialog, Heading, IconButton, PageHeader, StatusBar, Toast, ToggleSwitch } from '../components/ui'
+import { Button, Cell, Checkbox, Dialog, Heading, IconButton, PageHeader, Toast, ToggleSwitch } from '../components/ui'
 import { ProfileFeatureList } from '../components/ProfileFeatureList'
 import { useAccountSettings } from '../components/useAccountSettings'
 import { DEFAULT_ACCOUNT_PHONE, DEFAULT_NICKNAME } from '../components/profileIdentityModel'
@@ -57,9 +58,9 @@ function writeBindings(value: ThirdPartyBindings) {
   }
 }
 
-export function ProfileSettingsTopBar({ title, support = false }: { title: string; support?: boolean }) {
+export function ProfileSettingsTopBar({ title, support = false, nodeId }: { title: string; support?: boolean; nodeId: string }) {
   const navigate = useNavigate()
-  return <><StatusBar /><PageHeader className="profile-settings-v2-topbar" title={title} left={<IconButton label="返回" onClick={() => navigate(-1)}><ChevronLeft size={25} strokeWidth={2} aria-hidden="true" /></IconButton>} right={support ? <Link to={SUPPORT_CONVERSATION_ROUTE} aria-label="联系客服"><Headphones size={19} aria-hidden="true" /></Link> : undefined} /></>
+  return <><DesignPromptTrigger nodeId={nodeId} /><PageHeader className="profile-settings-v2-topbar" title={title} left={<IconButton label="返回" onClick={() => navigate(-1)}><ChevronLeft size={25} strokeWidth={2} aria-hidden="true" /></IconButton>} right={support ? <Link to={SUPPORT_CONVERSATION_ROUTE} aria-label="联系客服"><Headphones size={19} aria-hidden="true" /></Link> : undefined} /></>
 }
 
 export function AccountSettingsPage() {
@@ -79,7 +80,7 @@ export function AccountSettingsPage() {
     navigate('/', { replace: true })
   }
   return <main className="profile-settings-v2-page" data-node-id="4053:8997">
-    <ProfileSettingsTopBar title="设置" />
+    <ProfileSettingsTopBar title="设置" nodeId="4053:8997" />
     <div className="profile-settings-v2-scroll profile-settings-v2-overview">
       <Heading variant="group">通知</Heading>
       <section className="profile-settings-v2-list profile-settings-v2-plain-list" aria-label="通知设置">
@@ -104,7 +105,7 @@ export function AccountSettingsPage() {
 export function AccountSecurityPage() {
   const settings = useAccountSettings()
   return <main className="profile-settings-v2-page">
-    <ProfileSettingsTopBar title="账号与安全" />
+    <ProfileSettingsTopBar title="账号与安全" nodeId="account-security:home" />
     <div className="profile-settings-v2-scroll profile-settings-v2-overview">
       <Heading variant="group">账号</Heading>
       <section className="profile-settings-v2-list profile-settings-v2-plain-list" aria-label="账号设置">
@@ -178,7 +179,7 @@ export function PasswordSettingsPage() {
 
   const passwordNodeId = scenario === 'countdown' ? '4053:8649' : scenario === 'validation' ? '4053:8751' : scenario === 'success' ? '4053:8924' : '4053:8561'
   return <main className="profile-settings-v2-page profile-settings-v2-password" data-password-mode={mode} data-scenario={scenario} data-node-id={passwordNodeId}>
-    <ProfileSettingsTopBar title={`${actionName}密码`} />
+    <ProfileSettingsTopBar title={`${actionName}密码`} nodeId={passwordNodeId} />
     {scenario === 'success' ? <div className="profile-settings-v2-scroll profile-settings-v2-password-success">
       <section><span><CheckCircle2 size={40} strokeWidth={2.2} aria-hidden="true" /></span><Heading as="h2" variant="section">密码{actionName}成功</Heading><p>即将返回我的页面</p></section>
       <dl><div><dt>当前账号</dt><dd>{maskedPhone}</dd></div><div><dt>修改时间</dt><dd>09-10 16:08</dd></div></dl>
@@ -218,7 +219,7 @@ export function ThirdPartyBindingsPage() {
   }
   const target = confirming ? providerMeta.find((item) => item.id === confirming) : undefined
   return <main className="profile-settings-v2-page">
-    <ProfileSettingsTopBar title="三方账号绑定" support />
+    <ProfileSettingsTopBar title="三方账号绑定" support nodeId="settings:bindings" />
     <div className="profile-settings-v2-scroll">
       <section className="profile-settings-v2-binding-list" aria-label="可绑定的三方账号">{providerMeta.map((provider) => <Cell className="profile-settings-v2-binding-cell" key={provider.id} icon={provider.icon} label={provider.label} description={provider.detail} arrow={false} trailing={<Button variant={bindings[provider.id] ? 'outline' : 'primary'} size="sm" onClick={() => bindings[provider.id] ? setConfirming(provider.id) : update(provider.id, true)}>{bindings[provider.id] ? '已绑定' : '去绑定'}</Button>} />)}</section>
       <p className="profile-settings-v2-footnote">此页为交互原型，绑定与解绑不会调用微信、QQ 或 Apple 服务。</p>
@@ -238,7 +239,7 @@ export function AccountCancellationPage() {
     navigate('/', { replace: true })
   }
   return <main className="profile-settings-v2-page">
-    <ProfileSettingsTopBar title="账号注销" support />
+    <ProfileSettingsTopBar title="账号注销" support nodeId="settings:cancellation" />
     <div className="profile-settings-v2-scroll profile-settings-v2-cancel">
       <section className="profile-settings-v2-cancel-hero"><span><AlertTriangle size={25} aria-hidden="true" /></span><Heading as="h2" variant="section">请谨慎操作</Heading><p>注销账号是不可逆操作，正式功能上线后会先校验账号与交易状态。</p></section>
       <section className="profile-settings-v2-risk"><Heading as="h2" variant="section">注销后你将失去</Heading><ul><li>个人账号与实名信息</li><li>历史订单、售后与回收记录</li><li>收藏、消息和个性化设置</li></ul></section>
@@ -253,7 +254,7 @@ export function AccountCancellationPage() {
 
 export function PrivacyAgreementCenterPage() {
   return <main className="profile-settings-v2-page">
-    <ProfileSettingsTopBar title="隐私与协议" />
+    <ProfileSettingsTopBar title="隐私与协议" nodeId="privacy:center" />
     <div className="profile-settings-v2-scroll">
       <section aria-label="隐私与协议列表"><ProfileFeatureList>
         <Cell label="隐私协议" to="/privacy-policy" />
@@ -267,7 +268,7 @@ export function PrivacyAgreementCenterPage() {
 
 export function AboutUsPage() {
   return <main className="profile-settings-v2-page">
-    <ProfileSettingsTopBar title="关于我们" />
+    <ProfileSettingsTopBar title="关于我们" nodeId="about:us" />
     <div className="profile-settings-v2-scroll profile-settings-v2-about">
       <section className="profile-settings-v2-brand-card" aria-label="平台介绍"><span><img src={assetPath('assets/auth-draft3/brand-mark.svg')} alt="深度玩家 Logo" width={38} height={40} /></span><Heading as="h2" variant="section">深度玩家</Heading><p>专注游戏账号估价、交易保障与售后服务，帮助玩家更安心地完成数字资产交易。</p></section>
       <section className="profile-settings-v2-list profile-settings-v2-company" aria-label="平台信息"><dl>

@@ -11,7 +11,8 @@ import { getRecycleConversationName, getRecycleConversationStatus } from '../com
 import type { RecycleOrder } from '../types/recycle'
 import type { Conversation } from '../types/message'
 import type { OrderRecord } from '../types/order'
-import { BottomSheet, Heading, SearchField, StatusBar, Tabs, Toast } from '../components/ui'
+import { BottomSheet, Heading, SearchField, Tabs, Toast } from '../components/ui'
+import { DesignPromptTrigger } from '../components/DesignPromptTrigger'
 import { buildSupportEntryRoute, type SupportEntry } from '../components/supportConsultationModel'
 import { ChevronRight, HelpCircle, Search, ShoppingBag } from 'lucide-react'
 import '../styles/messages-v2.css'
@@ -82,7 +83,7 @@ export function MessagePage() {
 
   return <main className="message-v2-page message-draft3" data-node-id={category === 'all' ? '4041:3532' : category === 'groups' ? '4041:3715' : '4041:4068'}>
     <header className="message-v2-header">
-      <StatusBar className="message-v2-status" />
+      <DesignPromptTrigger nodeId={category === 'all' ? '4041:3532' : category === 'groups' ? '4041:3715' : '4041:4068'} className="message-v2-status" />
       <div className="message-v2-title"><Heading as="h1" variant="display">消息</Heading><div className="message-v2-search" role="search"><SearchField value={draftQuery} maxLength={40} onChange={(event) => setDraftQuery(event.target.value)} onClear={() => setDraftQuery('')} onSearch={() => setQuery(draftQuery.trim())} placeholder="搜索消息" aria-label="搜索消息、订单或商品编号" /></div></div>
       <Tabs className="message-v2-tabs" label="消息分类" items={tabs.map((tab) => ({ value: tab.key, label: tab.label }))} value={category} onValueChange={(value) => selectCategory(value as MessageTab)} variant="underline" size="lg" />
     </header>

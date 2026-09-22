@@ -25,7 +25,8 @@
   border-bottom: 1px solid #ededea;
 }
 
-.auth-recovery__header > strong {
+.auth-recovery__header > .auth-recovery__title {
+  margin: 0;
   overflow: hidden;
   font-size: 17px;
   line-height: 22px;
@@ -57,7 +58,7 @@
   padding: 0 4px;
 }
 
-.auth-recovery__intro h1 {
+.auth-recovery__intro h2 {
   margin: 0;
   font-size: 26px;
   line-height: 31px;
@@ -370,7 +371,7 @@
   color: #c7a900;
 }
 
-.auth-recovery__missing h1 {
+.auth-recovery__missing h2 {
   margin: 16px 0 0;
   font-size: 19px;
   line-height: 26px;

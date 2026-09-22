@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState, type MouseEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { BottomNav } from '../components/BottomNav'
+import { DesignPromptTrigger } from '../components/DesignPromptTrigger'
 import { LoginFloatingBar } from '../components/LoginFloatingBar'
-import { Button, Heading, StatusBar } from '../components/ui'
+import { Button, Heading } from '../components/ui'
 import { useAuthPrompt, useAuthStatus } from '../components/AuthAccess'
 import { assetPath } from '../components/assetPath'
 import { buildLoginRoute } from '../components/authModel'
 import { coCreationServices, homeGames, principles, recentGames, tradeFeatures } from '../data/homeData'
+import { resolveHomeReviewNodeId, type HomeReviewState } from '../data/homePageReview'
 import { SUPPORT_RECOMMENDATION_ROUTE } from '../data/messageFixtures'
 import { isLinkedDataMode } from '../runtime/dataMode'
 import { toCatalogGame, useLinkedState } from '../linked/linkedData'
@@ -34,12 +36,16 @@ export function HomePage() {
   const [downloadMessage, setDownloadMessage] = useState('')
   const [followOpen, setFollowOpen] = useState(false)
   const [followMessage, setFollowMessage] = useState('')
+  const [readingSection, setReadingSection] = useState<NonNullable<HomeReviewState['readingSection']>>('top')
   const followDialogRef = useRef<HTMLElement>(null)
   const followTriggerRef = useRef<HTMLButtonElement | null>(null)
   const pageContentRef = useRef<HTMLDivElement>(null)
+  const aboutRef = useRef<HTMLElement>(null)
+  const feedbackRef = useRef<HTMLElement>(null)
   const currentPath = `${location.pathname}${location.search}${location.hash}`
   const linkedHomeGames = isLinkedDataMode ? (linkedState?.games ?? []).filter((game) => game.status === 'ACTIVE').sort((a, b) => a.sortOrder - b.sortOrder).map((game) => toCatalogGame(game)) : homeGames
   const showFootprints = authenticated && !isLinkedDataMode && recentGames.length > 0 && new URLSearchParams(location.search).get('footprints') !== 'empty'
+  const reviewNodeId = resolveHomeReviewNodeId({ authenticated, showFootprints, downloadOpen, followOpen, readingSection })
   const openZone = (code: string) => navigate(`/game?gameCode=${code}`)
   const openProtected = (returnTo: string, title: string, description: string) => {
     if (requireAuth({ title, description, returnTo })) navigate(returnTo)
@@ -61,6 +67,30 @@ export function HomePage() {
     const frame = window.requestAnimationFrame(() => document.getElementById('game-selection')?.scrollIntoView({ block: 'start' }))
     return () => window.cancelAnimationFrame(frame)
   }, [location.hash])
+
+  useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') return undefined
+    const about = aboutRef.current
+    const feedback = feedbackRef.current
+    if (!about || !feedback) return undefined
+    const observer = new IntersectionObserver((entries) => {
+      const feedbackEntry = entries.find(entry => entry.target === feedback)
+      if (feedbackEntry?.isIntersecting) {
+        setReadingSection('feedback')
+        return
+      }
+      const aboutEntry = entries.find(entry => entry.target === about)
+      if (aboutEntry?.isIntersecting) {
+        setReadingSection('content')
+        return
+      }
+      if (aboutEntry && aboutEntry.boundingClientRect.top > 0) setReadingSection('top')
+      else if (feedbackEntry) setReadingSection('content')
+    }, { rootMargin: '-32% 0px -52% 0px', threshold: 0 })
+    observer.observe(about)
+    observer.observe(feedback)
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
     if (!followOpen) return undefined
@@ -90,9 +120,9 @@ export function HomePage() {
 
   return (
     <main className="home-v2">
+      <DesignPromptTrigger nodeId={reviewNodeId} className="home-v2-review-status" />
       <div ref={pageContentRef} style={{ display: 'contents' }} aria-hidden={followOpen || undefined}>
       <header className={`home-v2-top${downloadOpen ? ' home-v2-top--download' : ''}`}>
-        <StatusBar className="home-v2-status" />
         {downloadOpen && <aside id="home-app-download" className="home-draft3-download" aria-label="APP下载引导" data-node-id="4128:1506">
           <img src={draft3Asset('download-brand.svg')} alt="" />
           <strong>深度玩家APP体验更好</strong>
@@ -122,7 +152,7 @@ export function HomePage() {
         <button className="home-v2-inquiry" type="button" onClick={() => openProtected('/sell', '登录后继续卖号', '发布商品、快速回收和查看报价需要登录账号。')}><span><strong>不想等买家？<em>直接卖给回收商</em></strong><small>多家回收商报价，先询价再决定</small></span><b>立即询价</b></button>
       </section>
 
-      <section className="home-v2-about">
+      <section ref={aboutRef} className="home-v2-about">
         <div className="home-v2-about-divider"><span>关于深度玩家</span></div>
         <div className="home-v2-manifesto">
           <small>DeepGamer</small>
@@ -141,7 +171,7 @@ export function HomePage() {
           <div className="home-v2-feature-grid">{tradeFeatures.map((item) => <article key={item.title}><Heading as="h3" variant="subsection">{item.title}</Heading><p>{item.detail}</p></article>)}</div>
         </section>
 
-        <section className="home-v2-story home-v2-wishes">
+        <section ref={feedbackRef} className="home-v2-story home-v2-wishes">
           <SectionHeading number="03" title="你负责许愿，我们负责实现" subtitle="游戏交易世界里的「阿拉丁神灯」。" />
           <article className="home-v2-feedback">
             <div className="home-v2-feedback-copy"><Heading as="h3" variant="subsection">吐槽广场</Heading><p>你觉得哪里难用？客服哪里让你不爽？<br />想要什么新功能？直接说。</p></div>

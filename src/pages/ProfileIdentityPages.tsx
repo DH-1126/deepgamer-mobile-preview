@@ -46,7 +46,7 @@ export function ProfileIdentityPage() {
     setNickname(nickname.trim()); setToast('头像与昵称已保存')
   }
   return <main className="profile-settings-v2-page">
-    <ProfileSettingsTopBar title="头像与昵称" />
+    <ProfileSettingsTopBar title="头像与昵称" nodeId="account-security:profile" />
     <form className="profile-settings-v2-scroll profile-identity-form" onSubmit={save}>
       <section className="profile-identity-card profile-identity-avatar-card" aria-label="修改头像">
         <span className="profile-identity-avatar">{avatar ? <img src={avatar} alt="头像预览" /> : <UserRound size={36} aria-label="默认头像" />}</span>
@@ -100,7 +100,7 @@ export function PhoneSettingsPage() {
     setConfirming(false); setCode(''); setChallenge(null); setStep('success')
   }
   return <main className="profile-settings-v2-page">
-    <ProfileSettingsTopBar title="更换手机号" />
+    <ProfileSettingsTopBar title="更换手机号" nodeId="account-security:phone" />
     {step === 'success' ? <div className="profile-settings-v2-scroll profile-identity-form"><section className="profile-identity-card profile-identity-success"><CheckCircle2 size={44} /><Heading variant="result">手机号换绑成功</Heading><p>当前手机号：{maskAccountPhone(phone)}</p></section><Button fullWidth size="lg" onClick={() => navigate('/account-security', { replace: true })}>返回账号与安全</Button></div>
       : <form className="profile-settings-v2-scroll profile-identity-form" onSubmit={submit} noValidate>
         <header className="profile-identity-intro"><small>步骤 {step === 'verify' ? '1 / 2' : '2 / 2'}</small><Heading variant="section">{step === 'verify' ? '验证当前手机号' : '绑定新手机号'}</Heading><p>当前手机号：{currentPhone}</p></header>

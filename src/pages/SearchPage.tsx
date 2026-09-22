@@ -1,6 +1,7 @@
 import { ChevronLeft, List, Search, WifiOff, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { DesignPromptTrigger } from '../components/DesignPromptTrigger'
 import { assetPath } from '../components/assetPath'
 import { FilterDrawer } from '../components/FilterDrawer'
 import { GuestLoginFloatingBar } from '../components/LoginFloatingBar'
@@ -8,7 +9,7 @@ import { getActiveFilterCount } from '../components/catalogFilterModel'
 import { filtersFromSearchIntent, recognizeSearchIntent, relaxationLabel, type SearchCondition, type SearchIntent } from '../components/searchIntentModel'
 import { allSearchConditionIds, nextSearchPriceSort } from '../components/searchResultsModel'
 import { ProductCard } from '../components/ProductCard'
-import { Button, Heading, RangeField, SearchField, StatusBar } from '../components/ui'
+import { Button, Heading, RangeField, SearchField } from '../components/ui'
 import { games as fixtureGames } from '../data/fixtures'
 import { catalogRepository } from '../repository/catalogRepository'
 import { emptyFilters, type Product, type ProductFilters, type SortKey } from '../types/catalog'
@@ -104,7 +105,7 @@ export function LinkedSearchPage() {
 
   return <main className="search-v2-page">
     <header className="search-v2-top">
-      <StatusBar className="search-v2-status" />
+      <DesignPromptTrigger nodeId="search:main" className="search-v2-status" />
       <form className="search-v2-bar" role="search" onSubmit={(event) => event.preventDefault()}>
         <button type="button" aria-label="返回" onClick={() => navigate(-1)}><ChevronLeft size={24} /></button>
         <SearchField className="search-v2-search-field" value={input} onChange={(event) => setInput(event.target.value)} onClear={() => setInput('')} onSearch={submitSearch} clearLabel="清空搜索" placeholder={`搜${game.name}商品标题…`} aria-label={`搜索${game.name}商品`} />
@@ -296,7 +297,7 @@ function StandaloneSearchPage() {
   return (
     <main className="search-v2-page">
       <header className="search-v2-top">
-        <StatusBar className="search-v2-status" />
+        <DesignPromptTrigger nodeId="search:main" className="search-v2-status" />
         <form className="search-v2-bar" role="search" onSubmit={(event) => event.preventDefault()}>
           <button type="button" aria-label="返回" onClick={() => navigate(-1)}><ChevronLeft size={24} /></button>
           <SearchField ref={inputRef} className="search-v2-search-field" value={query} onChange={(event) => setQuery(event.target.value)} onClear={clearQuery} onSearch={() => commitSearch()} clearLabel="清空搜索" placeholder="说出你要的号，例：王者 108英雄 500-1500" aria-label="说出你要的号" />

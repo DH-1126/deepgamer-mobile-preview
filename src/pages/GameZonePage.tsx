@@ -4,6 +4,7 @@ import { BottomNav } from '../components/BottomNav'
 import { CatalogQuickFilters, type CatalogQuickFilterPanel } from '../components/CatalogQuickFilters'
 import { buildGameSelectRoute } from '../components/gameSelectionModel'
 import { useAuthStatus } from '../components/AuthAccess'
+import { DesignPromptTrigger } from '../components/DesignPromptTrigger'
 import { assetPath } from '../components/assetPath'
 import { getActiveFilterChips, getActiveFilterCount, initialCatalogFilters, removeActiveFilter } from '../components/catalogFilterModel'
 import { EmptyState } from '../components/EmptyState'
@@ -111,7 +112,7 @@ export function GameZonePage() {
   return (
     <main className="catalog-page catalog-d3">
       <header className="catalog-top">
-        <div className="catalog-status" aria-hidden="true"><time>9:41</time><span><img src={asset('status-signal.svg')} alt="" /><img src={asset('status-wifi.svg')} alt="" /><img src={asset('status-battery.svg')} alt="" /></span></div>
+        <DesignPromptTrigger nodeId="catalog:zone" className="catalog-status" />
         <form className="catalog-search" role="search" onSubmit={(event) => event.preventDefault()}><button type="button" aria-label={`切换游戏，当前${game.name}`} onClick={() => { setQuickPanel(null); setToolbarSelection('sort'); setDrawerOpen(false); navigate(buildGameSelectRoute({ scene: 'buy', current: game.code })) }}><img src={game.image || asset('game-switch.png')} alt="" /><span>切换</span></button><SearchField className="catalog-search-field" aria-label={`搜索${game.name}商品`} value={input} onChange={(event) => setInput(event.target.value)} onClear={() => setInput('')} onSearch={submitSearch} clearLabel="清空搜索" placeholder={isLinkedDataMode ? `搜${game.name}商品标题…` : game.code === 'wzry' ? '王者 倪克斯 镜 1500以内' : `搜${game.name}…`} /></form>
       </header>
 

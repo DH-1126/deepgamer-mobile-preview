@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useAuthStatus } from '../components/AuthAccess'
+import { DesignPromptTrigger } from '../components/DesignPromptTrigger'
 import { BottomNav } from '../components/BottomNav'
 import { ProfileFeatureList } from '../components/ProfileFeatureList'
 import { useAccountSettings } from '../components/useAccountSettings'
@@ -47,7 +48,7 @@ function GuestProfilePage() {
   ] as const
   return <main className="profile-v2-page profile-v2-guest" data-node-id="3681:28976">
     <header className="profile-v2-guest-header">
-      <StatusBar className="profile-v2-status muted" />
+      <DesignPromptTrigger nodeId="3681:28976" className="profile-v2-status muted" />
       <ComponentLibraryEntry />
       <div className="profile-v2-guest-identity"><span className="profile-v2-avatar guest"><UserRound size={27} strokeWidth={1.8} aria-hidden="true" /></span><span><Heading variant="page">游客</Heading><p>登录后管理你的交易</p></span></div>
       <div className="profile-v2-guest-metrics"><span>—<small>钱包</small></span><span>—<small>收藏</small></span><span>—<small>求购</small></span></div>
@@ -124,7 +125,7 @@ function AuthenticatedProfilePage() {
   }
   return <main className="profile-v2-page" data-seller-state={sellerState} data-node-id="3681:37368">
     <header className="profile-v2-header">
-      <StatusBar className="profile-v2-status" />
+      <DesignPromptTrigger nodeId="3681:37368" className="profile-v2-status" />
       <ComponentLibraryEntry />
       <div className="profile-v2-user-row"><div className="profile-v2-user-main"><span className="profile-v2-avatar">{account.avatarDataUrl ? <img src={account.avatarDataUrl} alt="个人头像" /> : <UserRound size={27} strokeWidth={1.8} aria-hidden="true" />}</span><span className="profile-v2-user-copy"><b>{account.nickname || profileUser.name}</b><small><span title={profileUser.managementId}>ID {profileUser.managementId}</span><button type="button" onClick={copyId} aria-label={`复制管理ID ${profileUser.managementId}`}><Copy size={13} strokeWidth={2} aria-hidden="true" /></button></small></span></div></div>
       <div className="profile-v2-wallet"><Link to="/wallet" aria-label={`钱包${formatMoney(profileUser.balanceCents)}`}><b>{formatMoney(profileUser.balanceCents)}</b><span>钱包</span></Link><i /><Link to="/favorites" aria-label={`收藏${favoriteCount}件`}><b>{favoriteCount}</b><span>收藏</span></Link></div>

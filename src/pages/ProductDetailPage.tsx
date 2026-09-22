@@ -5,6 +5,7 @@ import { TitleBlocks } from '@deepgamer/product-presentation'
 import { buildOrderPreviewUrl, canPurchase, getPurchaseAmount, requiresSecondConfirmation } from '../components/productDetailModel'
 import { useAuthPrompt, useAuthStatus } from '../components/AuthAccess'
 import { GuestLoginFloatingBar } from '../components/LoginFloatingBar'
+import { DesignPromptTrigger } from '../components/DesignPromptTrigger'
 import { assetPath } from '../components/assetPath'
 import { useDetailTitle } from '../components/titlePresentation'
 import { buildProductConsultationRoute } from '../components/supportConsultationModel'
@@ -209,5 +210,5 @@ export function OrderPreviewPage() {
   const [params] = useSearchParams()
   const detail = productDetailRepository.getById(params.get('goodsId') ?? '')
   const packageType = params.get('packageType') === 'STANDARD' ? 'STANDARD' : 'PREMIUM'
-  return <main className="product-detail-page order-preview-page"><section><span>订单预览</span>{detail ? <><Heading variant="result">{detail.gameName} · {detail.productCode}</Heading><p>{packageType === 'PREMIUM' ? '包赔版' : '标准版'} · ¥{getPurchaseAmount(detail.price, packageType).toLocaleString('zh-CN')}</p><small>本地演示已进入确认页，不会发起真实支付。</small><Link to={`/goods/${detail.id}`}>返回商品详情</Link></> : <><Heading variant="result">商品不存在</Heading><Link to="/game?gameCode=wzry">返回商品列表</Link></>}</section></main>
+  return <main className="product-detail-page order-preview-page"><DesignPromptTrigger nodeId="orders:preview" /><section><span>订单预览</span>{detail ? <><Heading variant="result">{detail.gameName} · {detail.productCode}</Heading><p>{packageType === 'PREMIUM' ? '包赔版' : '标准版'} · ¥{getPurchaseAmount(detail.price, packageType).toLocaleString('zh-CN')}</p><small>本地演示已进入确认页，不会发起真实支付。</small><Link to={`/goods/${detail.id}`}>返回商品详情</Link></> : <><Heading variant="result">商品不存在</Heading><Link to="/game?gameCode=wzry">返回商品列表</Link></>}</section></main>
 }

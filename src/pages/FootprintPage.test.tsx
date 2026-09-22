@@ -16,7 +16,7 @@ describe('footprint page design structure', () => {
     for (const label of ['选择游戏', '商品状态', '浏览时间']) {
       expect(html).toContain(`aria-label="${label}：${label}"`)
     }
-    expect(html.match(/aria-expanded="false"/g)).toHaveLength(3)
+    expect(html.match(/data-ui="FilterTrigger" aria-expanded="false"/g)).toHaveLength(3)
     expect(html).not.toContain('footprint-d3-tabs')
     expect(html).not.toContain('全部 15')
     expect(html).not.toContain('role="dialog"')

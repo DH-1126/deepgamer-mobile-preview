@@ -52,6 +52,23 @@ describe('authRepository', () => {
     expect(createAuthRepository({ storage, persistSession: false }).hasCompletedLaunch()).toBe(false)
   })
 
+  it('keeps the user as a guest after consent and launch completion until explicit login', async () => {
+    const storage = fakeStorage()
+    const repository = createAuthRepository({ storage, persistSession: false })
+
+    expect(repository.acceptInitialAgreement()).toBe(true)
+    repository.completeLaunch()
+
+    expect(repository.hasCompletedLaunch()).toBe(true)
+    expect(repository.hasAcceptedInitialAgreement()).toBe(true)
+    expect(repository.isAuthenticated()).toBe(false)
+    expect(repository.getSession()).toBeUndefined()
+    expect(storage.data.has(AUTH_SESSION_KEY)).toBe(false)
+
+    expect((await repository.loginOneTap(true)).ok).toBe(true)
+    expect(repository.isAuthenticated()).toBe(true)
+  })
+
   it('tracks non-sensitive agreement and push choices', () => {
     const repository = createAuthRepository({ storage: fakeStorage(), now: () => 99 })
     expect(repository.hasAcceptedInitialAgreement()).toBe(false)

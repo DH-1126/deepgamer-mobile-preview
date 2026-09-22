@@ -2,8 +2,9 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { ArrowLeft, ChevronRight, CirclePlus, MessageSquareText, MoreHorizontal, ShoppingBag, Star, X } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { assetPath } from '../components/assetPath'
+import { DesignPromptTrigger } from '../components/DesignPromptTrigger'
 import { createPendingMessage, validateMessageText } from '../components/messageModel'
-import { BottomSheet, Button, Cell, Heading, SearchField, StatusBar, Toast, ToggleSwitch } from '../components/ui'
+import { BottomSheet, Button, Cell, Heading, SearchField, Toast, ToggleSwitch } from '../components/ui'
 import { homeGames, recentGames, type HomeGame } from '../data/homeData'
 import { messageRepository } from '../repository/messageRepository'
 import { productDetailRepository } from '../repository/productDetailRepository'
@@ -23,7 +24,7 @@ const allGames: HomeGame[] = [
   { name: 'Apex 英雄', code: 'apex', image: '' },
 ]
 
-function SupportStatusBar({ yellow = false }: { yellow?: boolean }) { return <StatusBar className={`support-d3-status${yellow ? ' yellow' : ''}`} /> }
+function SupportStatusBar({ yellow = false, nodeId }: { yellow?: boolean; nodeId: string }) { return <DesignPromptTrigger nodeId={nodeId} tone={yellow ? 'inverse' : 'default'} className={`support-d3-status${yellow ? ' yellow' : ''}`} /> }
 
 export function SupportChatPage({ conversation, messages }: Props) {
   const navigate = useNavigate()
@@ -47,7 +48,7 @@ function SupportGameSelect({ onBack, onSelect }: { onBack: () => void; onSelect:
   const filtered = useMemo(() => allGames.filter((game) => game.name.toLocaleLowerCase('zh-CN').includes(query.trim().toLocaleLowerCase('zh-CN'))), [query])
   return <main className="support-d3-page support-d3-select" data-node-id="3681:27399">
     <header className="support-d3-select-hero">
-      <SupportStatusBar yellow />
+      <SupportStatusBar yellow nodeId="3681:27399" />
       <button type="button" onClick={onBack} aria-label="返回"><ArrowLeft size={21} /></button>
       <div className="support-d3-select-intro">
         <div><Heading as="h1" variant="hero">专属客服在线咨询</Heading><p>选择游戏，开启 <b>1v1</b> 服务</p></div>
@@ -127,7 +128,7 @@ function SupportConversation({ conversation, messages, game, scenario, consultat
   const recommendedProducts = products.filter(item => item.gameCode === game.code).slice(0, 2)
 
   return <main className="support-d3-page support-d3-chat" data-node-id="3681:27585">
-    <header className="support-d3-chat-header"><SupportStatusBar /><div><button type="button" onClick={onBack} aria-label="返回"><ArrowLeft size={21} /></button><span><Heading as="h1" variant="page">{game.name} · 专属客服 <em>官方</em></Heading><small><b>在线</b> 服务时间 09:30–00:30</small></span><button type="button" className="more" onClick={() => setSettingsOpen(true)} aria-label="消息设置"><MoreHorizontal size={21} /></button></div></header>
+    <header className="support-d3-chat-header"><SupportStatusBar nodeId="3681:27585" /><div><button type="button" onClick={onBack} aria-label="返回"><ArrowLeft size={21} /></button><span><Heading as="h1" variant="page">{game.name} · 专属客服 <em>官方</em></Heading><small><b>在线</b> 服务时间 09:30–00:30</small></span><button type="button" className="more" onClick={() => setSettingsOpen(true)} aria-label="消息设置"><MoreHorizontal size={21} /></button></div></header>
     <div className="support-d3-log" ref={logRef} role="log" aria-live="polite" aria-label="客服聊天记录">
       {!cleared && <><time>13:56</time>{scenario !== 'recommend' && <><div className="support-d3-buyer"><p>你好</p><span aria-hidden="true">♙</span><small>已读</small></div><div className="support-d3-agent"><span aria-hidden="true">萌</span><div><small>萌萌 · {game.name}专属客服 <em>官方</em></small><p>{scenario === 'faq' ? '你好，我是平台客服萌萌。交易规则、换绑、退款和售后流程都可以问我。' : `老板你好，我是${game.name}的专属客服。看中的号可以把编号发我，我帮你核对账号情况和价格。`}</p><section><b>你可能想问</b>{faq.map((question) => <button type="button" key={question} onClick={() => void send(question)}>{question}<ChevronRight size={14} /></button>)}</section></div></div><p className="support-d3-safety">请勿在站外私下转账或提供验证码</p></>}{scenario === 'recommend' && <SupportRecommendations game={game} products={recommendedProducts} />}</>}
       {sentProduct && <div className="support-d3-sent-product"><small>你发送了一个商品 · 本地预览</small><SupportProductCard product={sentProduct} compact /></div>}

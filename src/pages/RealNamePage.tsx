@@ -1,7 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { AlertCircle, Check, ChevronLeft, Clock3, Info, RotateCcw, ShieldCheck, X } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Button, Dialog, Heading, IconButton, PageHeader, Spinner, StatusBar, TextField } from '../components/ui'
+import { Button, Dialog, Heading, IconButton, PageHeader, Spinner, TextField } from '../components/ui'
+import { DesignPromptTrigger } from '../components/DesignPromptTrigger'
 import { maskRealName, maskRealNameId, parseRealNameScenario, validateRealName, type RealNameScenario } from '../components/realNameModel'
 import { accountSettingsRepository } from '../repository/accountSettingsRepository'
 import '../styles/realname-v2.css'
@@ -54,7 +55,7 @@ export function RealNamePage() {
   const back = () => window.history.length > 1 ? navigate(-1) : navigate('/settings')
 
   return <main className="realname-v2-page" data-scenario={scenario} data-node-id={scenario === 'fill' ? '4053:8196' : undefined}>
-    <StatusBar />
+    <DesignPromptTrigger nodeId={scenario === 'reviewing' ? '4053:8359' : scenario === 'success' ? '4053:8417' : scenario === 'rejected' ? '4053:8467' : '4053:8196'} />
     <PageHeader className="realname-v2-topbar" title="实名认证" left={<IconButton label="返回" onClick={back}><ChevronLeft size={24} strokeWidth={2} aria-hidden="true" /></IconButton>} />
     <div className="realname-v2-scroll">
       {scenario === 'fill' || scenario === 'confirm' || scenario === 'submitting' || scenario === 'failure' ? <>

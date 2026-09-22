@@ -5,7 +5,9 @@ import { AFTERSALE_TABS, countAfterSales, filterAfterSales, getAfterSaleStatusLa
 import { AfterSaleMaterialPicker as MaterialPicker } from '../components/AfterSaleMaterialPicker'
 import { assetPath } from '../components/assetPath'
 import { formatOrderMoney } from '../components/orderModel'
-import { Button, Dialog, Heading, PageHeader, SearchField, StatusBadge, StatusBar, Tabs, TextAreaField, Toast } from '../components/ui'
+import { Button, Dialog, Heading, PageHeader, SearchField, StatusBadge, Tabs, TextAreaField, Toast } from '../components/ui'
+import { DesignPromptTrigger } from '../components/DesignPromptTrigger'
+import { resolveAftersalesDetailNodeId } from '../data/aftersalesPageSpecs'
 import { SUPPORT_CONVERSATION_ROUTE } from '../data/messageFixtures'
 import { afterSaleRepository } from '../repository/afterSaleRepository'
 import { orderRepository } from '../repository/orderRepository'
@@ -19,9 +21,9 @@ const AFTERSALE_KINDS: ReadonlyArray<{ value: AfterSaleKind; title: string; deta
   { value: 'account_recovery', title: '找回申诉', detail: '账号被找回，按包赔规则判定' },
 ]
 
-function AfterSaleTopBar({ title, side }: { title: string; side?: ReactNode }) {
+function AfterSaleTopBar({ title, side, nodeId }: { title: string; side?: ReactNode; nodeId: string }) {
   const navigate = useNavigate()
-  return <><StatusBar className="aftersales-v2-status" /><PageHeader className="aftersales-v2-topbar" bordered={false} title={title} left={<button type="button" onClick={() => navigate(-1)} aria-label="返回"><ArrowLeft size={20} aria-hidden="true" /></button>} right={side} /></>
+  return <><DesignPromptTrigger nodeId={nodeId} className="aftersales-v2-status" /><PageHeader className="aftersales-v2-topbar" bordered={false} title={title} left={<button type="button" onClick={() => navigate(-1)} aria-label="返回"><ArrowLeft size={20} aria-hidden="true" /></button>} right={side} /></>
 }
 
 function useAfterSalesData() {
@@ -76,7 +78,7 @@ export function AfterSalesPage() {
   const retry = () => { const next = new URLSearchParams(params); next.delete('scenario'); setParams(next, { replace: true }); refresh() }
   const withdraw = (id: string) => { setFeedback(afterSaleRepository.withdraw(id) ? '售后申请已撤销，可在详情中重新申请' : '当前状态无法撤销'); refresh() }
   return <main className="aftersales-v2-page">
-    <header className="aftersales-v2-header"><StatusBar className="aftersales-v2-status" /><div className="aftersales-v2-title"><button type="button" onClick={() => navigate(-1)} aria-label="返回"><ArrowLeft size={19} aria-hidden="true" /></button><Heading as="h1" variant="page">订单</Heading><div className="aftersales-v2-search-layout" role="search"><SearchField className="aftersales-v2-search-field" value={draftQuery} onChange={(event) => setDraftQuery(event.target.value)} onClear={() => setDraftQuery('')} onSearch={submitSearch} placeholder="搜索订单" aria-label="搜索售后单号、订单编号、商品或游戏" maxLength={80} /></div></div>
+    <header className="aftersales-v2-header"><DesignPromptTrigger nodeId="aftersales:list" className="aftersales-v2-status" /><div className="aftersales-v2-title"><button type="button" onClick={() => navigate(-1)} aria-label="返回"><ArrowLeft size={19} aria-hidden="true" /></button><Heading as="h1" variant="page">订单</Heading><div className="aftersales-v2-search-layout" role="search"><SearchField className="aftersales-v2-search-field" value={draftQuery} onChange={(event) => setDraftQuery(event.target.value)} onClear={() => setDraftQuery('')} onSearch={submitSearch} placeholder="搜索订单" aria-label="搜索售后单号、订单编号、商品或游戏" maxLength={80} /></div></div>
       <Tabs variant="underline" className="aftersales-v2-domain-tabs-ui" label="订单类型" panelId="aftersales-status-panel" value="aftersales" onValueChange={(value) => navigate(value === 'buyer' ? '/orders?role=buyer' : value === 'seller' ? '/orders?role=seller' : '/aftersales')} items={[{ value: 'buyer', label: '买入' }, { value: 'seller', label: '卖出' }, { value: 'aftersales', label: '售后', count: records.length }]} />
       <Tabs className="aftersales-v2-status-tabs" label="售后状态筛选" panelId="aftersales-status-panel" value={status} onValueChange={(value) => update('status', value)} items={AFTERSALE_TABS.map((tab) => ({ value: tab.value, label: tab.label, count: countAfterSales(records, tab.value) }))} />
     </header>
@@ -102,7 +104,7 @@ export function AfterSaleApplyPage() {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const closeConfirm = useCallback(() => setConfirmOpen(false), [])
   const active = order ? afterSaleRepository.findActiveByOrder(order.id) : undefined
-  if (!order) return <main className="aftersales-v2-page"><AfterSaleTopBar title="申请客服介入" /><AfterSaleEmpty query="" /></main>
+  if (!order) return <main className="aftersales-v2-page"><AfterSaleTopBar title="申请客服介入" nodeId="aftersales:apply" /><AfterSaleEmpty query="" /></main>
   const submit = () => {
     const selected = AFTERSALE_KINDS.find((item) => item.value === kind)!
     const input: AfterSaleApplicationInput = { kind, reason: selected.title, description, materialNames }
@@ -119,7 +121,7 @@ export function AfterSaleApplyPage() {
     setFormError('')
     setConfirmOpen(true)
   }
-  return <main className="aftersales-v2-page aftersales-apply-page"><AfterSaleTopBar title="申请客服介入" /><div className="aftersales-v2-detail-scroll">
+  return <main className="aftersales-v2-page aftersales-apply-page"><AfterSaleTopBar title="申请客服介入" nodeId="aftersales:apply" /><div className="aftersales-v2-detail-scroll">
     <section className="aftersales-apply-alert"><span><b>异常</b><em>当前问题</em></span><Heading as="h2" variant="result">{order.status === 'completed' ? '已完成订单申请售后' : order.status === 'binding' ? '卖家已超时未换绑' : '订单履约遇到问题'}</Heading><p>请描述实际情况并提交相关材料，平台客服将基于订单和材料进行核查。</p><div><ShieldCheck size={14} aria-hidden="true" />{order.status === 'completed' ? '订单已完成，售后处理结果以平台核查为准。' : <>你的 {formatOrderMoney(order.totalAmountCents)} 仍在平台托管，不会自动放款。</>}</div></section>
     <ApplyOrderCard order={order} />
     {active && <section className="aftersales-active-note" role="status"><b>该订单已有进行中的售后申请</b><p>请进入现有售后详情补充材料或查看审核进度。</p><Link to={`/aftersales/${active.id}`}>查看售后详情</Link></section>}
@@ -175,10 +177,10 @@ export function AfterSaleDetailPage() {
   const { records, refresh } = useAfterSalesData()
   const [feedback, setFeedback] = useState('')
   const record = records.find((item) => item.id === id)
-  if (!record) return <main className="aftersales-v2-page"><AfterSaleTopBar title="售后详情" /><AfterSaleEmpty query="" /></main>
+  if (!record) return <main className="aftersales-v2-page"><AfterSaleTopBar title="售后详情" nodeId="aftersales:detail-review" /><AfterSaleEmpty query="" /></main>
   const reopen = () => { if (afterSaleRepository.reopen(record.id)) { refresh(); setFeedback('售后申请已重新提交') } else setFeedback('当前状态无法重新申请') }
   const withdraw = () => { if (afterSaleRepository.withdraw(record.id)) { refresh(); setFeedback('售后申请已撤销') } else setFeedback('当前状态无法撤销') }
-  return <main className={`aftersales-v2-page aftersales-detail-page status-${record.status}`}><AfterSaleTopBar title="售后详情" side={<small>{record.id}</small>} /><div className="aftersales-v2-detail-scroll"><AfterSaleHero record={record} />
+  return <main className={`aftersales-v2-page aftersales-detail-page status-${record.status}`}><AfterSaleTopBar title="售后详情" side={<small>{record.id}</small>} nodeId={resolveAftersalesDetailNodeId(record.status)} /><div className="aftersales-v2-detail-scroll"><AfterSaleHero record={record} />
     {['pending_review', 'platform_processing', 'refunding'].includes(record.status) && <section className="aftersales-escrow-note"><ShieldCheck size={15} aria-hidden="true" />{record.status === 'refunding' ? '托管资金已解除并退回，卖家未收到该笔货款。' : `${formatOrderMoney(record.refundAmountCents)} 保持平台托管，不会自动放款。`}</section>}
     {record.status === 'refunding' && <section className="aftersales-refund-card"><span>退款状态 <b>已退款</b></span><small>退款金额</small><strong>{formatOrderMoney(record.refundAmountCents)}</strong><em>{record.refundMethod ?? '原路退回支付方式'}</em><time>退款时间　{record.updatedAt.slice(5)}</time></section>}
     {record.status === 'supplement' ? <SupplementForm record={record} onSubmitted={() => { refresh(); setFeedback('补充材料已提交，重新进入客服审核') }} /> : <AfterSaleDetailsBody record={record} />}

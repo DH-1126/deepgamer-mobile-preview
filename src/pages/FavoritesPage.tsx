@@ -5,7 +5,8 @@ import { FavoriteCard } from '../components/FavoriteCard'
 import { clearSelectionForFilter, emptyFavoriteFilters, filterFavorites, projectFavorite, toggleAllVisible, toggleFavoriteSelection } from '../components/favoritesModel'
 import { favoriteRepository } from '../repository/favoriteRepository'
 import type { FavoriteFilters, FavoriteRecord } from '../types/favorite'
-import { Button, ChoiceChip, Dialog, EmptyStateView, FilterTrigger, IconButton, PageHeader, SearchField, StatusBar, Toast } from '../components/ui'
+import { Button, ChoiceChip, Dialog, EmptyStateView, FilterTrigger, IconButton, PageHeader, SearchField, Toast } from '../components/ui'
+import { DesignPromptTrigger } from '../components/DesignPromptTrigger'
 import '../styles/favorites.css'
 
 type Panel = 'game' | 'status' | 'time' | null
@@ -125,7 +126,7 @@ export function FavoritesPage() {
 
   return <main className={`favorites-page ${managing ? 'is-managing' : ''}`} data-node-id={managing ? '3681:36255' : '3681:36166'}>
     <header className="favorites-header">
-      <StatusBar />
+      <DesignPromptTrigger nodeId={managing ? '3681:36255' : '3681:36166'} />
       <PageHeader className="favorites-titlebar" title={managing ? '管理收藏' : '收藏'} left={managing ? <Button variant="ghost" size="md" onClick={() => setSelection((current) => toggleAllVisible(current, visibleIds))}>全选</Button> : <IconButton label="返回" onClick={back}><ArrowLeft size={20} strokeWidth={2} aria-hidden="true" /></IconButton>} right={<Button variant="ghost" size="md" onClick={toggleManage} disabled={!records.length}>{managing ? '完成' : '管理'}</Button>} />
       <form className="favorites-search" role="search" onSubmit={(event) => event.preventDefault()}>
         <SearchField className="favorites-search-field" value={searchDraft} maxLength={50} disabled={managing} onChange={(event) => setSearchDraft(event.target.value)} onClear={!managing ? () => setSearchDraft('') : undefined} onSearch={submitSearch} clearLabel="清空搜索" placeholder="搜索商品、游戏或商品编号" aria-label="搜索收藏" />

@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react'
 import { ChevronLeft, CircleCheck, FileSignature, LockKeyhole, WalletCards } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Button, ChoiceChip, Heading, IconButton, PageHeader, SelectField, StatusBar, TextField } from '../components/ui'
+import { Button, ChoiceChip, Heading, IconButton, PageHeader, SelectField, TextField } from '../components/ui'
+import { DesignPromptTrigger } from '../components/DesignPromptTrigger'
 import { filterWalletTransactions, formatWalletMoney, formatWalletTime, formatWalletTransactionAmount, getWalletOverviewState, getWalletStatusLabel, getWalletTotalCents, validateWithdrawal } from '../components/walletModel'
 import { walletRepository } from '../repository/walletRepository'
 import type { WalletSnapshot, WalletTransaction, WalletTransactionFilter } from '../types/wallet'
 import '../styles/wallet-v2.css'
 
-function WalletTopBar({ title, help = false, overview = false }: { title: string; help?: boolean; overview?: boolean }) {
+function WalletTopBar({ title, help = false, overview = false, nodeId }: { title: string; help?: boolean; overview?: boolean; nodeId: string }) {
   const navigate = useNavigate()
-  return <><StatusBar tone={overview ? 'inverse' : 'default'} /><PageHeader tone={overview ? 'dark' : 'surface'} className={`wallet-v2-topbar${overview ? ' overview' : ''}`} title={title} left={<IconButton label="返回" onClick={() => navigate(-1)}><ChevronLeft size={25} strokeWidth={2} aria-hidden="true" /></IconButton>} right={overview ? <span className="wallet-v2-detail-label">明细</span> : help ? <Link to="/support">客服</Link> : undefined} /></>
+  return <><DesignPromptTrigger nodeId={nodeId} tone={overview ? 'inverse' : 'default'} /><PageHeader tone={overview ? 'dark' : 'surface'} className={`wallet-v2-topbar${overview ? ' overview' : ''}`} title={title} left={<IconButton label="返回" onClick={() => navigate(-1)}><ChevronLeft size={25} strokeWidth={2} aria-hidden="true" /></IconButton>} right={overview ? <span className="wallet-v2-detail-label">明细</span> : help ? <Link to="/support">客服</Link> : undefined} /></>
 }
 
 function useWalletSnapshot() {
@@ -40,7 +41,7 @@ export function WalletOverviewPage() {
   const filteredTransactions = filterWalletTransactions(displayedSnapshot.transactions, filter)
   return <main className="wallet-v2-page wallet-v2-overview" data-node-id="3681:28588" data-scenario={previewState ?? 'active'}>
     <section className="wallet-v2-overview-hero">
-      <WalletTopBar title="" overview />
+      <WalletTopBar title="" overview nodeId="3681:28588" />
       <section className="wallet-v2-balance-card" aria-labelledby="wallet-balance-title">
         <p id="wallet-balance-title">可用余额</p><strong>{formatWalletMoney(displayedSnapshot.availableCents)}</strong>
         <small>累计收入 {formatWalletMoney(getWalletTotalCents(displayedSnapshot)).replace('.00', '')}</small>
@@ -85,7 +86,7 @@ export function WalletWithdrawPage() {
     }, 650)
   }
   return <main className="wallet-v2-page wallet-v2-withdraw">
-    <WalletTopBar title="申请提现" help />
+    <WalletTopBar title="申请提现" help nodeId="wallet:withdraw" />
     <div className="wallet-v2-scroll">
       <section className="wallet-v2-withdraw-balance"><span><WalletCards size={18} aria-hidden="true" />可用余额</span><b>{formatWalletMoney(snapshot.availableCents)}</b><small><CircleCheck size={13} aria-hidden="true" /> 已完成实名认证</small></section>
       <section className="wallet-v2-form-card"><Heading variant="section">提现金额</Heading><label className="wallet-v2-amount"><span>¥</span><input inputMode="decimal" value={amount} onChange={(event) => { setAmount(event.target.value); setError('') }} placeholder="0.00" aria-label="提现金额" /></label><div className="wallet-v2-quick-amounts">{[10_000, 50_000, 100_000].map((cents) => <ChoiceChip key={cents} selected={amount === (Math.min(cents, snapshot.availableCents) / 100).toFixed(2)} onClick={() => chooseAmount(cents)}>{formatWalletMoney(cents).replace('.00', '')}</ChoiceChip>)}<ChoiceChip selected={amount === (snapshot.availableCents / 100).toFixed(2)} onClick={() => chooseAmount(snapshot.availableCents)}>全部</ChoiceChip></div>{amount && !validation.ok && <p className="wallet-v2-inline-error">{validation.error}</p>}</section>

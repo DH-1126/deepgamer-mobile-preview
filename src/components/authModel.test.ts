@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildLoginRoute, formatLoginPhone, getCountdown, getLoginFigmaNodeId, getWelcomeFigmaNodeId, isValidMainlandPhone, maskPhone, normalizeCode, normalizePhone, sanitizeReturnTo } from './authModel'
+import { buildLoginRoute, formatLoginPhone, getCountdown, getLoginFigmaNodeId, getRecoveryFigmaNodeId, getWelcomeFigmaNodeId, isValidMainlandPhone, maskPhone, normalizeCode, normalizePhone, sanitizeReturnTo } from './authModel'
 
 describe('authModel', () => {
   it('normalizes and validates mainland phone numbers', () => {
@@ -18,13 +18,25 @@ describe('authModel', () => {
     expect(formatLoginPhone('18788')).toBe('187 88')
   })
 
-  it('maps launch and login states to the approved Draft3 Figma frames', () => {
-    expect(getWelcomeFigmaNodeId('splash')).toBe('3681:25436')
-    expect(getWelcomeFigmaNodeId('agreement')).toBe('3681:25465')
-    expect(getWelcomeFigmaNodeId('exit')).toBe('3681:25569')
-    expect(getLoginFigmaNodeId('one_tap')).toBe('3681:24987')
-    expect(getLoginFigmaNodeId('code')).toBe('3681:36411')
-    expect(getLoginFigmaNodeId('password')).toBe('3681:36326')
+  it('maps launch and login states to the approved Page 7 Figma frames', () => {
+    expect(getWelcomeFigmaNodeId('splash')).toBe('startup:splash')
+    expect(getWelcomeFigmaNodeId('loading')).toBe('startup:loading')
+    expect(getWelcomeFigmaNodeId('error')).toBe('startup:error')
+    expect(getWelcomeFigmaNodeId('agreement')).toBe('7114:921')
+    expect(getWelcomeFigmaNodeId('exit')).toBe('7115:947')
+    expect(getLoginFigmaNodeId('one_tap')).toBe('7080:144')
+    expect(getLoginFigmaNodeId('code')).toBe('7080:202')
+    expect(getLoginFigmaNodeId('password')).toBe('7080:274')
+    expect(getLoginFigmaNodeId('code', { agreed: false })).toBe('7081:303')
+    expect(getLoginFigmaNodeId('code', { codeSent: true })).toBe('7081:485')
+    expect(getLoginFigmaNodeId('password', { protocolPrompt: true })).toBe('7081:385')
+  })
+
+  it('returns the filled recovery frame after a validation error is corrected', () => {
+    expect(getRecoveryFigmaNodeId({})).toBe('7087:620')
+    expect(getRecoveryFigmaNodeId({ password: 'Demo2026', errors: { password: undefined } })).toBe('7087:716')
+    expect(getRecoveryFigmaNodeId({ password: 'short', errors: { password: '密码格式错误' } })).toBe('7087:831')
+    expect(getRecoveryFigmaNodeId({ password: 'Demo2026', pageError: '验证码错误' })).toBe('7087:831')
   })
 
   it('only permits local safe return paths', () => {

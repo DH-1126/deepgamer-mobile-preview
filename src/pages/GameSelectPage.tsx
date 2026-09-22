@@ -4,6 +4,7 @@ import { games } from '../data/fixtures'
 import { sellGames } from '../data/sellFixtures'
 import { gameDirectory, gameIndexLetters, type GameDirectoryEntry, type GamePlatform } from '../data/gameDirectory'
 import { filterDirectoryGames, getGameSelectionTarget, groupDirectoryGames, nextRecentGames, type GameSelectionScene } from '../components/gameSelectionModel'
+import { DesignPromptTrigger } from '../components/DesignPromptTrigger'
 import { assetPath } from '../components/assetPath'
 import { getRuntimeStorage, isLinkedDataMode } from '../runtime/dataMode'
 import { useLinkedState } from '../linked/linkedData'
@@ -99,7 +100,7 @@ export function GameSelectPage() {
 
   return <main className="game-select-v2" aria-label="游戏列表" data-node-id="4535:3844" data-scene={scene}>
     <header className="game-list-header">
-      <div className="game-list-status" aria-hidden="true"><time>9:41</time><span><img src={assetPath('assets/game-list-v3/signal.svg')} alt="" /><img src={assetPath('assets/game-list-v3/wifi.svg')} alt="" /><img src={assetPath('assets/game-list-v3/battery.svg')} alt="" /></span></div>
+      <DesignPromptTrigger nodeId="4535:3844" className="game-list-status" />
       <form className="game-list-search-row" role="search" onSubmit={event => { event.preventDefault(); inputRef.current?.blur() }}>
         <IconButton label="返回" className="game-list-back" onClick={goBack}><img src={assetPath('assets/game-list-v3/back.svg')} alt="" /></IconButton>
         <SearchField ref={inputRef} className="game-list-search" value={query} onChange={event => setQuery(event.target.value)} onClear={() => { setQuery(''); inputRef.current?.focus() }} clearLabel="清空游戏搜索" aria-label="搜索游戏" placeholder="请输入游戏名称" autoComplete="off" />

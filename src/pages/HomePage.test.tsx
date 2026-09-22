@@ -29,6 +29,21 @@ describe('homepage entry states', () => {
     expect(html).toContain('guest-login-bar-home')
   })
 
+  it('uses real status-bar controls for the current home state', () => {
+    let html = renderToStaticMarkup(<HomePage />)
+    expect(html).not.toContain('data-design-prompt-trigger')
+    expect(html).toContain('data-page-spec-trigger="true"')
+    expect(html).toContain('data-review-node-id="7144:1039"')
+
+    state.authenticated = true
+    html = renderToStaticMarkup(<HomePage />)
+    expect(html).toContain('data-review-node-id="7146:1316"')
+
+    state.search = '?footprints=empty'
+    html = renderToStaticMarkup(<HomePage />)
+    expect(html).toContain('data-review-node-id="7146:1627"')
+  })
+
   it('always uses the dark floating prompt for guests, including empty history', () => {
     for (const search of ['', '?footprints=empty']) {
       state.search = search

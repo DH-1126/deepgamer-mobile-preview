@@ -1,4 +1,7 @@
 /* Design-Draft3-Pre · 首页（主视觉 3681:21355 / 无足迹 3681:22433） */
+.home-v2 { position: relative; }
+.home-v2 > .home-v2-review-status { position: fixed; top: 0; left: 50%; width: min(393px, 100%); transform: translateX(-50%); background: #ffe62a; }
+.home-v2 .home-v2-top { padding-top: 44px; }
 .home-v2-top.home-v2-top--download { height: 216px; }
 .home-draft3-download { position: relative; height: 40px; margin: 8px -16px; padding: 8px 12px; display: flex; align-items: center; gap: 10px; color: #101010; background: #fff8c2; box-shadow: 0 4px 7px rgba(90,74,0,.13); }
 .home-draft3-download > img { flex: 0 0 23px; width: 23px; height: 24px; }

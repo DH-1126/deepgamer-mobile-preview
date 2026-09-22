@@ -10,7 +10,8 @@ import {
   X,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { Button, ChoiceChip, Heading, IconButton, OptionTile, PageHeader, StatusBar, TextAreaField } from '../components/ui'
+import { Button, ChoiceChip, Heading, IconButton, OptionTile, PageHeader, TextAreaField } from '../components/ui'
+import { DesignPromptTrigger } from '../components/DesignPromptTrigger'
 import '../styles/feedback-draft3.css'
 
 type FeedbackType = 'service' | 'product' | 'community'
@@ -87,7 +88,7 @@ export function FeedbackPage() {
   }
 
   return <main className="feedback-d3-page">
-    <StatusBar />
+    <DesignPromptTrigger nodeId="feedback:main" />
     <PageHeader className="feedback-d3-topbar" title={screen === 'history' ? '我的反馈' : '吐槽广场'} left={<IconButton label="返回" onClick={() => screen === 'history' ? setScreen('form') : navigate(-1)}><ArrowLeft size={21} /></IconButton>} right={screen === 'form' ? <Button className="feedback-d3-history-link" variant="ghost" size="sm" onClick={() => setScreen('history')}>我的反馈</Button> : undefined} />
 
     {screen === 'form' ? <>

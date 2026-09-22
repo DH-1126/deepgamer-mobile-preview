@@ -12,12 +12,14 @@ import { assetPath } from '../components/assetPath'
 import { useTitleDefinition } from '../components/titleConfigClient'
 import { OrderListCard } from '../components/OrderListCard'
 import { formatOrderListMoney } from '../components/orderListPresentation'
-import { Button, Dialog, Heading, PageHeader, SearchField, StatusBar, Tabs, Toast } from '../components/ui'
+import { Button, Dialog, Heading, PageHeader, SearchField, Tabs, Toast } from '../components/ui'
+import { DesignPromptTrigger } from '../components/DesignPromptTrigger'
+import { resolveOrderDetailNodeId } from '../data/orderPageSpecs'
 import '../styles/orders-v2.css'
 
-function OrderTopBar({ title, side }: { title: string; side?: ReactNode }) {
+function OrderTopBar({ title, side, nodeId }: { title: string; side?: ReactNode; nodeId: string }) {
   const navigate = useNavigate()
-  return <><StatusBar className="order-v2-status" /><PageHeader className="order-v2-topbar" bordered={false} title={title} left={<button type="button" onClick={() => navigate(-1)} aria-label="返回"><ArrowLeft size={20} aria-hidden="true" /></button>} right={side} /></>
+  return <><DesignPromptTrigger nodeId={nodeId} className="order-v2-status" /><PageHeader className="order-v2-topbar" bordered={false} title={title} left={<button type="button" onClick={() => navigate(-1)} aria-label="返回"><ArrowLeft size={20} aria-hidden="true" /></button>} right={side} /></>
 }
 
 function useOrderData() {
@@ -112,7 +114,7 @@ export function OrderListPage() {
   useEffect(() => setDraftQuery(query), [query])
   const submitSearch = () => update('query', draftQuery.trim())
   return <main className="order-v2-page order-list-page">
-    <header className="order-list-header"><StatusBar /><div className="order-list-title"><button type="button" onClick={() => navigate(-1)} aria-label="返回"><ArrowLeft size={19} aria-hidden="true" /></button><Heading as="h1" variant="page">订单</Heading><div className="order-list-search-layout" role="search"><SearchField className="order-list-search-field" value={draftQuery} maxLength={80} onChange={(event) => setDraftQuery(event.target.value)} onClear={() => setDraftQuery('')} onSearch={submitSearch} placeholder="搜索订单" aria-label="搜索订单号、商品编号、游戏或商品" /></div><Link to={SUPPORT_CONVERSATION_ROUTE} aria-label="联系平台客服"><Headphones size={18} aria-hidden="true" /></Link></div>
+    <header className="order-list-header"><DesignPromptTrigger nodeId="3977:3318" /><div className="order-list-title"><button type="button" onClick={() => navigate(-1)} aria-label="返回"><ArrowLeft size={19} aria-hidden="true" /></button><Heading as="h1" variant="page">订单</Heading><div className="order-list-search-layout" role="search"><SearchField className="order-list-search-field" value={draftQuery} maxLength={80} onChange={(event) => setDraftQuery(event.target.value)} onClear={() => setDraftQuery('')} onSearch={submitSearch} placeholder="搜索订单" aria-label="搜索订单号、商品编号、游戏或商品" /></div><Link to={SUPPORT_CONVERSATION_ROUTE} aria-label="联系平台客服"><Headphones size={18} aria-hidden="true" /></Link></div>
       <OrderDomainTabs active={role} buyerCount={countTradeOrders(orders, 'buyer', 'all')} sellerCount={countTradeOrders(orders, 'seller', 'all')} />
       <Tabs className="order-status-tabs-ui" label="订单状态筛选" panelId="order-status-panel" value={status} onValueChange={(value) => update('status', value)} items={tabs.map((item) => ({ value: item.value, label: item.label, count: countTradeOrders(orders, role, item.value) }))} />
     </header>
@@ -183,7 +185,7 @@ export function OrderCheckoutPage() {
   const [error, setError] = useState('')
   const resultParam = params.get('result')
   const closeConfirm = useCallback(() => setConfirmOpen(false), [])
-  if (!order) return <main className="order-v2-page"><OrderTopBar title="订单确认" /><OrderEmpty title="订单不存在" /></main>
+  if (!order) return <main className="order-v2-page"><OrderTopBar title="订单确认" nodeId="orders:checkout" /><OrderEmpty title="订单不存在" /></main>
   const openCashier = () => {
     const next = new URLSearchParams(params)
     next.set('id', order.id)
@@ -209,7 +211,7 @@ export function OrderCheckoutPage() {
     : resultParam === 'expired' && order.status === 'pay_expired' ? 'expired' : null
   const finishResult = () => navigate(`/orders/${encodeURIComponent(order.id)}`, { replace: true })
   if (paymentStage) return <main className="order-v2-page checkout-page cashier-page">
-    <header><OrderTopBar title="确认支付" /></header>
+    <header><OrderTopBar title="确认支付" nodeId="orders:cashier" /></header>
     <div className="checkout-scroll cashier-scroll">
       <section className="cashier-order-card"><header><b>订单信息</b><code>{order.id}</code></header><p>交易订单支付</p><strong>{formatOrderMoney(order.totalAmountCents)}</strong><small>订单号　{order.id}</small></section>
       <section className="cashier-method-card"><header><b>支付方式</b><time>剩余 {formatOrderCountdown(order.expiresAt, Date.now())}</time></header><PaymentMethods value={method} onChange={setMethod} /></section>
@@ -220,7 +222,7 @@ export function OrderCheckoutPage() {
     {result && <PaymentResultOverlay order={order} result={result} onComplete={finishResult} />}
   </main>
   return <main className="order-v2-page checkout-page">
-    <header><OrderTopBar title="订单确认" /></header>
+    <header><OrderTopBar title="订单确认" nodeId="orders:checkout" /></header>
     <div className="checkout-scroll"><CheckoutSummary order={order} />
       <section className="insurance-card"><header><ShieldCheck size={15} aria-hidden="true" /><b>深度玩家 × 平安财产保险</b></header><div><span><b>包赔服务</b><small>账号被找回可获赔</small></span><button type="button">服务说明 <ChevronRight size={13} /></button></div><article><span><b>全倍包赔 <em>推荐</em></b><small>赔 100% · 最高赔付 {formatOrderMoney(order.goodsAmountCents)}</small></span><strong>{formatOrderMoney(order.insuranceAmountCents)}</strong><i><Check size={11} /></i></article></section>
       <section className="checkout-coupon"><b>优惠券</b><span>暂无可用优惠券 <ChevronRight size={13} /></span></section>
@@ -238,7 +240,7 @@ export function PaymentCancelPage() {
   const order = orders.find((item) => item.id === params.get('id')) ?? orders.find((item) => item.status === 'pending')
   const [error, setError] = useState('')
   const [reason, setReason] = useState('找到更合适的号')
-  if (!order) return <main className="order-v2-page"><OrderTopBar title="取消订单" /><OrderEmpty title="订单不存在" /></main>
+  if (!order) return <main className="order-v2-page"><OrderTopBar title="取消订单" nodeId="orders:cancel" /><OrderEmpty title="订单不存在" /></main>
   const cancel = () => {
     if (!orderRepository.cancel(order.id, reason)) setError('订单状态已变化，无法取消。')
     refresh()
@@ -251,7 +253,7 @@ export function PaymentCancelPage() {
     ['担心交易风险', '可查看平台保障说明'],
     ['不想买了 / 其他', '本次暂不继续购买'],
   ]
-  return <main className="order-v2-page cancel-page"><OrderTopBar title={cancelled ? '取消结果' : '取消订单'} /><div className="cancel-page-scroll">{cancelled ? <><section className="cancel-context"><Heading as="h2" variant="result">订单已取消</Heading><p>该操作已经完成，不会产生任何扣款。</p>{error && <small role="alert">{error}</small>}</section><CheckoutSummary order={order} /></> : <section className="cancel-reason-sheet"><Heading as="h2" variant="dialog">为什么取消？</Heading><p>选择一个原因，帮助我们改进体验</p><div className="cancel-reason-list" role="radiogroup" aria-label="取消原因">{reasons.map(([label, detail]) => <button type="button" role="radio" aria-checked={reason === label} className={reason === label ? 'selected' : ''} key={label} onClick={() => setReason(label)}><span><b>{label}</b><small>{detail}</small></span><i>{reason === label && <Check size={12} strokeWidth={3} />}</i></button>)}</div><div className="cancel-risk-note">还有 <b>12 人</b>想要，该商品可能随时被其他买家买走</div>{error && <small role="alert">{error}</small>}</section>}</div><footer className="cancel-actions">{cancelled ? <><Link to="/orders?role=buyer&status=ended">返回订单</Link><Link className="primary" to="/game?gameCode=wzry">继续逛逛</Link></> : <><button type="button" className="danger" onClick={cancel}>确认取消</button><Link className="primary" to={`/orders/checkout?id=${encodeURIComponent(order.id)}`}>继续支付</Link></>}</footer></main>
+  return <main className="order-v2-page cancel-page"><OrderTopBar title={cancelled ? '取消结果' : '取消订单'} nodeId="orders:cancel" /><div className="cancel-page-scroll">{cancelled ? <><section className="cancel-context"><Heading as="h2" variant="result">订单已取消</Heading><p>该操作已经完成，不会产生任何扣款。</p>{error && <small role="alert">{error}</small>}</section><CheckoutSummary order={order} /></> : <section className="cancel-reason-sheet"><Heading as="h2" variant="dialog">为什么取消？</Heading><p>选择一个原因，帮助我们改进体验</p><div className="cancel-reason-list" role="radiogroup" aria-label="取消原因">{reasons.map(([label, detail]) => <button type="button" role="radio" aria-checked={reason === label} className={reason === label ? 'selected' : ''} key={label} onClick={() => setReason(label)}><span><b>{label}</b><small>{detail}</small></span><i>{reason === label && <Check size={12} strokeWidth={3} />}</i></button>)}</div><div className="cancel-risk-note">还有 <b>12 人</b>想要，该商品可能随时被其他买家买走</div>{error && <small role="alert">{error}</small>}</section>}</div><footer className="cancel-actions">{cancelled ? <><Link to="/orders?role=buyer&status=ended">返回订单</Link><Link className="primary" to="/game?gameCode=wzry">继续逛逛</Link></> : <><button type="button" className="danger" onClick={cancel}>确认取消</button><Link className="primary" to={`/orders/checkout?id=${encodeURIComponent(order.id)}`}>继续支付</Link></>}</footer></main>
 }
 
 export function PaymentSuccessPage() {
@@ -260,10 +262,10 @@ export function PaymentSuccessPage() {
   const order = orders.find((item) => item.id === params.get('id'))
   const navigate = useNavigate()
   const successful = order && ['paid', 'verifying', 'binding', 'signed', 'insuring', 'insured', 'bind_success', 'completed'].includes(order.status)
-  if (!order) return <main className="order-v2-page"><OrderTopBar title="支付结果" /><OrderEmpty title="订单不存在" /></main>
-  if (!successful && order.status !== 'pay_expired') return <main className="order-v2-page"><OrderTopBar title="支付结果" /><section className="payment-result-state error"><i>!</i><Heading as="h2" variant="result">支付未完成</Heading><p>当前订单状态：{getOrderStatusLabel(order.status, order.role)}</p><Link to={`/orders/${encodeURIComponent(order.id)}`}>查看订单</Link></section></main>
+  if (!order) return <main className="order-v2-page"><OrderTopBar title="支付结果" nodeId="orders:payment-result" /><OrderEmpty title="订单不存在" /></main>
+  if (!successful && order.status !== 'pay_expired') return <main className="order-v2-page"><OrderTopBar title="支付结果" nodeId="orders:payment-result" /><section className="payment-result-state error"><i>!</i><Heading as="h2" variant="result">支付未完成</Heading><p>当前订单状态：{getOrderStatusLabel(order.status, order.role)}</p><Link to={`/orders/${encodeURIComponent(order.id)}`}>查看订单</Link></section></main>
   const finish = () => navigate(`/orders/${encodeURIComponent(order.id)}`, { replace: true })
-  return <main className="order-v2-page checkout-page cashier-page"><header><OrderTopBar title="确认支付" /></header><div className="checkout-scroll cashier-scroll"><section className="cashier-order-card"><p>交易订单支付</p><strong>{formatOrderMoney(order.totalAmountCents)}</strong><small>订单号　{order.id}</small></section></div><PaymentResultOverlay order={order} result={successful ? 'success' : 'expired'} onComplete={finish} /></main>
+  return <main className="order-v2-page checkout-page cashier-page"><header><OrderTopBar title="确认支付" nodeId="orders:payment-result" /></header><div className="checkout-scroll cashier-scroll"><section className="cashier-order-card"><p>交易订单支付</p><strong>{formatOrderMoney(order.totalAmountCents)}</strong><small>订单号　{order.id}</small></section></div><PaymentResultOverlay order={order} result={successful ? 'success' : 'expired'} onComplete={finish} /></main>
 }
 
 export function OrderDetailPage() {
@@ -271,7 +273,7 @@ export function OrderDetailPage() {
   const { orders, now, refresh } = useOrderData()
   const [toast, setToast] = useState('')
   const order = orders.find((item) => item.id === id)
-  if (!order) return <main className="order-v2-page"><OrderTopBar title="订单详情" /><OrderEmpty title="订单不存在" /></main>
+  if (!order) return <main className="order-v2-page"><OrderTopBar title="订单详情" nodeId={resolveOrderDetailNodeId('pending')} /><OrderEmpty title="订单不存在" /></main>
   const hero = getOrderPrimaryMessage(order)
   const timeline = getOrderTimeline(order, now)
   const progress = getOrderWorkflowProgress(order)
@@ -279,7 +281,7 @@ export function OrderDetailPage() {
   const copy = async () => { try { await navigator.clipboard.writeText(order.id); setToast('订单号已复制') } catch { setToast('复制失败，请手动复制') } }
   const confirmReceipt = async () => { const success = orderRepository.confirmReceipt(order.id); if (success) await syncOrderConversation(order); setToast(success ? '已确认放款，平台将按规则结算' : '尚未进入待放款或交易已暂停'); refresh() }
   const completeBinding = async () => { const success = orderRepository.completeBinding(order.id); if (success) await syncOrderConversation(order); setToast(success ? '换绑完成，已进入协议签署完成阶段' : '订单状态已变化或交易已暂停'); refresh() }
-  return <main className={`order-v2-page order-detail-page state-${order.status}`}><header><OrderTopBar title="订单详情" side={<small>{order.role === 'seller' ? '卖家视角' : '买家视角'}</small>} /></header><div className="order-detail-scroll">
+  return <main className={`order-v2-page order-detail-page state-${order.status}`}><header><OrderTopBar title="订单详情" side={<small>{order.role === 'seller' ? '卖家视角' : '买家视角'}</small>} nodeId={resolveOrderDetailNodeId(order.status)} /></header><div className="order-detail-scroll">
     <section className={`order-detail-hero ${terminal ? 'terminal' : ''}`}>{terminal ? <><i className="order-terminal-icon" aria-hidden="true">{order.status === 'pay_expired' ? '⌛' : '×'}</i><Heading as="h2" variant="hero">{order.status === 'pay_expired' ? '支付超时，订单已关闭' : hero.title}</Heading><p>{order.status === 'pay_expired' ? '未产生费用，商品已重新开放购买' : hero.detail}</p><div><Link to={`/game?gameCode=${encodeURIComponent(order.gameCode)}`}>看看相似商品</Link><Link className="primary" to={`/game?gameCode=${encodeURIComponent(order.gameCode)}`}>重新购买</Link></div></> : <><span><b>步骤 {progress.current} / {progress.total}</b><em>{(['pending', 'verifying', 'bind_success'].includes(order.status) && order.role === 'buyer') || (order.status === 'binding' && order.role === 'seller') ? '该你了' : '等平台'}</em></span><Heading as="h2" variant="hero">{hero.title}</Heading><p>{hero.detail}</p>{order.status === 'pending' && <time>还剩 <b>{formatOrderCountdown(order.expiresAt, now)}</b></time>}{order.status === 'binding' && order.role === 'seller' && <time>换绑资料剩 <b>{formatOrderCountdown(order.actionExpiresAt, now)}</b></time>}{order.status === 'bind_success' && <time>未确认将自动放款 <b>{formatOrderCountdown(order.actionExpiresAt, now)}</b></time>}<div>{order.status === 'pending' ? <><Link to={`/payment/cancel?id=${encodeURIComponent(order.id)}`}>取消订单</Link><Link className="primary" to={`/orders/checkout?id=${encodeURIComponent(order.id)}`}>继续支付</Link></> : isOrderReleaseReady(order) && order.role === 'buyer' ? <><Link className="danger" to={`/aftersales/apply?orderId=${encodeURIComponent(order.id)}`}>验号不符</Link><button type="button" className="primary" onClick={confirmReceipt}>确认放款</button></> : order.status === 'binding' && order.role === 'seller' ? <><Link to={orderTradeRoute(order)}>进交易群</Link><button type="button" className="primary" onClick={completeBinding}>完成换绑</button></> : ['paid', 'verifying', 'binding', 'signed', 'insuring', 'insured', 'bind_success'].includes(order.status) ? <><Link to={`/aftersales/apply?orderId=${encodeURIComponent(order.id)}`}>申请客服介入</Link><Link className="dark" to={orderTradeRoute(order)}>进交易群</Link></> : <Link className="primary single" to="/orders">返回订单列表</Link>}</div></>}</section>
     {['paid', 'verifying', 'binding', 'signed', 'insuring', 'insured', 'bind_success'].includes(order.status) && <section className="order-escrow"><ShieldCheck size={15} /><span><b>{formatOrderMoney(order.totalAmountCents)}</b> 仍在平台托管，未支付给卖家。</span></section>}
     {!terminal && <section className="order-progress"><Heading as="h2" variant="section">交易进度</Heading><ol>{timeline.map((item) => <li key={item.key} className={item.state}><i /> <span><b>{item.title}</b>{item.detail && <small>{item.detail}</small>}</span></li>)}</ol></section>}

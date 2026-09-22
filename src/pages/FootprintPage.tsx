@@ -3,7 +3,8 @@ import { Clock3 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { assetPath } from '../components/assetPath'
 import { createFootprintItems, defaultFootprintFilters, filterFootprintItems, formatFootprintTime, type FootprintFilters } from '../components/footprintModel'
-import { Button, ChoiceChip, Dialog, EmptyStateView, FilterTrigger, IconButton, PageHeader, SearchField, StatusBadge, StatusBar } from '../components/ui'
+import { Button, ChoiceChip, Dialog, EmptyStateView, FilterTrigger, IconButton, PageHeader, SearchField, StatusBadge } from '../components/ui'
+import { DesignPromptTrigger } from '../components/DesignPromptTrigger'
 import '../styles/favorites.css'
 import '../styles/footprint-draft3.css'
 
@@ -62,7 +63,7 @@ export function FootprintPage() {
   return <main className="footprint-d3-page" data-node-id="3681:28771">
     <div className="footprint-d3-content">
     <header className="footprint-d3-header">
-      <StatusBar />
+      <DesignPromptTrigger nodeId="3681:28771" />
       <PageHeader className="footprint-d3-topbar" title="足迹" left={<IconButton label="返回" onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/')}><img src={icon('back')} alt="" /></IconButton>} right={<Button variant="ghost" size="sm" disabled={!records.length} onClick={() => { setPanel(null); setConfirmClear(true) }}>清空</Button>} />
       <form className="footprint-d3-search" role="search" onSubmit={(event) => { event.preventDefault(); setPanel(null); searchRef.current?.blur() }} data-node-id="4087:169">
         <SearchField ref={searchRef} className="footprint-d3-search-field" value={searchDraft} maxLength={100} enterKeyHint="search" autoComplete="off" onFocus={() => setPanel(null)} onChange={(event) => setSearchDraft(event.target.value)} onClear={() => { setSearchDraft(''); searchRef.current?.focus() }} onSearch={submitSearch} clearLabel="清空搜索" placeholder="搜索商品、游戏或商品编号" aria-label="搜索商品、游戏或商品编号" />

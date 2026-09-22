@@ -30,6 +30,13 @@ describe('LoginPage shared controls', () => {
     expect(new Set(copies).size).toBe(1)
   })
 
+  it('maps each primary login page to Page 7 and keeps the carrier disclosure', () => {
+    expect(renderLogin('one_tap')).toContain('data-node-id="7080:144"')
+    expect(renderLogin('one_tap')).toContain('中国移动提供认证服务')
+    expect(renderLogin('code')).toContain('data-node-id="7080:202"')
+    expect(renderLogin('password')).toContain('data-node-id="7080:274"')
+  })
+
   it('shares agreement spacing across methods without legacy button overrides', () => {
     expect(authStyles).not.toMatch(/\.auth-v2-login-(?:manual|one_tap|code|password)\s+\.auth-v2-agreement/)
     expect(authStyles).not.toContain('.auth-v2-agreement > button')
@@ -52,6 +59,13 @@ describe('LoginPage shared controls', () => {
     expect(html.match(/data-ui="TextField"/g)).toHaveLength(2)
     expect(html).toContain('显示密码')
     expect(html).toContain('忘记密码？')
+  })
+
+  it('does not refill the old demo password after a successful reset', () => {
+    const html = renderToStaticMarkup(<StaticRouter location={{ pathname: '/login/password', state: { passwordReset: true, loginPhone: '18788660033' } }}><LoginPage method="password" /></StaticRouter>)
+
+    expect(html).toContain('密码重置成功，请使用新密码登录')
+    expect(html).not.toContain('value="demo2026"')
   })
 })
 
@@ -92,6 +106,7 @@ describe('password recovery pages', () => {
     const html = renderToStaticMarkup(<StaticRouter location="/sms-help"><SmsHelpPage /></StaticRouter>)
 
     expect(html).toContain('无法接收短信的原因')
+    expect(html).toContain('data-node-id="7082:485"')
     expect(html).toContain('手机号是否填错')
     expect(html).toContain('网络信号')
     expect(html).toContain('垃圾短信')
