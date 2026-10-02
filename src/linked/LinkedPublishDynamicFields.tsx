@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { LinkedPublishForm, LinkedPublishFormField, LinkedPublishFormSection } from '../../../双端演示/src/publish-config'
-import { Checkbox, ToggleSwitch } from '../components/ui'
+import { Checkbox, SelectField, TextField, ToggleSwitch } from '../components/ui'
 import type { LinkedPublishFormValue, LinkedPublishFormValues } from './linkedPublishDraftModel'
 
 const PAGE_SIZE = 20
@@ -36,6 +36,10 @@ function FieldHint({ field }: { field: LinkedPublishFormField }) {
   if (field.helpText) return <small>{field.helpText}</small>
   if (field.valueType === 'NUMBER') return <small>请按账号实际情况填写数值</small>
   return null
+}
+
+function fieldHintText(field: LinkedPublishFormField) {
+  return field.helpText ?? (field.valueType === 'NUMBER' ? '请按账号实际情况填写数值' : undefined)
 }
 
 function CheckboxField({ field, value, disabled, onChange }: {
@@ -90,8 +94,29 @@ function DynamicField({ field, value, disabled, onChange }: {
       <FieldHint field={field} />
     </div>
   }
-  if (field.uiType === 'SELECT') return <label><span>{field.label}<RequiredMark required={field.required} /></span><select value={typeof value === 'string' ? value : ''} required={field.required} disabled={disabled} onChange={(event) => onChange(event.target.value || undefined)}><option value="">{field.placeholder || `请选择${field.label}`}</option>{field.options.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select><FieldHint field={field} /></label>
-  return <label><span>{field.label}<RequiredMark required={field.required} /></span><input type="number" inputMode="decimal" step="any" value={typeof value === 'number' ? String(value) : ''} required={field.required} disabled={disabled} placeholder={field.placeholder || `请输入${field.label}`} onChange={(event) => onChange(event.target.value === '' ? undefined : Number(event.target.value))} /><FieldHint field={field} /></label>
+  // 动态字段与静态字段（TextField/SelectField）使用同一套设计系统控件，避免原生 select/输入框外观混入表单。
+  // 必填星号由 linked-goods.css 按 :has(:required) 追加，与静态字段标记保持一致。
+  if (field.uiType === 'SELECT') return <SelectField
+    label={field.label}
+    hint={fieldHintText(field)}
+    value={typeof value === 'string' ? value : ''}
+    required={field.required}
+    disabled={disabled}
+    onChange={(event) => onChange(event.target.value || undefined)}>
+    <option value="">{field.placeholder || `请选择${field.label}`}</option>
+    {field.options.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}
+  </SelectField>
+  return <TextField
+    label={field.label}
+    hint={fieldHintText(field)}
+    type="number"
+    inputMode="decimal"
+    step="any"
+    value={typeof value === 'number' ? String(value) : ''}
+    required={field.required}
+    disabled={disabled}
+    placeholder={field.placeholder || `请输入${field.label}`}
+    onChange={(event) => onChange(event.target.value === '' ? undefined : Number(event.target.value))} />
 }
 
 function DynamicSection({ section, values, disabled, onChange }: {

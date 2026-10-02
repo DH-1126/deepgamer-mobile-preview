@@ -1,5 +1,31 @@
 import { designImageNote, type BusinessPageSpec } from './businessPageSpec'
 
+
+/**
+ * 数据来源与显示逻辑（2026-10-01 联动修复更新）：
+ *
+ * 回收单区块（会话详情内）：
+ * - 数据来源：/client/im/conversations 返回的 association.recycleOrderId 与 recycleOrderStatus；
+ *   由 readRelation 联 client_recycle_consultations × recycle_orders 得出。
+ * - 显示逻辑：有回收单时显示「回收单 RCxxx · 状态」；无单显示「尚未建立回收单」。
+ * - 状态来源：recycle_orders.status（active/pending_payment/completed/rejected/expired）。
+ * - 排序：会话列表按最新消息时间倒序（lastMessageAt DESC）。
+ *
+ * 回收咨询会话详情（回收单面板）：
+ * - 数据来源：/client/recycle/consultations/:id/order 接口，绑定真实咨询的回收单详情。
+ * - 展示分项：报价金额、保障费（10% 包赔加价）、卖家实收、买家应付。
+ * - 状态来源：recycle_orders.status + detail_json 投影。
+ * - 接管/释放：ops /im/conversations/:id/takeover|release，行版本乐观并发。
+ *
+ * 售后与已清分：
+ * - 已清分订单的售后入口维持显式阻断（用户 2026-10-01 确认），待业务规则落地后另行开发。
+ *
+ * 排序与显示逻辑通用规则：
+ * - 商品/订单/会话列表均按创建时间或最新消息时间倒序。
+ * - 分页使用 page/pageSize + total 校验（collectRestoredPages），不静默截断。
+ * - 历史订单缺关系时只读展示（不补 0、不猜测），标注「历史未核验」。
+ */
+
 const prototypeBoundary = {
   title: '原型边界',
   items: ['回收咨询、报价与付款均为本地演示流程：不发生真实扣款，回收单确认前不产生交易；真实报价、验号与结算以回收商接口为准。'],

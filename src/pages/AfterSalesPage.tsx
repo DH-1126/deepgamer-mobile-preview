@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { ArrowLeft, ChevronRight, Image as ImageIcon, ShieldCheck } from 'lucide-react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { isLinkedDataMode } from '../runtime/dataMode'
+import { runLinkedOrderAction } from '../linked/linkedOrderSync'
+import { applyLinkedAfterSale } from '../linked/httpLinkedClient'
 import { AFTERSALE_TABS, countAfterSales, filterAfterSales, getAfterSaleStatusLabel, isAfterSaleTab, type AfterSaleTab } from '../components/afterSalesModel'
 import { AfterSaleMaterialPicker as MaterialPicker } from '../components/AfterSaleMaterialPicker'
 import { assetPath } from '../components/assetPath'
@@ -105,7 +108,21 @@ export function AfterSaleApplyPage() {
   const closeConfirm = useCallback(() => setConfirmOpen(false), [])
   const active = order ? afterSaleRepository.findActiveByOrder(order.id) : undefined
   if (!order) return <main className="aftersales-v2-page"><AfterSaleTopBar title="申请客服介入" nodeId="aftersales:apply" /><AfterSaleEmpty query="" /></main>
+  const submitLinked = async () => {
+    const typeByKind = { negotiated_refund: 'NEGOTIATED_REFUND', account_issue: 'ACCOUNT_ISSUE', account_recovery: 'ACCOUNT_RETRIEVED' } as const
+    const result = await runLinkedOrderAction(order.id, (row) => applyLinkedAfterSale(
+      row.id,
+      row.buyer?.userRef ?? '',
+      row.rowVersion,
+      typeByKind[kind],
+      description.trim() || AFTERSALE_KINDS.find((item) => item.value === kind)!.title,
+    ))
+    setConfirmOpen(false)
+    if (!result.ok) { setFormError(result.detail); return }
+    navigate(`/orders/${encodeURIComponent(order.id.replace(/\|seller$/, ''))}`, { replace: true })
+  }
   const submit = () => {
+    if (isLinkedDataMode) { void submitLinked(); return }
     const selected = AFTERSALE_KINDS.find((item) => item.value === kind)!
     const input: AfterSaleApplicationInput = { kind, reason: selected.title, description, materialNames }
     const created = afterSaleRepository.create(order, input)

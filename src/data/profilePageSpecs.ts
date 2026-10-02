@@ -1,5 +1,11 @@
 import { DRAFT3_FILE_KEY, type BusinessPageSpec } from './businessPageSpec'
 
+/**
+ * 数据来源与显示逻辑（2026-10-01 联动修复更新）：
+ * - 回收咨询区文案已更新为「回收单可在咨询会话内报价、确认与支付（本地演示）」。
+ * - 主体管理 ID 与联动版本来自 /client/session/me 与 /api/v1/health/runtime。
+ */
+
 const prototypeBoundary = {
   title: '原型边界',
   items: ['账号资料、认证与安全设置均为本地演示状态；真实资料变更、实名核验、注销与绑定能力以正式账号接口为准。'],

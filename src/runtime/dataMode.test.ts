@@ -14,6 +14,20 @@ afterEach(() => {
 })
 
 describe('document-lifetime runtime storage', () => {
+  it.each([
+    ['prototype', false, false],
+    ['linked', true, false],
+    ['restored-linked', false, true],
+  ])('%s 模式只命中对应的精确运行时边界', async (mode, legacyLinked, restoredLinked) => {
+    vi.stubEnv('VITE_DATA_MODE', mode)
+    vi.resetModules()
+
+    const runtime = await import('./dataMode')
+
+    expect(runtime.isLinkedDataMode).toBe(legacyLinked)
+    expect(runtime.isRestoredLinkedMode).toBe(restoredLinked)
+  })
+
   it.each(['prototype', 'linked'])('%s 模式都不读取或清除浏览器已有数据', async (mode) => {
     vi.stubEnv('VITE_DATA_MODE', mode)
     const browserStorage = vi.fn(() => { throw new Error('Browser persistence must not be accessed') })

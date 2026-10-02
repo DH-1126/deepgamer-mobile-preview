@@ -40,7 +40,8 @@
 }
 .dg-recycler-card__footer {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  /* 按钮列固定为内容宽度，空间不足时由标签列换行收缩，避免按钮文字截断 */
+  grid-template-columns: minmax(0, 1fr) max-content;
   align-items: center;
   gap: var(--dg-space-3);
 }
@@ -67,8 +68,8 @@
   white-space: normal;
 }
 .dg-recycler-card__footer > .dg-button {
-  min-width: 0;
-  max-width: 100%;
+  /* 按钮按内容定宽不收缩（列已为 max-content），标签列表负责换行 */
+  flex-shrink: 0;
   justify-self: end;
   white-space: nowrap;
 }

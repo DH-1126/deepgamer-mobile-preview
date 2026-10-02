@@ -1,5 +1,23 @@
 import { DRAFT3_FILE_KEY, designImageNote, type BusinessPageSpec } from './businessPageSpec'
 
+/**
+ * 数据来源与显示逻辑（2026-10-01 联动修复更新）：
+ *
+ * 订单状态：8 态枚举（PENDING_PAYMENT/PAID/DELIVERING/WAITING_CONFIRM/COMPLETED/CANCELLED/AFTER_SALE/REFUNDED）。
+ * - 2026-10-01 数据填充补齐 PAID 与 AFTER_SALE 两个演示状态（此前仅 5 态）。
+ *
+ * 展示逻辑：
+ * - 订单列表按创建时间倒序（createdAt DESC），分页 page/pageSize+total 校验。
+ * - 历史订单缺冻结金额/身份/关系时只读展示，标注「历史未核验」，不补 0 不猜测。
+ * - PREMIUM 包赔订单：应付 = 商品金额 + 包赔服务加价（INSURANCE_MARKUP 10%）；保障意图挂 PENDING。
+ * - 售后中订单：售后入口开放时显示售后工单号。
+ *
+ * 数据来源：
+ * - 订单列表/详情：/client/orders 接口（restored-linked 模式，服务端绑定主体）。
+ * - 商品快照：detail_json.goods 字段。
+ * - 金额分项：detail_json.payment 字段。
+ */
+
 const prototypeBoundary = {
   title: '原型边界',
   items: ['订单、倒计时与支付结果均来自本地 orderRepository 演示数据；真实订单状态、扣款与超时规则以正式业务接口为准，原型不会连接支付机构。'],

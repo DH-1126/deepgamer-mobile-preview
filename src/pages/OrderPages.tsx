@@ -2,6 +2,9 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { resolveTitle, TitleBlocks, type TitleProduct } from '@deepgamer/product-presentation'
 import { AlertTriangle, ArrowLeft, Check, ChevronRight, Copy, Headphones, ShieldCheck, X } from 'lucide-react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { isLinkedDataMode } from '../runtime/dataMode'
+import { runLinkedOrderAction } from '../linked/linkedOrderSync'
+import { cancelLinkedOrder, confirmReleaseLinkedOrder } from '../linked/httpLinkedClient'
 import { formatOrderCountdown, formatOrderMoney, getOrderPrimaryMessage, getOrderStatusLabel, getOrderTimeline, getOrderWorkflowPhase, getOrderWorkflowProgress, isOrderReleaseReady, isOrderRole } from '../components/orderModel'
 import { BUYER_ORDER_TABS, countTradeOrders, filterTradeOrders, getActionableTradeOrders, isTradeOrderTab, SELLER_ORDER_TABS, type TradeOrderTab } from '../components/orderHubModel'
 import { SUPPORT_CONVERSATION_ROUTE } from '../data/messageFixtures'
@@ -242,6 +245,16 @@ export function PaymentCancelPage() {
   const [reason, setReason] = useState('找到更合适的号')
   if (!order) return <main className="order-v2-page"><OrderTopBar title="取消订单" nodeId="orders:cancel" /><OrderEmpty title="订单不存在" /></main>
   const cancel = () => {
+    if (isLinkedDataMode) {
+      void (async () => {
+        const result = await runLinkedOrderAction(order.id, (row) => cancelLinkedOrder(
+          row.id, row.buyer?.userRef ?? '', 'BUYER', row.rowVersion, reason,
+        ))
+        if (!result.ok) setError(result.detail)
+        refresh()
+      })()
+      return
+    }
     if (!orderRepository.cancel(order.id, reason)) setError('订单状态已变化，无法取消。')
     refresh()
   }
@@ -279,7 +292,15 @@ export function OrderDetailPage() {
   const progress = getOrderWorkflowProgress(order)
   const terminal = ['pay_expired', 'cancelled', 'closed'].includes(order.status)
   const copy = async () => { try { await navigator.clipboard.writeText(order.id); setToast('订单号已复制') } catch { setToast('复制失败，请手动复制') } }
-  const confirmReceipt = async () => { const success = orderRepository.confirmReceipt(order.id); if (success) await syncOrderConversation(order); setToast(success ? '已确认放款，平台将按规则结算' : '尚未进入待放款或交易已暂停'); refresh() }
+  const confirmReceipt = async () => {
+    if (isLinkedDataMode) {
+      const result = await runLinkedOrderAction(order.id, (row) => confirmReleaseLinkedOrder(row.id, row.buyer?.userRef ?? '', row.rowVersion))
+      setToast(result.ok ? '已确认收货并放款，交易完成' : result.detail)
+      refresh()
+      return
+    }
+    const success = orderRepository.confirmReceipt(order.id); if (success) await syncOrderConversation(order); setToast(success ? '已确认放款，平台将按规则结算' : '尚未进入待放款或交易已暂停'); refresh()
+  }
   const completeBinding = async () => { const success = orderRepository.completeBinding(order.id); if (success) await syncOrderConversation(order); setToast(success ? '换绑完成，已进入协议签署完成阶段' : '订单状态已变化或交易已暂停'); refresh() }
   return <main className={`order-v2-page order-detail-page state-${order.status}`}><header><OrderTopBar title="订单详情" side={<small>{order.role === 'seller' ? '卖家视角' : '买家视角'}</small>} nodeId={resolveOrderDetailNodeId(order.status)} /></header><div className="order-detail-scroll">
     <section className={`order-detail-hero ${terminal ? 'terminal' : ''}`}>{terminal ? <><i className="order-terminal-icon" aria-hidden="true">{order.status === 'pay_expired' ? '⌛' : '×'}</i><Heading as="h2" variant="hero">{order.status === 'pay_expired' ? '支付超时，订单已关闭' : hero.title}</Heading><p>{order.status === 'pay_expired' ? '未产生费用，商品已重新开放购买' : hero.detail}</p><div><Link to={`/game?gameCode=${encodeURIComponent(order.gameCode)}`}>看看相似商品</Link><Link className="primary" to={`/game?gameCode=${encodeURIComponent(order.gameCode)}`}>重新购买</Link></div></> : <><span><b>步骤 {progress.current} / {progress.total}</b><em>{(['pending', 'verifying', 'bind_success'].includes(order.status) && order.role === 'buyer') || (order.status === 'binding' && order.role === 'seller') ? '该你了' : '等平台'}</em></span><Heading as="h2" variant="hero">{hero.title}</Heading><p>{hero.detail}</p>{order.status === 'pending' && <time>还剩 <b>{formatOrderCountdown(order.expiresAt, now)}</b></time>}{order.status === 'binding' && order.role === 'seller' && <time>换绑资料剩 <b>{formatOrderCountdown(order.actionExpiresAt, now)}</b></time>}{order.status === 'bind_success' && <time>未确认将自动放款 <b>{formatOrderCountdown(order.actionExpiresAt, now)}</b></time>}<div>{order.status === 'pending' ? <><Link to={`/payment/cancel?id=${encodeURIComponent(order.id)}`}>取消订单</Link><Link className="primary" to={`/orders/checkout?id=${encodeURIComponent(order.id)}`}>继续支付</Link></> : isOrderReleaseReady(order) && order.role === 'buyer' ? <><Link className="danger" to={`/aftersales/apply?orderId=${encodeURIComponent(order.id)}`}>验号不符</Link><button type="button" className="primary" onClick={confirmReceipt}>确认放款</button></> : order.status === 'binding' && order.role === 'seller' ? <><Link to={orderTradeRoute(order)}>进交易群</Link><button type="button" className="primary" onClick={completeBinding}>完成换绑</button></> : ['paid', 'verifying', 'binding', 'signed', 'insuring', 'insured', 'bind_success'].includes(order.status) ? <><Link to={`/aftersales/apply?orderId=${encodeURIComponent(order.id)}`}>申请客服介入</Link><Link className="dark" to={orderTradeRoute(order)}>进交易群</Link></> : <Link className="primary single" to="/orders">返回订单列表</Link>}</div></>}</section>

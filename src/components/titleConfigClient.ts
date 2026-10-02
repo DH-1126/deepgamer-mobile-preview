@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { TitleDefinition } from '@deepgamer/product-presentation'
 import type { LinkedState } from '../../../双端演示/src/contract'
-import { getLinkedState, subscribeLinkedState } from '../../../双端演示/src/client'
+import { getLinkedState, subscribeLinkedState } from '../linked/linkedData'
 import { getPublishedTitleConfig } from '../../../双端演示/src/title-config'
 import { isLinkedDataMode } from '../runtime/dataMode'
 

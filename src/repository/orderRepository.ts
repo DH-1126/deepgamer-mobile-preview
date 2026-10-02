@@ -72,6 +72,8 @@ export function createOrderRepository({ storage, now = Date.now, eventTarget }: 
   const read = () => {
     const persisted = parseOrders(storage.getItem(ORDERS_STORAGE_KEY))
     if (persisted !== null) {
+      // linked 模式下订单来自后台映射，跳过 mock 模式的演示场景自愈，避免补回本地种子
+      if (isLinkedDataMode) return persisted
       const migrated = migrateLegacyConversations(persisted, now())
       if (migrated !== persisted) storage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(migrated))
       return migrated
@@ -217,6 +219,8 @@ export function createOrderRepository({ storage, now = Date.now, eventTarget }: 
       } catch { return false }
     },
     subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener) } },
+    /** HTTP 联动：用后台映射订单整体替换演示数据（内存态，随快照生命周期）。 */
+    replaceAll(next: readonly OrderRecord[]) { try { return commit(cloneOrders([...next])) } catch { return false } },
     dispose() { eventTarget?.removeEventListener(EVENT, external); eventTarget?.removeEventListener('storage', external); listeners.clear() },
   }
 }

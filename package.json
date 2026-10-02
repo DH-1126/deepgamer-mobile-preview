@@ -9,7 +9,9 @@
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
     "release:prepare": "node scripts/prepare-pages.mjs",
-    "release:verify": "node scripts/verify-pages.mjs"
+    "release:verify": "node scripts/verify-pages.mjs",
+    "dev:linked": "pnpm run dev:restored-linked",
+    "dev:restored-linked": "VITE_DATA_MODE=restored-linked vite --mode restored-linked --host 127.0.0.1 --port 5175 --strictPort"
   },
   "dependencies": {
     "@deepgamer/product-presentation": "file:../运营平台/packages/product-presentation",

@@ -23,7 +23,8 @@ const linkedSearch = {
   setValues: vi.fn(), removeValue: vi.fn(), applyLatest: vi.fn(),
 }
 
-vi.mock('../runtime/dataMode', () => ({
+vi.mock('../runtime/dataMode', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../runtime/dataMode')>(),
   isLinkedDataMode: true,
   getRuntimeStorage: () => ({ getItem: () => null, setItem: vi.fn(), removeItem: vi.fn() }),
 }))

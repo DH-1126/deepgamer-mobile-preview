@@ -12,13 +12,16 @@ import { buildProductConsultationRoute } from '../components/supportConsultation
 import { productDetailRepository } from '../repository/productDetailRepository'
 import { favoriteRepository } from '../repository/favoriteRepository'
 import type { ProductDetail, PurchasePackage } from '../types/productDetail'
-import { isLinkedDataMode } from '../runtime/dataMode'
-import { getLinkedState } from '../linked/linkedData'
+import { isLinkedDataMode, isRestoredLinkedMode } from '../runtime/dataMode'
+import { getLinkedState, getLinkedUsers } from '../linked/linkedData'
 import { getLinkedDetailView } from '../../../双端演示/src/detail-config'
 import { LinkedCurrentDetailCard, LinkedSubmissionSnapshot } from '../linked/LinkedDetailCards'
 import { findLinkedGoodsForDetail } from '../linked/linkedDetailViewModel'
+import { createLinkedOrder, fetchLinkedOrderRows, payLinkedOrder } from '../linked/httpLinkedClient'
+import { seedLinkedOrders } from '../linked/linkedOrderSync'
 import { BottomSheet, Button, Dialog, EmptyStateView, Heading, IconButton, ImagePreview, InfoList, MetricGrid, ProductActionBar, SectionHeader, StatusBadge, Tabs, Toast } from '../components/ui'
 import { AssetInventory } from '../components/product-detail/AssetInventory'
+import { MobileAccountShowcase } from '../components/product-detail/MobileAccountShowcase'
 import { GuaranteeRulesPanel } from '../components/product-detail/GuaranteeRulesPanel'
 import { ProductDetailHeader } from '../components/product-detail/ProductDetailHeader'
 import { SellerSummary } from '../components/product-detail/SellerSummary'
@@ -37,6 +40,13 @@ function DetailTitleIdentity({ detail }: { detail: ProductDetail }) {
 
 export function ProductDetailPage() {
   const { id = '' } = useParams()
+  const detail = !isLinkedDataMode && !isRestoredLinkedMode && id === '4' ? productDetailRepository.getById(id) : undefined
+  if (detail?.gameCode === 'wzry') return <MobileAccountShowcase detail={detail} />
+  return <StandardProductDetailPage />
+}
+
+function StandardProductDetailPage() {
+  const { id = '' } = useParams()
   const navigate = useNavigate()
   const authenticated = useAuthStatus()
   const { requireAuth } = useAuthPrompt()
@@ -54,6 +64,7 @@ export function ProductDetailPage() {
   const [rulesOpen, setRulesOpen] = useState(false)
   const [packageType, setPackageType] = useState<PurchasePackage>('PREMIUM')
   const [standardConfirmed, setStandardConfirmed] = useState(false)
+  const [linkedPurchasing, setLinkedPurchasing] = useState(false)
   const [toast, setToast] = useState('')
   const closeGallery = useCallback(() => setGalleryIndex(null), [])
   const closePurchase = useCallback(() => setPurchaseOpen(false), [])
@@ -116,7 +127,6 @@ export function ProductDetailPage() {
   }
   const copyProductCode = async () => setToast(await copyText(detail.productCode) ? '商品编号已复制' : '复制失败，请手动复制')
   const openPurchase = () => {
-    if (isLinkedDataMode) { setToast('联动演示暂未接入订单与支付，不会创建独立模拟订单'); return }
     if (!requireAuth({ title: '登录后购买商品', description: '下单、付款和查看交易进度需要登录账号。', returnTo: `/goods/${detail.id}` })) return
     setPackageType('PREMIUM'); setStandardConfirmed(false); setPurchaseOpen(true)
   }
@@ -124,8 +134,35 @@ export function ProductDetailPage() {
     const destination = buildProductConsultationRoute(detail.id, detail.gameCode)
     if (requireAuth({ title: '登录后联系客服', description: '登录后可查看客服回复并继续咨询该商品。', returnTo: destination })) navigate(destination)
   }
+  /** HTTP 联动购买：真实后台下单 + 演示支付，随后跳转到新订单详情。 */
+  const confirmLinkedPurchase = async () => {
+    const linkedState = getLinkedState()
+    const buyer = getLinkedUsers(linkedState).find(user => user.roles.includes('buyer')) ?? getLinkedUsers(linkedState)[0]
+    if (!buyer) { setToast('联动数据缺少买家身份，暂时无法下单'); return }
+    setLinkedPurchasing(true)
+    try {
+      const created = await createLinkedOrder(detail.id, buyer.id, '用户端联动下单')
+      if (!created.ok) { setToast(created.detail); return }
+      const paid = await payLinkedOrder(created.order.id, buyer.id, created.order.rowVersion, 'WECHAT')
+      if (!paid.ok) {
+        setToast(`订单已创建（${created.order.orderNo}），演示支付未完成：${paid.detail}`)
+        seedLinkedOrders(await fetchLinkedOrderRows())
+        navigate(`/orders/${encodeURIComponent(created.order.id)}`)
+        return
+      }
+      seedLinkedOrders(await fetchLinkedOrderRows())
+      setPurchaseOpen(false)
+      setToast(`下单成功，订单 ${created.order.orderNo} 已支付，平台开始交付`)
+      navigate(`/orders/${encodeURIComponent(created.order.id)}`)
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : '联动下单失败，请重试')
+    } finally {
+      setLinkedPurchasing(false)
+    }
+  }
   const confirmPurchase = () => {
     if (!canPurchase(detail)) return
+    if (isLinkedDataMode) { void confirmLinkedPurchase(); return }
     if (requiresSecondConfirmation(packageType) && !standardConfirmed) { setStandardConfirmed(true); return }
     navigate(buildOrderPreviewUrl(detail.id, packageType))
   }
@@ -151,7 +188,7 @@ export function ProductDetailPage() {
     date: presentation.specimen ? '08-03 提交' : '',
     description: `可左右滑动查看全部 ${evidenceImages.length} 张实拍，以验号报告为准。`,
   }))
-  const actionBar = <ProductActionBar favorite={favorite} onFavorite={toggleFavorite} onConsult={openSupport} onPurchase={openPurchase} purchaseDisabled={!canPurchase(detail)} purchaseLabel={isLinkedDataMode ? '购买未接入' : detail.status === 'sold' ? '已售出' : detail.status === 'reserved' ? '交易中' : detail.status === 'off_shelf' ? '已下架' : '立即购买'} />
+  const actionBar = <ProductActionBar favorite={favorite} onFavorite={toggleFavorite} onConsult={openSupport} onPurchase={openPurchase} purchaseDisabled={!canPurchase(detail) || linkedPurchasing} purchaseLabel={isLinkedDataMode ? (linkedPurchasing ? '下单中…' : detail.status === 'sold' ? '已售出' : detail.status === 'reserved' ? '交易中' : detail.status === 'off_shelf' ? '已下架' : '立即购买') : detail.status === 'sold' ? '已售出' : detail.status === 'reserved' ? '交易中' : detail.status === 'off_shelf' ? '已下架' : '立即购买'} />
 
   return <main className="product-detail-page detail-draft5" data-node-id="3681:22777">
     <ProductDetailHeader compact={compact} price={detail.price} gameName={detail.gameName} sellerSummary={sellerSummary} onBack={back} onShare={share} onOpenSeller={() => setSellerOpen(true)} />
@@ -194,7 +231,7 @@ export function ProductDetailPage() {
       <p className="detail-source-note"><Info size={13} aria-hidden="true" /><span>以上由卖家自行填写，不属于平台验号结论。与验号报告不一致时以<strong>验号报告</strong>为准。</span></p>
     </BottomSheet>
     <Dialog open={Boolean(infoHint)} title="交易属性说明" onClose={() => setInfoHint('')} actions={<Button fullWidth onClick={() => setInfoHint('')}>知道了</Button>}>{infoHint}</Dialog>
-    <BottomSheet open={purchaseOpen} title="确认购买" onClose={closePurchase} className="detail-purchase-sheet" actions={<Button fullWidth onClick={confirmPurchase} disabled={!canPurchase(detail)}>{standardConfirmed ? '再次确认标准版' : `确认购买 · ¥${getPurchaseAmount(detail.price, packageType).toLocaleString('zh-CN')}`}</Button>}>
+    <BottomSheet open={purchaseOpen} title="确认购买" onClose={closePurchase} className="detail-purchase-sheet" actions={<Button fullWidth onClick={confirmPurchase} disabled={!canPurchase(detail) || linkedPurchasing}>{isLinkedDataMode ? (linkedPurchasing ? '下单中…' : `确认购买 · ¥${getPurchaseAmount(detail.price, packageType).toLocaleString('zh-CN')}`) : standardConfirmed ? '再次确认标准版' : `确认购买 · ¥${getPurchaseAmount(detail.price, packageType).toLocaleString('zh-CN')}`}</Button>}>
       <div className="purchase-options"><p>请选择交易保障方案</p>
         <button type="button" className={packageType === 'PREMIUM' ? 'selected' : ''} aria-pressed={packageType === 'PREMIUM'} onClick={() => { setPackageType('PREMIUM'); setStandardConfirmed(false) }}><span><b>包赔版</b><small>包含找回包赔服务</small></span><strong>¥{getPurchaseAmount(detail.price, 'PREMIUM').toLocaleString('zh-CN')}</strong></button>
         <button type="button" className={packageType === 'STANDARD' ? 'selected' : ''} aria-pressed={packageType === 'STANDARD'} onClick={() => { setPackageType('STANDARD'); setStandardConfirmed(false) }}><span><b>标准版</b><small>不包含找回包赔，需二次确认</small></span><strong>¥{getPurchaseAmount(detail.price, 'STANDARD').toLocaleString('zh-CN')}</strong></button>

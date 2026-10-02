@@ -26,10 +26,15 @@ import { profileMoreEntries, profileUser } from '../data/profileFixtures'
 import { favoriteRepository } from '../repository/favoriteRepository'
 import { orderRepository } from '../repository/orderRepository'
 import { useLinkedState } from '../linked/linkedData'
-import { isLinkedDataMode } from '../runtime/dataMode'
+import { isLinkedDataMode, isRestoredLinkedMode } from '../runtime/dataMode'
+import { RestoredProfilePage } from './RestoredProfilePage'
 import '../styles/profile-v2.css'
 
 export function ProfilePage() {
+  return isRestoredLinkedMode ? <RestoredProfilePage /> : <PrototypeProfilePage />
+}
+
+function PrototypeProfilePage() {
   const authenticated = useAuthStatus()
   const [searchParams] = useSearchParams()
   return authenticated && searchParams.get('scenario') !== 'guest' ? <AuthenticatedProfilePage /> : <GuestProfilePage />

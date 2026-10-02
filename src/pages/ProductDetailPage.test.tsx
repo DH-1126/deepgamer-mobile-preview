@@ -16,6 +16,18 @@ function render(id: string, tab?: string) {
 }
 
 describe('product detail independent panels', () => {
+  it('shows the mobile showcase only for the selected fourth mock product, with its own price and inventory', () => {
+    const html = render('4')
+    expect(html).toContain('aria-label="精品账号详情"')
+    expect(html).toContain('WZAHC7171')
+    expect(html).toContain('4,025')
+    expect(html).toContain('547')
+    expect(html).toContain('132')
+    expect(html).toContain('全息碎影')
+    expect(html).not.toContain('1,688')
+    expect(html).not.toContain('登录引导')
+    expect(render('3')).not.toContain('aria-label="精品账号详情"')
+  })
   it('uses shared section headings and compact metric values in the actual detail page', () => {
     const html = render('1')
     for (const title of ['账号实拍', '资产概览', '资产清点']) {

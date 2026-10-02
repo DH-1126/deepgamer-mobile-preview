@@ -62,3 +62,25 @@ pnpm typecheck
 pnpm build
 pnpm test
 ```
+
+## 本地恢复联动模式（restored-linked）
+
+默认 `pnpm dev` 仍在 5174 使用 mock 数据，双端演示的静态 iframe 入口不变。只有显式启动以下命令时，用户端才会在 `http://127.0.0.1:5175` 连接本地恢复 API `http://127.0.0.1:8786`：
+
+```bash
+pnpm dev:restored-linked
+```
+
+启动 8786 的恢复 API 时，服务端必须显式配置 `clientDemo.origin` 为 `http://127.0.0.1:5175`，并配置一个真实存在的演示 `managementId`（及按需配置的 `sellerRef` / `recyclerId`）。前端启动握手会：
+
+1. 读取 `GET /api/v1/health/runtime` 并校验完整恢复运行版本；
+2. 使用空 JSON 体调用 `POST /api/v1/client/session`，仅创建专用客户端会话；
+3. 读取 `GET /api/v1/client/session/me` 取得服务端显式配置的 actor，不会猜测数据库中的第一个用户。
+
+安全边界：
+
+- 不读取 `.env.local`，不接受管理员账号或密码，不使用 `/api/v1/auth/login`；
+- 代理只允许 `GET` / `POST` 的 `/api/v1/client/*`、必要的公开 catalog GET，以及 `GET /api/v1/health/runtime`；
+- 代理保留浏览器的真实 `Origin`，陌生 Origin 会被拒绝，不会被改写成允许来源；
+- 联动目标必须精确为 `http://127.0.0.1:8786`，8780、`localhost`、非回环地址、HTTPS 或带路径的目标都会被拒绝；
+- 生产构建和默认 5174 mock 模式不含该代理。

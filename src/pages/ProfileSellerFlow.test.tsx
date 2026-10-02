@@ -3,7 +3,7 @@ import { StaticRouter } from 'react-router-dom/server'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { getProfileSellerRoute } from '../components/profileSellerModel'
 import { sellerApplicationRepository } from '../repository/sellerApplicationRepository'
-import { SellerCenterPage } from './SellerContractPages'
+import { SellerCenterPage, TakeoutOrderUpload } from './SellerContractPages'
 
 describe('profile seller-card destinations', () => {
   beforeEach(() => { sellerApplicationRepository.save({ status: 'active', subject: 'business', entityType: 'company' }) })
@@ -22,5 +22,11 @@ describe('profile seller-card destinations', () => {
     expect(topBar).toContain('aria-label="返回"')
     expect(topBar.indexOf('aria-label="返回"')).toBeLessThan(topBar.indexOf('data-ui="Heading"'))
     expect(sellerApplicationRepository.getSnapshot()).toEqual(original)
+  })
+
+  it('keeps the native takeout file control hidden behind the custom picker', () => {
+    const html = renderToStaticMarkup(<TakeoutOrderUpload value={null} onChange={() => undefined} onError={() => undefined} />)
+    expect(html).toMatch(/<input[^>]*type="file"[^>]*hidden=""/u)
+    expect(html).toContain('上传外卖订单截图')
   })
 })

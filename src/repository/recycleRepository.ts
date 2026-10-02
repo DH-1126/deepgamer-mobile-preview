@@ -41,8 +41,13 @@ export function createRecycleRepository({ storage, now = Date.now, seed = { acti
     getUnreadCount() { return read().orders.reduce((total, order) => total + getRecycleUnreadCount(order), 0) },
     get(id: string) { const order = read().orders.find((item) => item.id === id); return order ? cloneOrder(order) : undefined },
     getActive() { const store = read(); const order = store.orders.find((item) => item.id === store.activeOrderId); return order ? cloneOrder(order) : undefined },
-    begin(recyclerId = 'fun', gameCode: Parameters<typeof createRecycleOrder>[2] = 'wzry') {
-      const store = read(); const recycler = recyclerFixtures.find((item) => item.id === recyclerId && item.availability === 'online')
+    // HTTP 联动回收商（id 带 |linked 后缀）不在本地 fixtures 中；由调用方提供展示名。
+    begin(recyclerId = 'fun', gameCode: Parameters<typeof createRecycleOrder>[2] = 'wzry', recyclerMeta?: { name: string; mark: string }) {
+      const store = read()
+      const recycler = recyclerFixtures.find((item) => item.id === recyclerId && item.availability === 'online')
+        ?? (recyclerMeta
+          ? { id: recyclerId, name: recyclerMeta.name, mark: recyclerMeta.mark, availability: 'online' as const, serviceTime: '服务时间以后台配置为准', description: 'HTTP 联动合作回收商', tags: [], supportedGames: [gameCode] }
+          : undefined)
       if (!recycler) return undefined
       const existing = store.orders.find((item) => item.stage === 'consulting' && item.recyclerId === recyclerId && item.gameCode === gameCode)
       if (existing) { commit({ ...store, activeOrderId: existing.id }); return cloneOrder(existing) }
@@ -90,6 +95,10 @@ export function createRecycleRepository({ storage, now = Date.now, seed = { acti
     },
     startInspection(id: string) { return move(id, 'inspect', 'inspecting') },
     complete(id: string) { return move(id, 'complete', 'completed') },
+    /** HTTP 联动：把后台回收单号挂到本地流程单上（仅 linked 模式使用）。 */
+    attachBackendOrder(id: string, backendRecycleOrderId: string) {
+      return update(id, (order) => ({ ...order, backendRecycleOrderId }))
+    },
     reject(id: string) { const order = read().orders.find((item) => item.id === id); if (!order || !canAdvanceStage(order.stage, 'reject')) return false; return update(id, (item) => ({ ...item, stage: 'rejected', updatedAt: now() })) },
     retry(id: string) { const order = read().orders.find((item) => item.id === id); if (!order || !['submitted', 'inspecting'].includes(order.stage)) return false; return update(id, (item) => ({ ...item, stage: 'submitted', updatedAt: now() })) },
     markRead(id: string) {

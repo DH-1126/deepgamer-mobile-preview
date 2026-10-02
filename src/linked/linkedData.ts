@@ -1,31 +1,42 @@
 import { useEffect, useState } from 'react'
 import type { LinkedGame, LinkedGoods, LinkedPublishSnapshot, LinkedSeller, LinkedState } from '../../../双端演示/src/contract'
-import {
-  getLinkedConnection,
-  getLinkedState,
-  linkedCommand,
-  registerLinkedMedia,
-  subscribeLinkedState,
-  waitForLinkedState,
-} from '../../../双端演示/src/client'
 import { assetPath } from '../components/assetPath'
+import { isLinkedDataMode } from '../runtime/dataMode'
 import type { Game, Product } from '../types/catalog'
 import type { PublicAttributeValue } from '../types/catalog'
 import type { ProductDetail } from '../types/productDetail'
 
-export { getLinkedConnection, getLinkedState, linkedCommand, registerLinkedMedia, subscribeLinkedState, waitForLinkedState }
+import * as embeddedClient from '../../../双端演示/src/client'
+import * as httpOnlyClient from './httpLinkedClient'
+
+// 双通道数据源：嵌在双端演示 iframe 内时走 postMessage 宿主；独立的旧 linked 模式才能走 admin-api。
+const embeddedChannel = typeof window !== 'undefined' && window.parent !== window
+const linkedSource: typeof embeddedClient = embeddedChannel ? embeddedClient : httpOnlyClient
+const linkedRuntimeActive = embeddedChannel || isLinkedDataMode
+
+export const getLinkedConnection = linkedSource.getLinkedConnection
+export const getLinkedState = linkedSource.getLinkedState
+export const subscribeLinkedState = linkedSource.subscribeLinkedState
+export const waitForLinkedState = linkedSource.waitForLinkedState
+export const linkedCommand = linkedSource.linkedCommand
+export const registerLinkedMedia = linkedSource.registerLinkedMedia
 export type { LinkedGame, LinkedGoods, LinkedSeller, LinkedState }
 
 export function useLinkedState() {
-  const [state, setState] = useState<LinkedState | null>(() => getLinkedState())
+  const [snapshot, setSnapshot] = useState<{ state: LinkedState | null; tick: number }>(() => ({ state: linkedRuntimeActive ? getLinkedState() : null, tick: 0 }))
   useEffect(() => {
-    const sync = () => setState(getLinkedState())
+    if (!linkedRuntimeActive) return undefined
+    // tick 保证连接状态变化（如 HTTP 通道断开）也触发重渲染，失败路径 state 恒为 null 会被 React 去重
+    const sync = () => setSnapshot((current) => ({ state: getLinkedState(), tick: current.tick + 1 }))
     const unsubscribe = subscribeLinkedState(sync)
-    void waitForLinkedState().then(setState).catch(sync)
+    void waitForLinkedState().then((state) => setSnapshot((current) => ({ state, tick: current.tick + 1 }))).catch(sync)
     return unsubscribe
   }, [])
-  return state
+  return snapshot.state
 }
+
+/** 当前 linked 数据通道：双端演示 iframe（embedded）或本地 admin-api 只读（http）。 */
+export const linkedChannel: 'embedded' | 'http' = embeddedChannel ? 'embedded' : 'http'
 
 const fallbackIcons: Record<string, string> = {
   dwrg: assetPath('assets/home-v2/game-dwrg.png'),
@@ -165,4 +176,32 @@ export function toProductDetail(goods: LinkedGoods, game: LinkedGame): ProductDe
     attributeValues: publicAttributes(goods.attributes),
     linkedPublishSnapshot: goods.publishSnapshot,
   }
+}
+
+
+/** HTTP 联动：后台回收商 → 用户端 Recycler 展示形状（演示级依托）。 */
+export function toRecyclerOptions(recyclers: NonNullable<LinkedState['recyclers']>): Array<{
+  id: string; name: string; mark: string; availability: 'online' | 'offline';
+  serviceTime: string; description: string; tags: string[]; supportedGames: string[];
+}> {
+  return recyclers.map((recycler) => ({
+    id: recycler.id,
+    name: recycler.displayName,
+    mark: recycler.displayName.slice(0, 1),
+    availability: recycler.status === 'cooperating' && recycler.acceptingNow ? 'online' : 'offline',
+    serviceTime: recycler.delayHint || '服务时间以后台配置为准',
+    description: recycler.introduction || '暂无介绍',
+    tags: recycler.certificationTags,
+    supportedGames: recycler.gameCodes,
+  }))
+}
+
+/** HTTP 联动：快照卖家（商品的用户依托）。 */
+export function getLinkedUsers(state: LinkedState | null) {
+  return state?.users ?? []
+}
+
+/** HTTP 联动：后台回收商列表。 */
+export function getLinkedRecyclers(state: LinkedState | null) {
+  return state?.recyclers ?? []
 }

@@ -32,6 +32,9 @@ function projectionMessage(projection: LinkedSearchProjection) {
 }
 
 function CoverageDisclosure({ projection }: { projection: LinkedSearchProjection }) {
+  // 配置完备（CONFIGURED 且无排除字段）时不展示接入状态条——那是调试信息，不该出现在正常筛选界面；
+  // 仅在 PARTIAL/缺口场景展示，用于解释为什么动态筛选受限。
+  if (projection.mode === 'CONFIGURED' && projection.excludedFields.length === 0) return null
   return <details className="linked-search-coverage">
     <summary>本地配置接入 {projection.coverage.includedCount}/{projection.coverage.sourceActiveCount} 项{projection.mode === 'PARTIAL' ? ' · 部分可用' : ''}</summary>
     {projection.excludedFields.length > 0 ? <ul>{projection.excludedFields.map((field) => <li key={field.fieldId}><strong>{field.label}</strong><span>{field.detail}</span></li>)}</ul> : <p>当前本地配置字段均已接入。</p>}

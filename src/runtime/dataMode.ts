@@ -1,4 +1,5 @@
 export const isLinkedDataMode = import.meta.env.VITE_DATA_MODE === 'linked'
+export const isRestoredLinkedMode = import.meta.env.VITE_DATA_MODE === 'restored-linked'
 
 const values = new Map<string, string>()
 

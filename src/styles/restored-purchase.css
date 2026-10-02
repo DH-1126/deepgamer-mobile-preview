@@ -1,0 +1,46 @@
+.restored-purchase-page { min-height: 100dvh; background: #f5f6f8; color: #17191d; }
+.restored-purchase-page .dg-page-header { margin-top: env(safe-area-inset-top); }
+.restored-purchase-scroll { display: grid; gap: 12px; padding: 14px 14px max(28px,env(safe-area-inset-bottom)); }
+.restored-purchase-scroll h1,.restored-purchase-scroll h2,.restored-purchase-scroll p { margin: 0; }
+.restored-purchase-back { display: inline-flex; align-items: center; justify-content: center; gap: 2px; min-width: 44px; min-height: 44px; padding: 0 2px; color: #4f5663; font-size: 12px; font-weight: 700; line-height: 1; text-decoration: none; white-space: nowrap; }
+.restored-purchase-muted { margin-top: 7px!important; color: #6c7280; font-size: 12px; line-height: 1.55; }
+.restored-purchase-state,.restored-purchase-error { margin: 0; padding: 28px 16px; border-radius: 14px; background: #fff; color: #656c79; text-align: center; }
+.restored-purchase-state { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.restored-purchase-error p { margin: 0 0 12px; color: #a3362d; line-height: 1.5; }
+.restored-purchase-catalog { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.restored-purchase-catalog article { display: grid; grid-template-columns: 76px minmax(0,1fr); gap: 12px; }
+.restored-purchase-cover { display: grid; place-items: center; width: 76px; height: 76px; overflow: hidden; border-radius: 10px; background: #eef0f4; color: #858c98; font-weight: 800; }
+.restored-purchase-cover img { width: 100%; height: 100%; object-fit: cover; }
+.restored-purchase-catalog article>div:last-child { display: grid; min-width: 0; gap: 5px; }
+.restored-purchase-catalog p,.restored-purchase-catalog small { color: #737986; font-size: 11px; }
+.restored-purchase-catalog b { color: var(--dg-color-price); }
+.restored-purchase-catalog a { justify-self: start; display: inline-flex; align-items: center; min-height: 40px; border-radius: 9px; background: #17191d; padding: 0 13px; color: #fff; font-size: 12px; font-weight: 700; text-decoration: none; }
+.restored-purchase-summary { display: grid; gap: 6px; }
+.restored-purchase-summary p,.restored-purchase-summary small { color: #6c7280; font-size: 12px; overflow-wrap: anywhere; }
+.restored-purchase-package,.restored-purchase-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.restored-purchase-package .dg-button { flex: 1 1 130px; }
+.restored-purchase-quote-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
+.restored-purchase-quote-head small { color: #737986; overflow-wrap: anywhere; }
+.restored-purchase-breakdown,.restored-purchase-payment-facts { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; margin: 12px 0 0; }
+.restored-purchase-breakdown>div,.restored-purchase-payment-facts>div { padding: 10px; border-radius: 9px; background: #f7f8fa; }
+.restored-purchase-breakdown .is-total { grid-column: 1/-1; background: #fff7df; }
+.restored-purchase-breakdown dt,.restored-purchase-payment-facts dt { color: #737986; font-size: 11px; }
+.restored-purchase-breakdown dd,.restored-purchase-payment-facts dd { margin: 3px 0 0; font-size: 14px; font-weight: 750; overflow-wrap: anywhere; }
+.restored-purchase-breakdown .is-total dd { color: var(--dg-color-price); font-size: 18px; }
+.restored-purchase-demo-note { background: #fff7df!important; color: #765b14; }
+.restored-purchase-demo-note p { margin-top: 6px; font-size: 12px; line-height: 1.55; }
+.restored-payment-pending { background: #fff7df!important; }
+.restored-payment-pending p,.restored-payment-result p { margin-top: 6px; font-size: 12px; line-height: 1.55; overflow-wrap: anywhere; }
+.restored-payment-result.is-failed { color: #8b312a; }
+.restored-payment-result.is-refund { background: #fff0ee!important; color: #8b312a; }
+.restored-purchase-blocked { margin-top: 9px!important; padding: 10px 11px; border-radius: 9px; background: #fff0ee; color: #8b312a; font-size: 12px; line-height: 1.55; }
+.restored-purchase-page :where(button,a):focus-visible,.restored-payment-pending:focus-visible { outline: 3px solid rgba(208,173,22,.45); outline-offset: 2px; }
+@media (max-width: 360px) {
+  .restored-purchase-scroll { padding-inline: 10px; }
+  .restored-purchase-catalog article { grid-template-columns: 62px minmax(0,1fr); }
+  .restored-purchase-cover { width: 62px; height: 62px; }
+  .restored-purchase-breakdown,.restored-purchase-payment-facts { grid-template-columns: 1fr; }
+  .restored-purchase-breakdown .is-total { grid-column: auto; }
+  .restored-purchase-actions .dg-button { width: 100%; }
+}
+@media (min-width: 720px) { .restored-purchase-scroll { width: min(100%,680px); margin: 0 auto; } }

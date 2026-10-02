@@ -169,6 +169,17 @@ export function createMessageRepository({ storage, now = Date.now, eventTarget }
     async listMessages(id: string) { return read().messages.filter((message) => message.conversationId === id).map((message) => ({ ...message })) },
     async sendText(conversationId: string, content: string, id?: string) {
       const pending = createPendingMessage(conversationId, content, now(), id)
+      // HTTP 联动：文本消息真实落后台（接管校验+幂等键），成功后回写本地会话状态
+      if (isLinkedDataMode) {
+        try {
+          const { sendLinkedImText } = await import('../linked/httpLinkedClient')
+          const result = await sendLinkedImText(conversationId, content)
+          if (!result.ok) return { ok: false, message: markDelivery(pending, 'failed') }
+          const sent = { ...pending, id: result.id, senderName: result.senderName || pending.senderName, createdAt: result.createdAt ? Date.parse(result.createdAt) || now() : now() }
+          const store = read()
+          return commit(appendMessage(store, markDelivery(sent, 'sent'))) ? { ok: true, message: markDelivery(sent, 'sent') } : { ok: false, message: markDelivery(pending, 'failed') }
+        } catch { return { ok: false, message: markDelivery(pending, 'failed') } }
+      }
       try {
         const store = read()
         if (!store.conversations.some((item) => item.id === conversationId && !item.closed)) return { ok: false, message: markDelivery(pending, 'failed') }
@@ -194,6 +205,17 @@ export function createMessageRepository({ storage, now = Date.now, eventTarget }
       } catch { return false }
     },
     subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener) } },
+    /** HTTP 联动：用后台映射会话整体替换演示数据（内存态，随快照生命周期）。 */
+    replaceAll(next: readonly Conversation[]) {
+      try {
+        const messages = next.flatMap((conversation) => ((conversation as Conversation & { messages?: ConversationMessage[] }).messages ?? []).map((message) => ({ ...message, conversationId: conversation.id })))
+        const conversations = next.map((conversation) => {
+          const { messages: _drop, ...rest } = conversation as Conversation & { messages?: ConversationMessage[] }
+          return rest
+        })
+        return commit({ conversations, messages, notifications: [] } as MessageStore)
+      } catch { return false }
+    },
     dispose() { eventTarget?.removeEventListener(EVENT, external); eventTarget?.removeEventListener('storage', external); listeners.clear() },
   }
 }

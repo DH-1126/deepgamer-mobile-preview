@@ -1,5 +1,21 @@
 import { DRAFT3_FILE_KEY, designImageNote, type BusinessPageSpec } from './businessPageSpec'
 
+/**
+ * 数据来源与显示逻辑（2026-10-01 联动修复更新）：
+ *
+ * 会话列表关联展示：
+ * - 交易群：association.trade.orderNo + fulfillment.status。
+ * - 回收咨询：association.recycle.consultationId + recycleOrderId + recycleOrderStatus。
+ *   数据来源：/client/im/conversations association.recycle，由 readRelation 联表得出。
+ *   有回收单时显示「回收单 RCxxx · 状态」；无单显示「尚未建立回收单」。
+ * - 未读数：last_read_sequence 与最新 sequence 差值；已读后归零不回退。
+ * - 排序：按最新消息时间倒序。
+ *
+ * 会话详情回收单区块：
+ * - 回收咨询会话在消息区上方显示回收单概览（单号/状态/保障费/卖家实收/买家应付）。
+ * - 数据来源：GET /client/recycle/consultations/:id/order。
+ */
+
 const prototypeBoundary = {
   title: '原型边界',
   items: ['会话与消息均为本地演示数据；真实未读、消息类型、成员权限与履约状态由 IM 服务与订单接口决定，发送失败时内容保留并可重试。'],

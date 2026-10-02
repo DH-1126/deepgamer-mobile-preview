@@ -73,6 +73,8 @@ export type RecycleOrder = {
   /** Created only after the recycler completes the local payment demo. */
   conversationId?: string
   orderId?: string
+  /** HTTP 联动：后台 recycle_orders 的真实单号；本地流程镜像到后台后回填。 */
+  backendRecycleOrderId?: string
   sellerConfirmedAt?: number
   paidAt?: number
 }

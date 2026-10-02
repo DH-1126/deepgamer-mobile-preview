@@ -1,0 +1,54 @@
+.restored-orders-page { min-height: 100dvh; background: #f5f6f8; color: #17191d; }
+.restored-orders-page .dg-page-header { margin-top: env(safe-area-inset-top); }
+.restored-orders-scroll { display: grid; gap: 12px; padding: 14px 14px max(28px,env(safe-area-inset-bottom)); }
+.restored-order-back { display: inline-flex; align-items: center; min-height: 44px; padding: 0 4px; color: #4f5663; font-size: 14px; font-weight: 700; text-decoration: none; }
+.restored-orders-intro h1,.restored-orders-intro p { margin: 0; }
+.restored-orders-intro p { margin-top: 6px; color: #686f7b; font-size: 12px; line-height: 1.55; }
+.restored-orders-state,.restored-orders-error { margin: 0; padding: 28px 16px; border-radius: 14px; background: #fff; color: #656c79; text-align: center; }
+.restored-orders-state { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.restored-orders-actions { display: flex; justify-content: flex-end; }
+.restored-orders-error p { margin: 0 0 12px; color: #a3362d; line-height: 1.5; }
+.restored-order-list { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.restored-order-list article { display: grid; gap: 11px; min-width: 0; padding: 14px; border-radius: 14px; background: #fff; }
+.restored-order-list article>header,.restored-order-detail-card>header { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+.restored-order-list article>header span,.restored-order-list article>header em,.restored-order-detail-card>header>span,.restored-order-detail-card>header>em { padding: 3px 7px; border-radius: 6px; background: #fff2c9; color: #735700; font-size: 11px; font-style: normal; }
+.restored-order-list article>header em,.restored-order-detail-card>header>em { background: #eceff4; color: #59616e; }
+.restored-order-title { display: grid; grid-template-columns: 60px minmax(0,1fr); gap: 10px; min-width: 0; }
+.restored-order-title>div { display: grid; place-items: center; width: 60px; height: 60px; overflow: hidden; border-radius: 10px; background: #eef0f4; color: #858c98; font-weight: 800; }
+.restored-order-title img { width: 100%; height: 100%; object-fit: cover; }
+.restored-order-title p { min-width: 0; margin: 0; }
+.restored-order-title b,.restored-order-title small { display: block; overflow-wrap: anywhere; }
+.restored-order-title b { margin-bottom: 4px; font-size: 14px; }
+.restored-order-title small { color: #737986; font-size: 11px; line-height: 1.5; }
+.restored-order-money-grid,.restored-order-breakdown,.restored-order-info { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; margin: 0; }
+.restored-order-money-grid>div,.restored-order-breakdown>div,.restored-order-info>div { min-width: 0; padding: 9px 10px; border-radius: 9px; background: #f7f8fa; }
+.restored-order-money-grid dt,.restored-order-breakdown dt,.restored-order-info dt { color: #737986; font-size: 11px; }
+.restored-order-money-grid dd,.restored-order-breakdown dd,.restored-order-info dd { margin: 3px 0 0; overflow-wrap: anywhere; font-size: 13px; font-weight: 750; }
+.restored-order-unavailable { margin: 0; padding: 10px 11px; border-radius: 9px; background: #fff7df; color: #765b14; font-size: 12px; line-height: 1.55; }
+.restored-order-demo-note,.restored-order-pending-note { margin: 0; padding: 10px 11px; border-radius: 9px; font-size: 12px; line-height: 1.55; }
+.restored-order-demo-note { background: #eef0f4; color: #59616e; }
+.restored-order-pending-note { background: #fff7df; color: #765b14; }
+.restored-order-refund-progress { padding: 10px 11px; border-radius: 9px; background: #eef0f4; color: #59616e; font-size: 12px; line-height: 1.55; overflow-wrap: anywhere; }
+.restored-order-refund-progress strong { color: #17191d; font-size: 12px; }
+.restored-order-refund-progress p { margin: 4px 0; }
+.restored-order-refund-progress small { display: block; font-size: 11px; }
+.restored-order-list footer { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.restored-order-list footer a { display: inline-flex; align-items: center; min-height: 40px; border-radius: 9px; background: #17191d; padding: 0 13px; color: #fff; font-size: 12px; font-weight: 700; text-decoration: none; }
+.restored-order-list footer .restored-order-pay-link { background: #fff2c9; color: #735700; }
+.restored-order-detail-card { display: grid; gap: 10px; }
+.restored-order-detail-card h1,.restored-order-detail-card h2,.restored-order-detail-card p { margin: 0; }
+.restored-order-detail-card>header h1 { flex: 1 1 180px; min-width: 0; }
+.restored-order-detail-card>p { color: #656c79; overflow-wrap: anywhere; font-size: 12px; line-height: 1.55; }
+.restored-orders-readonly { margin: 0; padding: 11px 12px; border-radius: 10px; background: #edf0f4; color: #59616e; font-size: 12px; line-height: 1.55; }
+.restored-order-payment-entry { display: flex; align-items: center; justify-content: center; min-height: 48px; border-radius: 11px; background: #17191d; color: #fff; font-size: 14px; font-weight: 750; text-decoration: none; }
+.restored-orders-page :where(button,a):focus-visible { outline: 3px solid rgba(208,173,22,.45); outline-offset: 2px; }
+@media (max-width: 360px) {
+  .restored-orders-scroll { padding-inline: 10px; }
+  .restored-order-money-grid,.restored-order-breakdown,.restored-order-info { grid-template-columns: 1fr; }
+  .restored-order-title { grid-template-columns: 52px minmax(0,1fr); }
+  .restored-order-title>div { width: 52px; height: 52px; }
+}
+@media (min-width: 720px) { .restored-orders-scroll { width: min(100%,680px); margin: 0 auto; } }
+.restored-signature-actions { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.restored-signature-actions button { width: 100%; white-space: nowrap; }
+@media (min-width: 480px) { .restored-signature-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

@@ -1,0 +1,76 @@
+.restored-goods-page { min-height: 100dvh; padding-bottom: 92px; background: #f5f6f8; color: #17191d; }
+.restored-goods-header { margin-top: env(safe-area-inset-top); }
+.restored-goods-scroll { display: grid; gap: 12px; padding: 14px 14px 30px; }
+.restored-goods-notice,.restored-goods-audit-note,.restored-goods-success,.restored-goods-stale { margin: 0; padding: 11px 12px; border-radius: 10px; font-size: 12px; line-height: 1.55; }
+.restored-goods-notice,.restored-goods-audit-note { background: #fff7df; color: #765b14; }
+.restored-goods-success { background: #eaf5ee; color: #28623b; }
+.restored-goods-stale { background: #fff0ee; color: #8b312a; }
+.restored-goods-stale p { margin: 0; }
+.restored-goods-stale button { display: inline-flex; align-items: center; gap: 5px; min-height: 36px; margin-top: 8px; border: 1px solid #d99c96; border-radius: 9px; background: #fff; padding: 0 11px; color: inherit; font-weight: 700; }
+.restored-goods-error { margin: 0; color: #b53025; font-size: 13px; line-height: 1.5; }
+.restored-goods-loading { margin: 0; padding: 28px 16px; border-radius: 14px; background: #fff; color: #656c79; text-align: center; }
+.restored-goods-connection,.restored-goods-blocked,.restored-goods-empty { margin: 14px; padding: 30px 18px; border-radius: 14px; background: #fff; text-align: center; }
+.restored-goods-connection h2,.restored-goods-blocked h2,.restored-goods-empty h2 { margin: 10px 0 6px; font-size: 17px; }
+.restored-goods-connection p,.restored-goods-blocked p,.restored-goods-empty p { margin: 0 0 14px; color: #6c7280; font-size: 13px; line-height: 1.55; }
+.restored-goods-blocked a { color: #8a6100; font-weight: 700; }
+.restored-goods-new { display: flex; align-items: center; justify-content: center; min-height: 44px; border-radius: 11px; background: #17191d; color: #fff; font-weight: 700; text-decoration: none; }
+.restored-goods-new.is-disabled { background: #d8dbe1; color: #686f7b; }
+.restored-goods-list article { display: grid; grid-template-columns: 82px minmax(0,1fr); gap: 12px; padding: 12px; border-radius: 13px; background: #fff; }
+.restored-goods-card-image { display: grid; place-items: center; width: 82px; height: 82px; overflow: hidden; border-radius: 9px; background: #eef0f4; color: #8a909b; }
+.restored-goods-card-image img { width: 100%; height: 100%; object-fit: cover; }
+.restored-goods-card-copy { min-width: 0; }
+.restored-goods-card-copy header { display: flex; flex-wrap: wrap; gap: 7px; }
+.restored-goods-card-copy header span,.restored-goods-card-copy header em { padding: 2px 6px; border-radius: 5px; background: #fff2c9; color: #7f5e00; font-size: 10px; font-style: normal; }
+.restored-goods-card-copy header em { background: #edf0f4; color: #616875; }
+.restored-goods-card-copy h2 { margin: 7px 0 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.restored-goods-card-copy p,.restored-goods-card-copy small { display: block; margin: 0 0 6px; color: #737986; font-size: 11px; line-height: 1.45; }
+.restored-goods-card-copy p b { color: var(--dg-color-price); }
+.restored-goods-card-copy footer { display: flex; flex-wrap: wrap; gap: 8px; }
+.restored-goods-card-copy footer a,.restored-goods-card-copy footer button { display: inline-flex; align-items: center; min-height: 34px; border: 0; border-radius: 8px; background: #eef0f4; padding: 0 10px; color: #4d535f; font-size: 11px; font-weight: 700; text-decoration: none; }
+.restored-goods-card-copy footer button { background: #fff0ee; color: #9b3930; }
+.restored-goods-confirm { display: flex; flex-wrap: wrap; gap: 6px; }
+.restored-goods-unavailable { display: inline-flex; align-items: center; min-height: 34px; padding: 0 4px; color: #737986; font-size: 11px; }
+.restored-goods-page form { display: grid; gap: 12px; padding: 16px; border-radius: 14px; background: #fff; }
+.restored-publish-dynamic { display: grid; gap: 10px; }
+.restored-publish-dynamic>header { display: flex; align-items: center; justify-content: space-between; }
+.restored-publish-dynamic>header strong { font-size: 14px; }
+.restored-publish-dynamic>header span { color: #737986; font-size: 12px; }
+.restored-publish-dynamic>ol { display: grid; grid-template-columns: repeat(auto-fit,minmax(58px,1fr)); gap: 5px; margin: 0; padding: 0; list-style: none; }
+.restored-publish-dynamic>ol li { display: grid; justify-items: center; gap: 4px; min-width: 0; color: #9297a1; font-size: 10px; text-align: center; }
+.restored-publish-dynamic>ol li i { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #eceef2; font-style: normal; font-weight: 700; }
+.restored-publish-dynamic>ol li span { width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.restored-publish-dynamic>ol li.active,.restored-publish-dynamic>ol li.complete { color: #614900; }
+.restored-publish-dynamic>ol li.active i,.restored-publish-dynamic>ol li.complete i { background: #f0cc44; color: #17191d; }
+.restored-goods-page .restored-publish-step { display: grid; gap: 11px; margin: 0; padding: 13px; border: 1px solid #eceef2; border-radius: 11px; background: #fafbfc; }
+.restored-goods-page .restored-publish-step>legend,.restored-goods-page .restored-publish-media-field>legend,.restored-goods-page .restored-publish-choice>legend,.restored-goods-page .restored-publish-boolean>legend { padding: 0 5px; font-size: 13px; font-weight: 700; }
+.restored-goods-page legend em { margin-left: 3px; color: #b53025; font-style: normal; }
+.restored-publish-step>p { margin: 0; color: #737986; font-size: 12px; line-height: 1.5; }
+.restored-publish-choice,.restored-publish-boolean,.restored-publish-media-field { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; }
+.restored-publish-options { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px 10px; }
+.restored-publish-radios,.restored-publish-boolean>div { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }
+.restored-publish-radios label,.restored-publish-boolean label { display: flex; align-items: center; gap: 6px; min-height: 40px; padding: 7px 9px; border: 1px solid #dfe2e8; border-radius: 9px; background: #fff; font-size: 12px; }
+.restored-publish-radios input,.restored-publish-boolean input { width: 16px; height: 16px; accent-color: #d0ad16; }
+.restored-publish-step-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.restored-publish-step-actions button,.restored-publish-choice>button { min-height: 36px; border: 1px solid #dfe2e8; border-radius: 9px; background: #fff; padding: 0 12px; color: #4f5663; font-weight: 700; }
+.restored-publish-step-actions button:last-child { border-color: #17191d; background: #17191d; color: #fff; }
+.restored-publish-step-actions p { margin: 0; color: #28623b; font-size: 12px; }
+.restored-goods-media-control>label { display: grid; place-items: center; min-height: 94px; border: 1px dashed #c8cdd7; border-radius: 11px; color: #656c79; cursor: pointer; }
+.restored-goods-media-control>label input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.restored-goods-media-control>label small { font-size: 11px; }
+.restored-goods-media-control ul { list-style: none; margin: 8px 0 0; padding: 0; }
+.restored-goods-media-control li { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 38px; border-bottom: 1px solid #eceef2; font-size: 12px; }
+.restored-goods-media-control li>span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.restored-goods-media-control li>span:last-child { display: flex; gap: 5px; }
+.restored-goods-media-control li button { min-height: 30px; border: 0; border-radius: 7px; background: #eef0f4; padding: 0 8px; color: #555c69; }
+.restored-goods-footer { position: fixed; z-index: 5; right: 0; bottom: 0; left: 0; padding-bottom: max(10px,env(safe-area-inset-bottom)); }
+.restored-goods-page :where(button,a,input,textarea,select):focus-visible { outline: 3px solid rgba(208,173,22,.45); outline-offset: 2px; }
+@media (max-width: 380px) {
+  .restored-goods-list article { grid-template-columns: 68px minmax(0,1fr); }
+  .restored-goods-card-image { width: 68px; height: 68px; }
+  .restored-publish-options,.restored-publish-radios { grid-template-columns: 1fr; }
+  .restored-goods-card-copy footer a,.restored-goods-card-copy footer button { min-height: 40px; }
+}
+@media (min-width: 720px) {
+  .restored-goods-scroll { width: min(100%,680px); margin: 0 auto; }
+  .restored-goods-footer { left: 50%; width: min(100%,680px); transform: translateX(-50%); }
+}

@@ -36,12 +36,21 @@ import { NotificationCenterPage, NotificationSettingsPage } from '../pages/Notif
 import { authRepository } from '../repository/authRepository'
 import { SUPPORT_CONVERSATION_ID, SUPPORT_CONVERSATION_ROUTE } from '../data/messageFixtures'
 import type { AuthMethod } from '../types/auth'
-import { getLinkedConnection, useLinkedState } from '../linked/linkedData'
-import { isLinkedDataMode } from '../runtime/dataMode'
+import { getLinkedConnection, linkedChannel, useLinkedState } from '../linked/linkedData'
+import { isLinkedDataMode, isRestoredLinkedMode } from '../runtime/dataMode'
+import { RestoredClientProvider, RestoredConnectionBoundary } from '../linked/RestoredClientProvider'
 import { LinkedGoodsListPage, LinkedGoodsPublishPage } from '../pages/LinkedGoodsPages'
 import { Heading, Spinner, SurfaceCard } from '../components/ui'
+import { RestoredRecycleOwnerRequestPage, RestoredRecycleRequestPage } from '../pages/RestoredRecycleRequestPages'
+import { RestoredOrderDetailPage, RestoredOrderListPage } from '../pages/RestoredOrderPages'
+import { RestoredCatalogPage, RestoredCheckoutPage, RestoredPaymentPage } from '../pages/RestoredPurchasePages'
 
 const ComponentLibraryPage = lazy(() => import('../pages/ComponentLibraryPage').then(module => ({ default: module.ComponentLibraryPage })))
+const RestoredGoodsListPage = lazy(() => import('../pages/RestoredGoodsPages').then(module => ({ default: module.RestoredGoodsListPage })))
+const RestoredGoodsPublishPage = lazy(() => import('../pages/RestoredGoodsPages').then(module => ({ default: module.RestoredGoodsPublishPage })))
+const RestoredMessageListPage = lazy(() => import('../pages/RestoredMessagePages').then(module => ({ default: module.RestoredMessageListPage })))
+const RestoredConversationPage = lazy(() => import('../pages/RestoredMessagePages').then(module => ({ default: module.RestoredConversationPage })))
+const RestoredRecycleConsultationPage = lazy(() => import('../pages/RestoredRecyclePages').then(module => ({ default: module.RestoredRecycleConsultationPage })))
 
 function MessageAlias() {
   const { search, hash } = useLocation()
@@ -53,7 +62,6 @@ function ProtectedApp() {
 }
 
 function ConversationEntry() {
-  if (isLinkedDataMode) return <LinkedFeatureUnavailable feature="消息与交易群" />
   const { conversationId } = useParams()
   // 登录遇到问题时仍能咨询官方客服；交易群继续要求登录。
   return conversationId === SUPPORT_CONVERSATION_ID
@@ -83,6 +91,44 @@ function LoginEntry({ method }: { method: AuthMethod }) {
 }
 
 export function App() {
+  return isRestoredLinkedMode ? <RestoredClientProvider><RestoredConnectionBoundary><RestoredApp /></RestoredConnectionBoundary></RestoredClientProvider> : <PrototypeApp />
+}
+
+/** Pending modules stay explicit; never render a prototype record as this actor's data. */
+function RestoredApp() {
+  return <div className="mobile-shell"><AuthPromptProvider><Suspense fallback={<main className="app-route-loading" role="status"><Spinner decorative />正在加载页面…</main>}><Routes>
+    <Route path="/" element={<Navigate to="/profile" replace />} />
+    <Route path="/profile" element={<ProfilePage />} />
+    <Route path="/seller" element={<SellerCenterPage />} />
+    <Route path="/seller/center" element={<SellerCenterPage />} />
+    <Route path="/sell" element={<SellerCenterPage />} />
+    <Route path="/seller/apply/personal" element={<PersonalSellerContractPage />} />
+    <Route path="/seller/apply/business" element={<BusinessSellerContractPage />} />
+    <Route path="/publish" element={<RestoredGoodsPublishPage />} />
+    <Route path="/linked/publish" element={<RestoredGoodsPublishPage />} />
+    <Route path="/my-goods" element={<RestoredGoodsListPage />} />
+    <Route path="/linked/my-goods" element={<RestoredGoodsListPage />} />
+    <Route path="/recycle" element={<RestoredRecycleRequestPage />} />
+    <Route path="/recycle/requests/:requestId" element={<RestoredRecycleOwnerRequestPage />} />
+    <Route path="/recycle/consultations/:consultationId" element={<RestoredRecycleConsultationPage />} />
+    <Route path="/game" element={<Navigate to="/buy" replace />} />
+    <Route path="/buy" element={<RestoredCatalogPage />} />
+    <Route path="/buy/confirm" element={<RestoredCheckoutPage />} />
+    <Route path="/orders" element={<RestoredOrderListPage />} />
+    <Route path="/orders/:orderId/payment" element={<RestoredPaymentPage />} />
+    <Route path="/orders/:orderId" element={<RestoredOrderDetailPage />} />
+    <Route path="/message" element={<RestoredMessageListPage />} />
+    <Route path="/messages" element={<MessageAlias />} />
+    <Route path="/im/:conversationId" element={<RestoredConversationPage />} />
+    <Route path="/message/groups/:conversationId" element={<RestoredConversationPage />} />
+    <Route path="/component-library" element={<ComponentLibraryPage />} />
+    <Route path="/login/*" element={<Navigate to="/profile" replace />} />
+    <Route path="/welcome" element={<Navigate to="/profile" replace />} />
+    <Route path="*" element={<main className="linked-connection-state"><SurfaceCard><Heading as="h1" variant="result">此功能尚在接入联动</Heading><p>当前阶段开放卖家认证、模拟签署、本人商品管理与成员消息。其余模块未验收，不会使用原型数据代替。</p><a href={`${import.meta.env.BASE_URL}profile`}>返回个人中心</a></SurfaceCard></main>} />
+  </Routes></Suspense></AuthPromptProvider></div>
+}
+
+function PrototypeApp() {
   const linkedState = useLinkedState()
   useEffect(() => {
     const releasePointerFocus = (event: PointerEvent) => {
@@ -98,7 +144,8 @@ export function App() {
 
   if (isLinkedDataMode && !linkedState) {
     const connection = getLinkedConnection()
-    return <main className="linked-connection-state" role="status"><SurfaceCard><Heading as="h1" variant="result">{connection.status === 'disconnected' ? '联动演示未连接' : '正在连接联动演示'}</Heading><p>{connection.error ?? '正在从同源演示入口读取本次临时数据…'}</p><small>不会回退到浏览器缓存，也不会发送业务 API 请求。</small></SurfaceCard></main>
+    const httpChannel = linkedChannel === 'http'
+    return <main className="linked-connection-state" role="status"><SurfaceCard><Heading as="h1" variant="result">{connection.status === 'disconnected' ? '联动数据未连接' : httpChannel ? '正在读取本地后台数据' : '正在连接联动演示'}</Heading><p>{connection.error ?? (httpChannel ? '正在从本地 admin-api 读取只读演示数据…' : '正在从同源演示入口读取本次临时数据…')}</p><small>{httpChannel ? '只读演示通道：不写入后台数据，不回退到浏览器缓存。' : '不会回退到浏览器缓存，也不会发送业务 API 请求。'}</small></SurfaceCard></main>
   }
 
   return (
@@ -131,31 +178,31 @@ export function App() {
               <Route path="/push-permission" element={<PushPermissionPage />} />
               <Route path="/orders/preview" element={isLinkedDataMode ? <LinkedFeatureUnavailable feature="订单与支付" /> : <OrderCheckoutPage />} />
               <Route path="/orders/checkout" element={isLinkedDataMode ? <LinkedFeatureUnavailable feature="订单与支付" /> : <OrderCheckoutPage />} />
-              <Route path="/payment/cancel" element={isLinkedDataMode ? <LinkedFeatureUnavailable feature="订单与支付" /> : <PaymentCancelPage />} />
+              <Route path="/payment/cancel" element={<PaymentCancelPage />} />
               <Route path="/payment/success" element={isLinkedDataMode ? <LinkedFeatureUnavailable feature="订单与支付" /> : <PaymentSuccessPage />} />
-              <Route path="/sell" element={isLinkedDataMode ? <LinkedFeatureUnavailable feature="账号回收" /> : <SellPage />} />
+              <Route path="/sell" element={<SellPage />} />
               <Route path="/sell/publish" element={isLinkedDataMode ? <LinkedFeatureUnavailable feature="账号回收" /> : <Navigate to="/sell" replace />} />
-              <Route path="/appraisal" element={isLinkedDataMode ? <LinkedFeatureUnavailable feature="账号回收" /> : <AppraisalPage />} />
+              <Route path="/appraisal" element={<AppraisalPage />} />
               <Route path="/appraisal/detail" element={isLinkedDataMode ? <LinkedFeatureUnavailable feature="账号回收" /> : <AppraisalDetailPage />} />
               <Route path="/appraisal/fill" element={isLinkedDataMode ? <LinkedFeatureUnavailable feature="账号回收" /> : <AppraisalFillPage />} />
               <Route path="/appraisal/loading" element={isLinkedDataMode ? <LinkedFeatureUnavailable feature="账号回收" /> : <AppraisalLoadingPage />} />
               <Route path="/footprints" element={<FootprintPage />} />
               <Route path="/reminders" element={<ReminderPage />} />
               <Route path="/messages" element={<MessageAlias />} />
-              <Route path="/message" element={isLinkedDataMode ? <LinkedFeatureUnavailable feature="消息" /> : <MessagePage />} />
+              <Route path="/message" element={<MessagePage />} />
               <Route path="/notifications" element={<NotificationCenterPage />} />
               <Route path="/notifications/settings" element={<NotificationSettingsPage />} />
               <Route path="/footprint" element={<FootprintPage />} />
-              <Route path="/orders" element={isLinkedDataMode ? <LinkedFeatureUnavailable feature="订单" /> : <OrderListPage />} />
+              <Route path="/orders" element={<OrderListPage />} />
               <Route path="/orders/recycle" element={isLinkedDataMode ? <LinkedFeatureUnavailable feature="账号回收" /> : <RecycleOrderListPage />} />
-              <Route path="/orders/:id" element={isLinkedDataMode ? <LinkedFeatureUnavailable feature="订单" /> : <OrderDetailPage />} />
+              <Route path="/orders/:id" element={<OrderDetailPage />} />
               <Route path="/fulfillment/contracts/:contractId" element={isLinkedDataMode ? <LinkedFeatureUnavailable feature="履约合同" /> : <FulfillmentContractPage />} />
               <Route path="/wallet" element={isLinkedDataMode ? <LinkedFeatureUnavailable feature="钱包" /> : <WalletOverviewPage />} />
               <Route path="/wallet/withdraw" element={isLinkedDataMode ? <LinkedFeatureUnavailable feature="钱包提现" /> : <WalletWithdrawPage />} />
               <Route path="/favorites" element={isLinkedDataMode ? <LinkedFeatureUnavailable feature="收藏" /> : <FavoritesPage />} />
               <Route path="/sell/goods" element={isLinkedDataMode ? <LinkedFeatureUnavailable feature="账号回收" /> : <SellGoodsPage />} />
               <Route path="/aftersales" element={isLinkedDataMode ? <LinkedFeatureUnavailable feature="售后" /> : <AfterSalesPage />} />
-              <Route path="/aftersales/apply" element={isLinkedDataMode ? <LinkedFeatureUnavailable feature="售后" /> : <AfterSaleApplyPage />} />
+              <Route path="/aftersales/apply" element={<AfterSaleApplyPage />} />
               <Route path="/aftersales/:id" element={isLinkedDataMode ? <LinkedFeatureUnavailable feature="售后" /> : <AfterSaleDetailPage />} />
               <Route path="/seller/center" element={<SellerCenterPage />} />
               {isLinkedDataMode && <Route path="/seller" element={<SellerCenterPage />} />}

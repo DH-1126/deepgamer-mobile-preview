@@ -1,0 +1,81 @@
+.account-showcase {
+  --showcase-bg: #10101d; --showcase-panel: #181724; --showcase-line: #343340;
+  --showcase-muted: #afadbf; --showcase-gold: #f5d77c;
+  width: 100%; max-width: 430px; height: 100dvh; margin: 0 auto; display: flex; flex-direction: column;
+  overflow: hidden; color: #f7f6fa; background: var(--showcase-bg);
+  font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+.account-showcase button:focus-visible { outline: 2px solid #ffe72e; outline-offset: -3px; }
+.account-showcase__nav { flex: 0 0 44px; display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; padding: 0 8px; border-bottom: 1px solid #ffffff0b; }
+.account-showcase__nav strong { font-size: 17px; text-align: center; font-weight: 650; }
+.account-showcase__nav button { display: grid; place-items: center; height: 44px; padding: 0; }
+.account-showcase__scroll { min-height: 0; flex: 1; overflow-y: auto; overscroll-behavior: contain; }
+.account-showcase__overview { padding: 8px 14px 14px; }
+.account-showcase__brand { display: flex; align-items: center; gap: 10px; }
+.account-showcase__brand > img { width: 34px; height: 34px; object-fit: cover; border-radius: 8px; }
+.account-showcase__brand strong { display: block; font-size: 16px; line-height: 20px; font-weight: 700; letter-spacing: 2px; color: var(--showcase-gold); }
+.account-showcase__brand small { display: block; margin-top: 2px; font-size: 10px; line-height: 12px; letter-spacing: 1px; color: var(--showcase-muted); }
+.account-showcase__hero { margin: 8px 0 10px; }
+.account-showcase__hero h1 { font-size: 23px; font-weight: 750; letter-spacing: 1px; line-height: 1.4; color: var(--showcase-gold); }
+.account-showcase__hero > div { display: flex; gap: 8px; align-items: center; justify-content: space-between; margin-top: 6px; }
+.account-showcase__hero p { max-width: 57%; font-size: 10px; line-height: 1.7; color: var(--showcase-muted); }
+.account-showcase__hero strong { display: flex; align-items: baseline; gap: 5px; white-space: nowrap; }
+.account-showcase__hero strong small { font-size: 10px; font-weight: 400; color: var(--showcase-muted); }
+.account-showcase__hero strong span { color: #ff5d6d; font-size: 24px; font-weight: 750; letter-spacing: -.7px; }
+.account-showcase__metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; padding: 4px 8px; background: var(--showcase-panel); border: 1px solid #45424b; border-radius: 12px; }
+.account-showcase__metrics > div { min-width: 0; padding: 5px 2px 11px; text-align: center; }
+.account-showcase__metrics > div:nth-child(n+4) { padding: 11px 2px 3px; border-top: 1px solid var(--showcase-line); }
+.account-showcase__metrics > div:not(:nth-child(3n)) { border-right: 1px solid var(--showcase-line); }
+.account-showcase__metrics dd { margin: 0; font-size: 15px; font-weight: 700; line-height: 22px; overflow-wrap: anywhere; }
+.account-showcase__metrics > div:first-child dd { font-size: 13px; }
+.account-showcase__metrics dt { margin-top: 3px; font-size: 11px; color: var(--showcase-muted); }
+.account-showcase__chips { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 12px; }
+.account-showcase__chip { display: flex; gap: 4px; justify-content: center; align-items: center; padding: 5px 2px; font-size: 10px; border: 1px solid; border-radius: 99px; white-space: nowrap; }
+.account-showcase__chip b { color: #f9f8fb; font-size: 12px; }
+.account-showcase__chip--gold { color: #f2d170; border-color: #aa8a37; background: #392f24; }
+.account-showcase__chip--orange { color: #ffb582; border-color: #a9714a; background: #342723; }
+.account-showcase__chip--purple { color: #d2acff; border-color: #8d60b9; background: #2c2341; }
+.account-showcase__chip--blue { color: #90d6f8; border-color: #467e9f; background: #202d40; }
+.account-showcase__tabs { position: sticky; top: 0; z-index: 2; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); height: 44px; background: #13121f; border-block: 1px solid #ffffff0d; }
+.account-showcase__tabs button { position: relative; display: flex; align-items: center; justify-content: center; gap: 5px; padding: 0 3px; color: var(--showcase-muted); font-size: 14px; font-weight: 650; }
+.account-showcase__tabs small { font-size: 12px; }
+.account-showcase__tabs button[aria-selected="true"] { color: var(--showcase-gold); }
+.account-showcase__tabs button[aria-selected="true"]::after { content: ''; position: absolute; bottom: 0; width: 28px; height: 3px; background: var(--showcase-gold); border-radius: 4px; }
+.account-showcase__inventory { padding: 0 14px 14px; --skin-color: #efd47b; --skin-label: #f3d16c; }
+.account-showcase__inventory--purple { --skin-color: #d0a1fd; --skin-label: #c696eb; }
+.account-showcase__inventory--blue { --skin-color: #8bcefc; --skin-label: #85c8ed; }
+.account-showcase__section-title { min-height: 44px; display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.account-showcase h2 { font-size: 16px; font-weight: 650; }
+.account-showcase__section-title h2 { display: flex; align-items: center; gap: 6px; color: var(--skin-color); }
+.account-showcase__section-title button { min-height: 44px; padding: 0; color: var(--showcase-muted); font-size: 11px; }
+.account-showcase__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.account-showcase__skin { position: relative; padding: 0; aspect-ratio: 3 / 4; overflow: hidden; border: 1px solid #555063; border-radius: 9px; isolation: isolate; background: #252332; }
+.account-showcase__art { position: absolute; top: 0; left: 0; width: 100%; overflow: hidden; aspect-ratio: 168 / 238; }
+.account-showcase__art img { position: absolute; max-width: none; width: 1056.548%; height: auto; left: var(--art-x); top: var(--art-y); }
+.account-showcase__rarity { position: absolute; top: 0; left: 0; padding: 4px 6px; color: #1e1626; background: var(--skin-label); border-radius: 0 0 7px 0; font-size: 10px; line-height: 14px; font-weight: 650; }
+.account-showcase__skin-caption { position: absolute; inset: auto 0 0; padding: 27px 3px 9px; background: linear-gradient(transparent, #10101deb 40%, #10101d); font-size: 11px; line-height: 1.55; }
+.account-showcase__skin-caption b { display: block; font-weight: 650; font-size: 12px; }
+.account-showcase__skin-caption > span { color: #cfccdf; }
+.account-showcase__expand { display: flex; justify-content: center; align-items: center; gap: 4px; width: 100%; min-height: 44px; margin-top: 6px; color: var(--showcase-gold); font-size: 12px; }
+.account-showcase__source { margin-top: 4px; text-align: center; color: #a7a4b8; font-size: 10px; line-height: 1.8; }
+.account-showcase__info { margin: 0 14px 20px; padding: 16px; background: var(--showcase-panel); border: 1px solid var(--showcase-line); border-radius: 12px; }
+.account-showcase__info dl { margin: 10px 0; font-size: 12px; }
+.account-showcase__info dl > div { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; }
+.account-showcase__info dt { color: var(--showcase-muted); }
+.account-showcase__info dd { margin: 0; text-align: right; }
+.account-showcase__info p { color: var(--showcase-muted); font-size: 11px; line-height: 1.8; }
+.account-showcase__actions { display: grid; flex-shrink: 0; grid-template-columns: 1fr 1.9fr; gap: 10px; padding: 12px 14px max(16px, env(safe-area-inset-bottom)); border-top: 1px solid #45424b; background: var(--showcase-bg); }
+.account-showcase__actions button { height: 48px; border-radius: 10px; font-size: 16px; font-weight: 700; color: #131317; background: #fff; display: flex; align-items: center; justify-content: center; gap: 5px; }
+.account-showcase__actions button:last-child { font-size: 20px; background: #ffe629; border: none; }
+@media (max-width: 350px) {
+  .account-showcase__overview { padding-inline: 12px; }
+  .account-showcase__hero h1 { font-size: 20px; }
+  .account-showcase__hero strong span { font-size: 21px; }
+  .account-showcase__metrics dd { font-size: 13px; }
+  .account-showcase__metrics > div:first-child dd { font-size: 11px; }
+  .account-showcase__chip { font-size: 9px; gap: 3px; }
+  .account-showcase__inventory { padding-inline: 12px; }
+  .account-showcase__actions { gap: 8px; padding-inline: 12px; }
+  .account-showcase__actions button { font-size: 14px; }
+  .account-showcase__actions button:last-child { font-size: 18px; }
+}

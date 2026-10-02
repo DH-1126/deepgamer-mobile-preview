@@ -1,5 +1,18 @@
 import { DRAFT3_FILE_KEY, type BusinessPageSpec } from './businessPageSpec'
 
+/**
+ * 数据来源与显示逻辑（2026-10-01 联动修复更新）：
+ *
+ * 确认购买预览——方案切换与包赔定价：
+ * - 普通交易：应付 = 商品金额 + 标准买家服务费（BUYER_STANDARD_SERVICE_FEE 5%，来自费率配置）。
+ * - 包赔保障：应付 = 商品金额 + 包赔服务加价（INSURANCE_MARKUP 10%，来自费率配置）。
+ *   包赔方案下标准买家服务费不叠加（加价即包赔服务对价）。
+ * - 切方案重新请求服务端报价；报价创建后冻结（后续商品价格变更不影响已创建报价）。
+ * - 数据来源：/client/quotes 接口 + operations_service_fee_configs/items 表（与生产 2000002 镜像）。
+ *
+ * 商品列表排序：按创建时间或推荐分倒序。
+ */
+
 const prototypeBoundary = {
   title: '原型边界',
   items: ['商品、筛选与推荐均为本地演示数据；真实商品、筛选字段、排序与分页以正式接口为准。'],
@@ -56,10 +69,13 @@ export const CATALOG_PAGE_SPECS: readonly BusinessPageSpec[] = [
   {
     nodeId: 'orders:preview',
     screenName: '商品 · 确认购买预览',
-    summary: '确认购买前的订单预览：商品摘要、价格与购买须知，确认后创建待付款订单。',
-    referenceNote: '确认购买预览复用订单确认结构，在商品详情页内本地实现；正式下单以订单确认页为准。',
+    summary: '确认购买前的订单预览：商品摘要、价格与购买须知，确认后创建待付款订单。支持普通交易与包赔保障两种方案切换，服务端按方案计算报价。',
+    referenceNote: '确认购买预览复用订单确认结构，在商品详情页内本地实现；正式下单以订单确认页为准。2026-10-01 包赔定价接线后，包赔保障方案已可用。',
     sections: [
       { title: '页面结构', items: ['展示商品摘要、实付金额与购买须知勾选。', '确认后创建本地待付款订单并进入订单确认/收银台流程。'] },
+      { title: '方案切换', items: ['普通交易与包赔保障两种方案；切换方案会重新请求服务端报价，不使用上一方案的金额。', '服务端报价分项展示：商品金额、服务费、保障费、优惠与应付金额；下单只引用报价标识，不提交前端金额。'] },
+      { title: '包赔保障定价', items: ['保障费 = 商品金额 × 包赔服务加价费率（INSURANCE_MARKUP，当前 10%，来自运营管理→服务费配置）。', '包赔方案下标准买家服务费不叠加（加价即包赔服务对价）。', '报价创建后冻结：后续商品价格变更不影响已创建的报价与订单。'] },
+      { title: '数据来源', items: ['报价由服务端 /client/quotes 接口生成并冻结；商品快照来自 /client/goods 详情接口。', '包赔费率来自运营管理→服务费配置（operations_service_fee_configs）的 INSURANCE_MARKUP 项，当前 1000bps=10%。'] },
       prototypeBoundary,
     ],
   },
